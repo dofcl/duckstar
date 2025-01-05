@@ -40,7 +40,7 @@ function deleteTodo(id: string) {
 <template>
   <main>
     <h1>My todos</h1>
-    <button @click="createTodo">+ new</button>
+    <el-button @click="createTodo">+ new</el-button>
     <ul>
       <li 
         v-for="todo in todos" 
