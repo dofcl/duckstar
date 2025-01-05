@@ -12,6 +12,16 @@ const schema = a.schema({
       content: a.string(),
     })
     .authorization((allow) => [allow.publicApiKey()]),
+  
+  // Add generative AI conversation route
+  Chat: a
+    .conversation()
+    .authorization((allow) => [allow.publicApiKey()]),
+  
+  // Add generative AI generation route
+  Generate: a
+    .generation()
+    .authorization((allow) => [allow.publicApiKey()]),
 });
 
 export type Schema = ClientSchema<typeof schema>;
