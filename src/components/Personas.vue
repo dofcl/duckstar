@@ -1,9 +1,11 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted,defineEmits } from 'vue'
 
 const displayedImages = ref([])
 const loading = ref(true)
 const batchSize = 10
+const selectedPersona = ref(null)
+const emit = defineEmits(['persona-selected'])
 
 const imageModules = import.meta.glob('@/assets/images/personas/*.{jpg,jpeg,png,gif}', {
     eager: false
@@ -58,6 +60,13 @@ const reshuffleImages = async () => {
   await loadNextBatch()
 }
 
+function selectPersona(index) {
+    selectedPersona.value = displayedImages.value[index]
+    console.log('Selected persona:', selectedPersona.value)
+    // Emit the selected persona to the parent component
+    emit('persona-selected', selectedPersona.value)
+}
+
 onMounted(async () => {
   await loadNextBatch()
 })
@@ -67,7 +76,7 @@ onMounted(async () => {
   <div>
     <el-carousel :interval="4000" type="card" height="150px" :autoplay="true" :initial-index="0" arrow="always"
         pause-on-hover="true" loop="true" motion-blur="true" cardScale="0.8">
-        <el-carousel-item v-for="(image, index) in displayedImages" :key="index" class="carousel-item">
+        <el-carousel-item v-for="(image, index) in displayedImages" :key="index" class="carousel-item" @click="selectPersona(index)">
             <img :src="image" :alt="`Image ${index + 1}`" class="carousel-image rd-full">
         </el-carousel-item>
     </el-carousel>
@@ -100,5 +109,8 @@ onMounted(async () => {
 
 .el-carousel__indicator--horizontal {
     display: none;
+}
+.el-carousel__mask {
+    background: transparent;
 }
 </style>

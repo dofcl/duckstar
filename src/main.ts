@@ -23,7 +23,6 @@ const router = createRouter({
 
 Amplify.configure(outputs);
 
-console.log('Registered routes:', router.getRoutes())
 
 const app = createApp(App)
 for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
