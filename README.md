@@ -1,16 +1,3 @@
-# DuckStar : Co-created Pop Stars with AI
-
-
-
-## SETUP 
-use node 22
-`nvm use 22`
-
-
-## test locally set region and run sandbox (will use local db)
-`export AWS_REGION=eu-central-1` // choose your aws region
-`npx amplify sandbox`
-
 ## AWS Amplify Vue.js Starter Template
 
 This repository provides a starter template for creating applications using Vue.js and AWS Amplify, emphasizing easy setup for authentication, API, and database capabilities.
