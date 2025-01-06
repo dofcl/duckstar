@@ -1,65 +1,131 @@
 body {
-  margin: 0;
   background: linear-gradient(180deg, rgb(65, 119, 255), rgb(180, 51, 216));
-  display: flex;
+  background-color: #090909;
   font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
-  height: 100vh;
-  width: 100vw;
-  justify-content: center;
-  align-items: center;
 }
 
-main {
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
+.text-truncate {
+  display: inline-block;
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-button {
-  border-radius: 8px;
-  border: 1px solid transparent;
-  padding: 0.6em 1.2em;
-  font-size: 1em;
-  font-weight: 500;
-  font-family: inherit;
-  background-color: #1a1a1a;
-  cursor: pointer;
-  transition: border-color 0.25s;
-  color: white;
-}
-button:hover {
-  border-color: #646cff;
-}
-button:focus,
-button:focus-visible {
-  outline: 4px auto -webkit-focus-ring-color;
+h1,
+.coiny {
+  font-family: 'Coiny', sans-serif;
+  text-align: center;
 }
 
-ul {
-  padding-inline-start: 0;
-  margin-block-start: 0;
-  margin-block-end: 0;
-  list-style-type: none;
-  display: flex;
-  flex-direction: column;
-  margin: 8px 0;
-  border: 1px solid black;
-  gap: 1px;
-  background-color: black;
-  border-radius: 8px;
-  overflow: auto;
+:root {
+  --el-color-primary: #f9db4a;
+  --el-color-primary-light-2: #c8b34a;
+  --el-color-primary-light-3: #e0c74a;
+  --el-color-primary-light-5: #ab9838;
+  --el-color-primary-dark-2: #c8b34a;
 }
 
-li {
-  background-color: white;
-  padding: 8px;
+.el-button--primary {
+  --el-button-text-color: #000;
+  --el-button-bg-color: var(--el-color-primary);
+  --el-button-border-color: var(--el-color-primary);
+  --el-button-outline-color: var(--el-color-primary-light-5);
+  --el-button-active-color: var(--el-color-primary-dark-2);
+  --el-button-hover-text-color: #000;
+  --el-button-hover-link-text-color: #000;
+  --el-button-hover-bg-color: var(--el-color-primary-light-3);
+  --el-button-hover-border-color: var(--el-color-primary-light-3);
+  --el-button-active-bg-color: var(--el-color-primary-dark-2);
+  --el-button-active-border-color: var(--el-color-primary-dark-2);
+  --el-button-disabled-text-color: var(--el-color-white);
+  --el-button-disabled-bg-color: var(--el-color-primary-light-5);
+  --el-button-disabled-border-color: var(--el-color-primary-light-5);
 }
 
-li:hover {
-  background: #dadbf9;
-}
-
-a {
-  font-weight: 800;
+.button {
+  display: inline-block;
   text-decoration: none;
+  color: #222;
+  font-weight: bold;
+  background-color: #f9db4a;
+  padding: 14px 35px 35px 35px;
+  font-size: 24px;
+  border: 1px solid #e6c922;
+  text-shadow: 2px 2px white, -2px -2px #fff;
+  background-image: linear-gradient(bottom, rgb(249, 219, 74) 0%, rgb(251, 227, 110) 100%);
+  background-image: -o-linear-gradient(bottom, rgb(249, 219, 74) 0%, rgb(251, 227, 110) 100%);
+  background-image: -moz-linear-gradient(bottom, rgb(249, 219, 74) 0%, rgb(251, 227, 110) 100%);
+  background-image: -webkit-linear-gradient(bottom, rgb(249, 219, 74) 0%, rgb(251, 227, 110) 100%);
+  background-image: -ms-linear-gradient(bottom, rgb(249, 219, 74) 0%, rgb(251, 227, 110) 100%);
+  background-image: -webkit-gradient(linear,
+      left bottom,
+      left top,
+      color-stop(0, rgb(249, 219, 74)),
+      color-stop(1, rgb(251, 227, 110)));
+  -webkit-border-radius: 5px;
+  -moz-border-radius: 5px;
+  border-radius: 5px;
+
+  -webkit-box-shadow: 0px 6px 0px #d4b91f, 0px 3px 15px rgba(0, 0, 0, .4), inset 0px 1px 0px rgba(255, 255, 255, .3), inset 0px 0px 3px rgba(255, 255, 255, .5);
+  -moz-box-shadow: 0px 6px 0px #d4b91f, 0px 3px 15px rgba(0, 0, 0, .4), inset 0px 1px 0px rgba(255, 255, 255, .3), inset 0px 0px 3px rgba(255, 255, 255, .5);
+  box-shadow: 0px 6px 0px #d4b91f, 0px 3px 15px rgba(0, 0, 0, .4), inset 0px 1px 0px rgba(255, 255, 255, .3), inset 0px 0px 3px rgba(255, 255, 255, .5);
+  -webkit-transition: all .1s ease-in-out;
+  -moz-transition: all .2s ease-in-out;
+  transition: all .2s ease-in-out;
+}
+
+.button:hover {
+  background-image: linear-gradient(bottom, rgb(251, 227, 110) 0%, rgb(253, 235, 140) 100%);
+  background-image: -o-linear-gradient(bottom, rgb(251, 227, 110) 0%, rgb(253, 235, 140) 100%);
+  background-image: -moz-linear-gradient(bottom, rgb(251, 227, 110) 0%, rgb(253, 235, 140) 100%);
+  background-image: -webkit-linear-gradient(bottom, rgb(251, 227, 110) 0%, rgb(253, 235, 140) 100%);
+  background-image: -ms-linear-gradient(bottom, rgb(251, 227, 110) 0%, rgb(253, 235, 140) 100%);
+  background-image: -webkit-gradient(linear,
+      left bottom,
+      left top,
+      color-stop(0, rgb(251, 227, 110)),
+      color-stop(1, rgb(253, 235, 140)));
+}
+
+.button:active {
+  -webkit-box-shadow: 0px 2px 0px #d4b91f, 0px 1px 6px rgba(0, 0, 0, .4), inset 0px 1px 0px rgba(255, 255, 255, .3), inset 0px 0px 3px rgba(255, 255, 255, .5);
+  -moz-box-shadow: 0px 2px 0px #d4b91f, 0px 1px 6px rgba(0, 0, 0, .4), inset 0px 1px 0px rgba(255, 255, 255, .3), inset 0px 0px 3px rgba(255, 255, 255, .5);
+  box-shadow: 0px 2px 0px #d4b91f, 0px 1px 6px rgba(0, 0, 0, .4), inset 0px 1px 0px rgba(255, 255, 255, .3), inset 0px 0px 3px rgba(255, 255, 255, .5);
+  background-image: linear-gradient(bottom, rgb(247, 215, 60) 0%, rgb(249, 219, 74) 100%);
+  background-image: -o-linear-gradient(bottom, rgb(247, 215, 60) 0%, rgb(249, 219, 74) 100%);
+  background-image: -moz-linear-gradient(bottom, rgb(247, 215, 60) 0%, rgb(249, 219, 74) 100%);
+  background-image: -webkit-linear-gradient(bottom, rgb(247, 215, 60) 0%, rgb(249, 219, 74) 100%);
+  background-image: -ms-linear-gradient(bottom, rgb(247, 215, 60) 0%, rgb(249, 219, 74) 100%);
+  background-image: -webkit-gradient(linear,
+      left bottom,
+      left top,
+      color-stop(0, rgb(247, 215, 60)),
+      color-stop(1, rgb(249, 219, 74)));
+  -webkit-transform: translate(0, 4px) rotateX(20deg);
+  -moz-transform: translate(0, 4px);
+  transform: translate(0, 4px);
+}
+
+.text-truncate {
+  display: inline-block;
+  max-width: 100px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.el-icon svg, .el-icon {
+  height: 1.5em;
+  width: em;
+}
+
+.el-main {
+  --el-main-padding: 0 !important;
+  box-sizing: border-box;
+  display: block;
+  flex: 1;
+  flex-basis: auto;
+  overflow: auto;
+  padding: 0 !important;
 }
