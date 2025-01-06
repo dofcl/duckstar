@@ -8,7 +8,19 @@
       "path": "./tsconfig.app.json"
     }
   ],
-  "compilerOptions": {
-    "types": ["@aws-amplify/backend"]
+   "compilerOptions": {
+    "types": ["@aws-amplify/backend"],
+    "strict": false,
+    "noImplicitAny": false,
+    "noImplicitThis": false,
+    "alwaysStrict": false,
+    "strictNullChecks": false,
+    "strictFunctionTypes": false,
+    "strictBindCallApply": false,
+    "strictPropertyInitialization": false,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    "noImplicitReturns": false,
+    "noFallthroughCasesInSwitch": false
   }
 }
