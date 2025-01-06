@@ -1,18 +1,18 @@
-<script setup>
-import { ref, onMounted,defineEmits } from 'vue'
+<script setup lang="ts">
+import { ref, onMounted, defineEmits } from 'vue'
 
-const displayedImages = ref([])
-const loading = ref(true)
+const displayedImages = ref<string[]>([])
+const loading = ref<boolean>(true)
 const batchSize = 10
-const selectedPersona = ref(null)
-const emit = defineEmits(['persona-selected'])
+const selectedPersona = ref<string | null>(null)
+const emit = defineEmits<(event: 'persona-selected', persona: string | null) => void>()
 
 const imageModules = import.meta.glob('@/assets/images/personas/*.{jpg,jpeg,png,gif}', {
     eager: false
 })
 
 // Fisher-Yates shuffle implementation
-const fisherYatesShuffle = (array) => {
+const fisherYatesShuffle = (array: string[]) => {
     const shuffled = [...array]
     for (let i = shuffled.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
@@ -37,7 +37,7 @@ const loadNextBatch = async () => {
     const batchPromises = imageKeys
       .slice(start, end)
       .map(async (key) => {
-        const module = await imageModules[key]()
+        const module = await imageModules[key]() as { default: string }
         return module.default
       })
 
@@ -60,7 +60,7 @@ const reshuffleImages = async () => {
   await loadNextBatch()
 }
 
-function selectPersona(index) {
+function selectPersona(index: number) {
     selectedPersona.value = displayedImages.value[index]
     console.log('Selected persona:', selectedPersona.value)
     // Emit the selected persona to the parent component
@@ -75,13 +75,14 @@ onMounted(async () => {
 <template>
   <div>
     <el-carousel :interval="4000" type="card" height="150px" :autoplay="true" :initial-index="0" arrow="always"
-        pause-on-hover="true" loop="true" motion-blur="true" cardScale="0.8">
+        :pause-on-hover="true" :loop="true" :motion-blur="true" :card-scale="0.8">
         <el-carousel-item v-for="(image, index) in displayedImages" :key="index" class="carousel-item" @click="selectPersona(index)">
             <img :src="image" :alt="`Image ${index + 1}`" class="carousel-image rd-full">
         </el-carousel-item>
     </el-carousel>
   </div>
 </template>
+
 <style>
 .carousel-item {
     display: flex;

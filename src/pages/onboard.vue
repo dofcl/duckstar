@@ -25,11 +25,11 @@
 import MusicGenre from '@/components/MusicGenre.vue';
 import Personas from '@/components/Personas.vue';
 import { onMounted, ref } from 'vue';
-const bgAudio = document.getElementById('bg-audio')
+const bgAudio = document.getElementById('bg-audio') as HTMLAudioElement;   
 const myPersona = ref(null)
 const stage = ref(0)
 
-function handleSelectedPersona(persona) {
+function handleSelectedPersona(persona: null) {
     myPersona.value = persona
     console.log('Selected persona:', persona);
 }
@@ -44,17 +44,16 @@ function next() {
 
 }
 
+const initAudio = () => {
+    if (bgAudio) {
+        bgAudio.volume = 0.6; // Set initial volume
+        bgAudio.play();
+    }
+}
+
 onMounted(() => {
     console.log('Onboard page mounted');
-
-    // Check if audio is not playing
-    if (bgAudio && bgAudio.paused) {
-        bgAudio.play()
-            .catch(error => {
-                console.error('Error playing audio:', error);
-                // Handle the error appropriately
-            });
-    }
+    initAudio();
 });
 
 </script>
