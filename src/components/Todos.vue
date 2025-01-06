@@ -13,8 +13,8 @@ function listTodos() {
   client.models.Todo.observeQuery().subscribe({
     next: ({ items, isSynced }) => {
       todos.value = items
-     },
-  }); 
+    },
+  });
 }
 
 function createTodo() {
@@ -25,9 +25,13 @@ function createTodo() {
     listTodos();
   });
 }
-    
+
+function deleteTodo(id: string) {
+  client.models.Todo.delete({ id })
+}
+
 // fetch todos when the component is mounted
- onMounted(() => {
+onMounted(() => {
   listTodos();
 });
 
@@ -36,11 +40,9 @@ function createTodo() {
 <template>
   <main>
     <h1>My todos</h1>
-    <button @click="createTodo">+ new</button>
+    <el-button @click="createTodo" type="primary">+ new</el-button>
     <ul>
-      <li 
-        v-for="todo in todos" 
-        :key="todo.id">
+      <li v-for="todo in todos" :key="todo.id" @click="deleteTodo(todo.id)">
         {{ todo.content }}
       </li>
     </ul>

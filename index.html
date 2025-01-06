@@ -1,13 +1,46 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8">
-    <link rel="icon" href="/favicon.ico">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Vite App</title>
-  </head>
-  <body>
-    <div id="app"></div>
-    <script type="module" src="/src/main.ts"></script>
-  </body>
+
+<head>
+  <meta charset="UTF-8">
+  <link rel="icon" href="/favicon.ico">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/png" href="/favicon-96x96.png" sizes="96x96" />
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <link rel="shortcut icon" href="/favicon.ico" />
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+  <meta name="apple-mobile-web-app-title" content="DuckStar" />
+  <link rel="manifest" href="/site.webmanifest" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Coiny&display=swap" rel="stylesheet">
+  <title>DuckStar</title>
+  <style>
+    .intro {
+      border-radius: 10px;
+      width: 400px;
+      max-width: 80%;
+      margin: auto;
+      text-align: center;
+      display: block;
+      position: relative;
+    }
+    .loading {
+      font-family: 'Coiny', sans-serif;
+      text-align: center;
+      color: #fff;
+      --webkit-text-stroke: 1px black;
+      stroke: 2px black;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="app">
+    <img src="/images/duckstar-into.jpg" alt="DuckStar" class="intro" /><br>
+    <p class="loading">Loading...</p>
+  </div>
+  <script type="module" src="/src/main.ts"></script>
+</body>
+
 </html>
