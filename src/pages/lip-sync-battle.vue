@@ -41,8 +41,8 @@
 import { VideoPause, VideoPlay } from '@element-plus/icons-vue';
 import { onMounted, ref } from 'vue';
 let bgAudio: HTMLAudioElement | null = null;
-const videoUrl = new URL('@/assets/videos/demo1.mp4', import.meta.url).href;
-const videoUrlDubbed = new URL('@/assets/videos/dan-dub.mp4', import.meta.url).href;
+const videoUrl = new URL('/src/assets/videos/demo1.mp4', import.meta.url).href;
+const videoUrlDubbed = new URL('/src/assets/videos/dan-dub.mp4', import.meta.url).href;
 const playing = ref(false);
 
 
