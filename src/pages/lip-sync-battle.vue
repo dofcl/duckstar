@@ -3,10 +3,10 @@
     <div class="container mx-auto p-4">
         <div class="grid grid-cols-2 gap-4">
             <div class="video-container">
-                <video id="preview-video" class="preview-video" :src="videoUrl" type="video/mp4"></video>
+                <video id="preview-video" class="preview-video" :src="videoUrl" type="video/mp4" playsinline></video>
             </div>
             <div class="video-container">
-                <video id="preview-video-dubbed" class="preview-video" :src="videoUrlDubbed" type="video/mp4"></video>
+                <video id="preview-video-dubbed" class="preview-video" :src="videoUrlDubbed" type="video/mp4" playsinline></video>
             </div>
         </div>
     </div>
@@ -41,8 +41,8 @@
 import { VideoPause, VideoPlay } from '@element-plus/icons-vue';
 import { onMounted, ref } from 'vue';
 let bgAudio: HTMLAudioElement | null = null;
-const videoUrl = new URL('/videos/demo1.mp4', import.meta.url).href;
-const videoUrlDubbed = new URL('/videos/dan-dub.mp4', import.meta.url).href;
+const videoUrl = new URL('@/assets/videos/demo1.mp4', import.meta.url).href;
+const videoUrlDubbed = new URL('@/assets/videos/dan-dub.mp4', import.meta.url).href;
 const playing = ref(false);
 
 
