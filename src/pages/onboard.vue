@@ -29,7 +29,7 @@ const bgAudio = document.getElementById('bg-audio') as HTMLAudioElement;
 const myPersona = ref(null)
 const stage = ref(0)
 
-function handleSelectedPersona(persona: null) {
+function handleSelectedPersona(persona: any) {
     myPersona.value = persona
     console.log('Selected persona:', persona);
 }
@@ -52,7 +52,6 @@ const initAudio = () => {
 }
 
 onMounted(() => {
-    console.log('Onboard page mounted');
     initAudio();
 });
 
