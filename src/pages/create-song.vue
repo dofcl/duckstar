@@ -1,234 +1,304 @@
 <template>
     <div class="box">
+        <!-- Record players (drop zones) -->
         <div class="box1">
-            <div v-for="(record, i) in records" :key="i"
-                :class="[`record${record.group}${record.suffix}`, { 'record1spin': record.isSpinning && record.group === 1, 'record2spin': record.isSpinning && record.group === 2, 'record3spin': record.isSpinning && record.group === 3 }]"
-                @dragover.prevent @drop.prevent="(e) => handleDrop(e, record)">
-                <div :class="`record${record.group}color`"></div>
+            <div class="record-grid">
+                <div v-for="group in groupsConfig" :key="`record-${group.id}`"
+                    :class="['record-player', `group-${group.id}`, { 'spinning': group.isSpinning }]"
+                    @dragover.prevent @drop.prevent="(e) => handleDrop(e, group)">
+                    <div :class="`color-indicator group-${group.id}-color`"></div>
+                </div>
             </div>
         </div>
 
+        <!-- Volume sliders -->
         <div class="box2">
-            <div v-for="(range, i) in ranges" :key="i" :class="`range${i + 1}`">
-                <input type="range" min="0" max="100" step="1" @change="e => setVolume(i + 1, e.target.value)" />
+            <div class="slider-grid">
+                <div v-for="group in groupsConfig" :key="`range-${group.id}`" class="volume-range">
+                    <input type="range" min="0" max="100" step="1" @change="e => setVolume(group.id, e.target.value)" />
+                </div>
             </div>
         </div>
 
+        <!-- Draggable discs -->
         <div class="box3">
-            <template v-for="n in 15" :key="n">
-                <div :class="`disc${n}`" draggable="true" @dragstart="(e) => handleDragStart(e, n)"
-                    @drag="() => handleDrag(n)" :style="{ display: discStates[n - 1].hidden ? 'none' : 'block' }"></div>
-            </template>
+            <div class="disc-grid">
+                <div v-for="disc in discs" :key="`disc-${disc.id}`" :class="['mini-disc', `group-${disc.group}-disc`]"
+                    draggable="true" @dragstart="(e) => handleDragStart(e, disc)" @drag="() => handleDrag(disc)"
+                    v-show="!disc.hidden">
+                </div>
+            </div>
         </div>
 
-        <div class="cat1"></div>
-        <div class="cat2"></div>
-        <div class="box5">DRAG MINI RECORDS UP TO MATCHING COLOR
-            <el-button @click="addVocals">Add Vocal</el-button>
+        <div class="box5">
+            <div class="instructions">DRAG MINI RECORDS UP TO MATCHING COLOR</div>
+            <div class="controls">
+                <button @click="addVocals" class="vocal-button">Add Vocal</button>
+                <div class="instrument-selector">
+                    <select v-model="selectedInstrument" class="instrument-select">
+                        <option value="">Add Instrument...</option>
+                        <option v-for="inst in availableInstrumentsFiltered" :key="inst.id" :value="inst.id">
+                            {{ inst.label }}
+                        </option>
+                    </select>
+                    <button @click="addInstrument" class="add-instrument-button" :disabled="!selectedInstrument">
+                        Add
+                    </button>
+                </div>
+            </div>
         </div>
 
-
-        <audio id="vocal1" src="../src/assets/music/Vocal3.mp3"></audio>
+        <audio id="vocal1" src="../src/assets/music/Vocal1.mp3"></audio>
     </div>
 </template>
 
 <script>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { fadeOutAndStop, initAudio } from '@/utils/fadeout'
+
 export default {
     name: 'DjApp',
     setup() {
+        // Initial configuration with just drums
+        const initialConfig = [
+            { 
+                id: 3, 
+                color: '#11b011', 
+                audioPrefix: 'drums', 
+                recordsPerGroup: 3,  // This now only affects number of draggable discs
+                label: 'Drums',
+                isSpinning: false,
+                currentDiscId: null
+            }
+        ]
+
+        // Available instruments that can be added
+        const availableInstruments = [
+            { id: 1, color: '#1c0eb7', audioPrefix: 'Bass', recordsPerGroup: 3, label: 'Bass' },
+            { id: 2, color: '#b01111', audioPrefix: 'Cello', recordsPerGroup: 3, label: 'Cello' },
+            { id: 3, color: '#9932CC', audioPrefix: 'Piano', recordsPerGroup: 3, label: 'Piano' },
+            { id: 4, color: '#FFA500', audioPrefix: 'Perc', recordsPerGroup: 3, label: 'Perc' },
+            { id: 5, color: '#FF1493', audioPrefix: 'Top', recordsPerGroup: 3, label: 'Top' },
+            { id: 6, color: '#00CED1', audioPrefix: 'Violin', recordsPerGroup: 3, label: 'Violin' },
+            { id: 7, color: '#FFD700', audioPrefix: 'Vocal', recordsPerGroup: 3, label: 'Vocal' }
+        ]
+
+        const groupsConfig = ref(initialConfig)
         const audioElements = ref({})
-        const discStates = ref(Array(15).fill().map(() => ({ hidden: false })))
-        const ranges = ref([1, 2, 3])
         const currentDraggedDisc = ref(null)
+        const trackStartTime = ref(null)  // Track when the first audio started
+        const isPlaying = ref(false)      // Global playing state
 
-        const records = ref([
-            { group: 1, suffix: '', acceptDisc: 1, isSpinning: false },
-            { group: 1, suffix: 'a', acceptDisc: 2, isSpinning: false },
-            { group: 1, suffix: 'b', acceptDisc: 3, isSpinning: false },
-            { group: 1, suffix: 'c', acceptDisc: 4, isSpinning: false },
-            { group: 1, suffix: 'd', acceptDisc: 5, isSpinning: false },
-            { group: 2, suffix: '', acceptDisc: 6, isSpinning: false },
-            { group: 2, suffix: 'a', acceptDisc: 7, isSpinning: false },
-            { group: 2, suffix: 'b', acceptDisc: 8, isSpinning: false },
-            { group: 2, suffix: 'c', acceptDisc: 9, isSpinning: false },
-            { group: 2, suffix: 'd', acceptDisc: 10, isSpinning: false },
-            { group: 3, suffix: '', acceptDisc: 11, isSpinning: false },
-            { group: 3, suffix: 'a', acceptDisc: 12, isSpinning: false },
-            { group: 3, suffix: 'b', acceptDisc: 13, isSpinning: false },
-            { group: 3, suffix: 'c', acceptDisc: 14, isSpinning: false },
-            { group: 3, suffix: 'd', acceptDisc: 15, isSpinning: false }
-        ])
-
-        const handleTransition = async () => {
-            await fadeOutAndStop(2000); // Fade out over 2 seconds
-        }
-
-        onMounted(() => {
-            initAudio();
-            handleTransition();
-            // Initialize looping audio elements
-            for (let i = 1; i <= 5; i++) {
-                audioElements.value[`audio${i}`] = new Audio(`../src/assets/music/bass${i}.mp3`)
-                console.log(audioElements.value[`audio${i}`])
-
-            }
-            for (let i = 6; i <= 10; i++) {
-                audioElements.value[`audio${i}`] = new Audio(`../src/assets/music/cello${i-5}.mp3`)
-                audioElements.value[`audio${i}`].loop = true
-            }
-            for (let i = 11; i <= 15; i++) {
-                audioElements.value[`audio${i}`] = new Audio(`../src/assets/music/drums-${i-11}.mp3`)
-                audioElements.value[`audio${i}`].loop = true
-            }
-
-        })
-
-        const handleDrag = (discNum) => {
-            records.value.forEach((record, i) => {
-                if (record.acceptDisc === discNum) {
-                    const recordDiv = document.querySelector(`.record${record.group}${record.suffix}`)
-                    if (recordDiv) {
-                        recordDiv.style.zIndex = '999'
-                    }
-                } else {
-                    const recordDiv = document.querySelector(`.record${record.group}${record.suffix}`)
-                    if (recordDiv) {
-                        recordDiv.style.zIndex = '888'
-                    }
-                }
-            })
-        }
-
-        const handleDragStart = (e, discNum) => {
-            currentDraggedDisc.value = discNum
-            handleDrag(discNum)
-
-            const disc = document.querySelector(`.disc${discNum}`)
-            if (disc) {
-                disc.style.zIndex = '9999'
-            }
-        }
-
-        const handleDrop = async (e, record) => {
-            e.preventDefault()
-            if (!currentDraggedDisc.value) return
-
-            const discNum = currentDraggedDisc.value
-            if (discNum !== record.acceptDisc) return
-
-            // Hide the dragged disc
-            discStates.value[discNum - 1] = { hidden: true }
-
-            // Find record index and update spinning state
-            const recordIndex = records.value.findIndex(r =>
-                r.group === record.group && r.suffix === record.suffix
-            )
-
-            if (recordIndex !== -1) {
-                // Stop spinning and audio for all records in the same group
-                records.value.forEach((r, i) => {
-                    if (r.group === record.group) {
-                        records.value[i] = { ...r, isSpinning: false }
-                    }
+        // Generate initial discs for a group
+        const generateInitialDiscs = (group, startId = 1) => {
+            const discsList = []
+            for (let i = 0; i < group.recordsPerGroup; i++) {
+                discsList.push({
+                    id: startId + i,
+                    group: group.id,
+                    index: i,
+                    hidden: false,
+                    audioIndex: i + 1
                 })
+            }
+            return discsList
+        }
 
-                // Update the dropped record to spin
-                records.value[recordIndex] = {
-                    ...records.value[recordIndex],
-                    isSpinning: true
+        const discs = ref(generateInitialDiscs(initialConfig[0]))
+
+        // Event handlers
+        const handleDrag = (disc) => {
+            const recordDiv = document.querySelector(`.group-${disc.group}`)
+            if (recordDiv) recordDiv.style.zIndex = '999'
+        }
+
+        const handleDragStart = (e, disc) => {
+            currentDraggedDisc.value = disc
+            handleDrag(disc)
+        }
+
+        const handleDrop = async (e, group) => {
+            if (!currentDraggedDisc.value || currentDraggedDisc.value.group !== group.id) return
+
+            // If there was a previous disc, unhide it
+            if (group.currentDiscId) {
+                const previousDiscIndex = discs.value.findIndex(d => d.id === group.currentDiscId)
+                if (previousDiscIndex !== -1) {
+                    discs.value[previousDiscIndex].hidden = false
                 }
+            }
 
-                try {
-                    // Stop all audio in the group
-                    const groupStart = (record.group - 1) * 5 + 1
-                    for (let i = groupStart; i < groupStart + 5; i++) {
-                        if (audioElements.value[`audio${i}`]) {
-                            audioElements.value[`audio${i}`].pause()
-                            audioElements.value[`audio${i}`].currentTime = 0
-                        }
-                    }
+            // Hide the newly dropped disc
+            const discIndex = discs.value.findIndex(d => d.id === currentDraggedDisc.value.id)
+            discs.value[discIndex].hidden = true
 
-                    // Play the new audio
-                    const audio = audioElements.value[`audio${discNum}`]
-                    console.log(audio)
-                    if (audio) {
+            // Stop currently playing audio for this group if any
+            if (group.currentDiscId) {
+                const audio = audioElements.value[`audio${group.currentDiscId}`]
+                if (audio) {
+                    audio.pause()
+                    audio.currentTime = 0
+                }
+            }
+
+            // Update group state
+            group.isSpinning = true
+            group.currentDiscId = currentDraggedDisc.value.id
+
+            // Play new audio in sync
+            try {
+                const audioId = `audio${currentDraggedDisc.value.id}`
+                const audio = audioElements.value[audioId]
+                if (audio) {
+                    if (!isPlaying.value) {
+                        // First audio to play
+                        trackStartTime.value = Date.now()
+                        isPlaying.value = true
                         audio.currentTime = 0
-                        audio.volume = 0.5
-                        await audio.play()
+                    } else {
+                        // Sync with existing audio
+                        const elapsed = (Date.now() - trackStartTime.value) / 1000
+                        const duration = audio.duration
+                        audio.currentTime = elapsed % duration
                     }
-                } catch (error) {
-                    console.error('Audio playback failed:', error)
+                    audio.volume = 0.5
+                    await audio.play()
                 }
+            } catch (error) {
+                console.error('Audio playback failed:', error)
             }
 
             currentDraggedDisc.value = null
         }
 
-        const setVolume = (group, value) => {
-            const volumeLevel = value / 100
-            const start = (group - 1) * 5 + 1
-            for (let i = start; i < start + 5; i++) {
-                if (audioElements.value[`audio${i}`]) {
-                    audioElements.value[`audio${i}`].volume = volumeLevel
+        const setVolume = (groupId, value) => {
+            const group = groupsConfig.value.find(g => g.id === groupId)
+            if (group && group.currentDiscId) {
+                const audio = audioElements.value[`audio${group.currentDiscId}`]
+                if (audio) audio.volume = value / 100
+            }
+        }
+
+        // Initialize audio elements
+        onMounted(() => {
+            initAudio()
+            handleTransition()
+
+            discs.value.forEach(disc => {
+                audioElements.value[`audio${disc.id}`] = new Audio(
+                    `../src/assets/music/${groupsConfig.value.find(g => g.id === disc.group).audioPrefix}${disc.audioIndex}.mp3`
+                )
+                audioElements.value[`audio${disc.id}`].loop = true
+            })
+        })
+
+        const handleTransition = async () => {
+            await fadeOutAndStop(2000)
+        }
+
+        const selectedInstrument = ref('')
+
+        const availableInstrumentsFiltered = computed(() => {
+            const currentIds = groupsConfig.value.map(g => g.id)
+            return availableInstruments.filter(inst => !currentIds.includes(inst.id))
+        })
+
+        const addInstrument = () => {
+            if (!selectedInstrument.value) return
+
+            const instrument = availableInstruments.find(inst => inst.id === selectedInstrument.value)
+            if (instrument) {
+                groupsConfig.value = [...groupsConfig.value, {
+                    ...instrument,
+                    isSpinning: false,
+                    currentDiscId: null
+                }]
+                selectedInstrument.value = ''
+
+                // Generate discs only for the new instrument
+                const currentMaxId = Math.max(...discs.value.map(d => d.id), 0)
+                const newDiscs = []
+                
+                for (let i = 0; i < instrument.recordsPerGroup; i++) {
+                    newDiscs.push({
+                        id: currentMaxId + i + 1,
+                        group: instrument.id,
+                        index: i,
+                        hidden: false,
+                        audioIndex: i + 1
+                    })
                 }
+                
+                // Add new discs to existing ones
+                discs.value = [...discs.value, ...newDiscs]
+
+                // Initialize audio elements for new discs
+                newDiscs.forEach(disc => {
+                    const audio = new Audio(
+                        `../src/assets/music/${groupsConfig.value.find(g => g.id === disc.group).audioPrefix}${disc.audioIndex}.mp3`
+                    )
+                    audio.loop = true
+                    
+                    // Add loadedmetadata event listener to handle synchronization after loading
+                    audio.addEventListener('loadedmetadata', () => {
+                        if (isPlaying.value && trackStartTime.value) {
+                            const elapsed = (Date.now() - trackStartTime.value) / 1000
+                            audio.currentTime = elapsed % audio.duration
+                        }
+                    })
+                    
+                    audioElements.value[`audio${disc.id}`] = audio
+                })
             }
         }
 
         const addVocals = () => {
-            console.log('Add vocals');
-            const vocal = document.getElementById('vocal1');
+            const vocal = document.getElementById('vocal1')
             if (vocal) {
-                vocal.play();
+                if (!isPlaying.value) {
+                    trackStartTime.value = Date.now()
+                    isPlaying.value = true
+                    vocal.currentTime = 0
+                } else {
+                    // Sync with existing audio
+                    const elapsed = (Date.now() - trackStartTime.value) / 1000
+                    vocal.currentTime = elapsed % vocal.duration
+                }
+                vocal.play()
             }
 
-            console.log('sync', records.value)
-            Object.values(records.value).forEach(record => {
-                if (record.isSpinning) {
-                    const audio = audioElements.value[`audio${record.acceptDisc}`];
+            // Resync all playing records
+            groupsConfig.value.forEach(group => {
+                if (group.isSpinning && group.currentDiscId) {
+                    const audio = audioElements.value[`audio${group.currentDiscId}`]
                     if (audio) {
-                        console.log(audio);
-                        audio.pause();
-                        audio.currentTime = 0;  
-                        audio.play();
+                        const elapsed = (Date.now() - trackStartTime.value) / 1000
+                        audio.currentTime = elapsed % audio.duration
+                        audio.play()
                     }
                 }
-            });
-            if (vocal) {
-                vocal.currentTime = 0;
-                vocal.play();
-            }
+            })
 
-            handleTransition();
-        };
-
-
-        const playAudio = (n) => {
-            const audio = audioElements.value[`audioz${n}`]
-            if (audio.paused) {
-                audio.play()
-            } else {
-                audio.pause()
-                audio.currentTime = 0
-                audio.play()
-            }
+            handleTransition()
         }
 
         return {
-            records,
-            ranges,
-            discStates,
+            groupsConfig,
+            discs,
             handleDrag,
             handleDragStart,
             handleDrop,
             setVolume,
-            playAudio,
-            addVocals
+            addVocals,
+            selectedInstrument,
+            availableInstrumentsFiltered,
+            addInstrument
         }
     }
 }
 </script>
+
+
 
 <style>
 .box {
@@ -238,44 +308,32 @@ export default {
     right: 0;
     bottom: 0;
     overflow: auto;
+    padding: 20px;
 }
 
-.box1 {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 640px;
-    height: 220px;
+.record-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    grid-template-rows: repeat(3, 1fr);
+    gap: 20px;
+    max-width: 960px;
+    margin: 0 auto;
 }
 
-.record1,
-.record1a,
-.record1b,
-.record1c,
-.record1d {
-    position: absolute;
-    top: 10px;
-    left: 10px;
-    width: 200px;
-    bottom: 10px;
+.record-player {
+    width: 180px;
+    height: 180px;
     border-radius: 50%;
     background-color: #000000;
+    margin: 0 auto;
+    position: relative;
 }
 
-.record1spin {
-    position: absolute;
-    top: 10px;
-    left: 10px;
-    width: 200px;
-    bottom: 10px;
-    border-radius: 50%;
-    background-color: #000000;
-    animation: tim1 5s linear infinite;
-    background-image: url(@/assets/images/records/record1.png);
-    background-size: 100% 100%;
+.spinning {
+    animation: spin 5s linear infinite;
 }
 
-@keyframes tim1 {
+@keyframes spin {
     from {
         transform: rotate(0deg);
     }
@@ -285,298 +343,250 @@ export default {
     }
 }
 
-.record2spin {
-    position: absolute;
-    top: 10px;
-    left: 220px;
-    width: 200px;
-    bottom: 10px;
-    border-radius: 50%;
-    background-color: #000000;
-    animation: tim2 5s linear infinite;
-    background-image: url(@/assets/images/records/record2.png);
-    background-size: 100% 100%;
-}
-
-@keyframes tim2 {
-    from {
-        transform: rotate(0deg);
-    }
-
-    to {
-        transform: rotate(360deg);
-    }
-}
-
-.record2,
-.record2a,
-.record2b,
-.record2c,
-.record2d {
-    position: absolute;
-    top: 10px;
-    left: 220px;
-    width: 200px;
-    bottom: 10px;
-    border-radius: 50%;
-    background-color: #000000;
-}
-
-.record3,
-.record3a,
-.record3b,
-.record3c,
-.record3d {
-    position: absolute;
-    top: 10px;
-    left: 430px;
-    width: 200px;
-    bottom: 10px;
-    border-radius: 50%;
-    background-color: #000000;
-}
-
-.record3spin {
-    position: absolute;
-    top: 10px;
-    left: 430px;
-    width: 200px;
-    bottom: 10px;
-    border-radius: 50%;
-    background-color: #000000;
-    animation: tim3 5s linear infinite;
-    background-image: url(@/assets/images/records/record3.png);
-    background-size: 100% 100%;
-}
-
-@keyframes tim3 {
-    from {
-        transform: rotate(0deg);
-    }
-
-    to {
-        transform: rotate(360deg);
-    }
-}
-
-.box2 {
-    position: absolute;
-    top: 220px;
-    left: 0;
-    width: 640px;
-    height: 50px;
-}
-
-.range1 {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 213px;
-    bottom: 0;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-}
-
-.range2 {
-    position: absolute;
-    top: 0;
-    left: 213px;
-    width: 213px;
-    bottom: 0;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-}
-
-.range3 {
-    position: absolute;
-    top: 0;
-    left: 426px;
-    right: 0;
-    bottom: 0;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-}
-
-.box3 {
-    position: absolute;
-    top: 270px;
-    left: 0;
-    width: 640px;
-    height: 120px;
-}
-
-.disc1,
-.disc2,
-.disc3,
-.disc4,
-.disc5 {
-    position: absolute;
-    width: 50px;
-    height: 50px;
-    background-image: url(@/assets/images/records/record1.png);
-    background-size: 100% 100%;
-    cursor: pointer;
-}
-
-.disc1 {
-    top: 10px;
-    left: 10px;
-}
-
-.disc2 {
-    top: 10px;
-    left: 80px;
-}
-
-.disc3 {
-    top: 10px;
-    left: 150px;
-}
-
-.disc4 {
-    top: 60px;
-    left: 40px;
-}
-
-.disc5 {
-    top: 60px;
-    left: 115px;
-}
-
-.disc6,
-.disc7,
-.disc8,
-.disc9,
-.disc10 {
-    position: absolute;
-    width: 50px;
-    height: 50px;
-    background-image: url(@/assets/images/records/record2.png);
-    background-size: 100% 100%;
-    cursor: pointer;
-}
-
-.disc6 {
-    top: 10px;
-    left: 230px;
-}
-
-.disc7 {
-    top: 10px;
-    left: 300px;
-}
-
-.disc8 {
-    top: 10px;
-    left: 370px;
-}
-
-.disc9 {
-    top: 60px;
-    left: 260px;
-}
-
-.disc10 {
-    top: 60px;
-    left: 335px;
-}
-
-.disc11,
-.disc12,
-.disc13,
-.disc14,
-.disc15 {
-    position: absolute;
-    width: 50px;
-    height: 50px;
-    background-image: url(@/assets/images/records/record3.png);
-    background-size: 100% 100%;
-    cursor: pointer;
-}
-
-.disc11 {
-    top: 10px;
-    left: 440px;
-}
-
-.disc12 {
-    top: 10px;
-    left: 510px;
-}
-
-.disc13 {
-    top: 10px;
-    left: 580px;
-}
-
-.disc14 {
-    top: 60px;
-    left: 470px;
-}
-
-.disc15 {
-    top: 60px;
-    left: 545px;
-}
-
-.record1color {
+.color-indicator {
     position: absolute;
     top: 40%;
     right: 40%;
     left: 40%;
     bottom: 40%;
+    border: 3px solid #ffffff;
+    border-radius: 50%;
+}
+
+/* Group colors */
+.group-1-color {
     background-color: #1c0eb7;
-    border: 3px solid #ffffff;
-    border-radius: 50%;
 }
 
-.record2color {
-    position: absolute;
-    top: 40%;
-    right: 40%;
-    left: 40%;
-    bottom: 40%;
+.group-2-color {
     background-color: #b01111;
-    border: 3px solid #ffffff;
-    border-radius: 50%;
 }
 
-.record3color {
-    position: absolute;
-    top: 40%;
-    right: 40%;
-    left: 40%;
-    bottom: 40%;
+.group-3-color {
     background-color: #11b011;
-    border: 3px solid #ffffff;
-    border-radius: 50%;
 }
 
-.box4 {
-    position: absolute;
-    top: 0;
-    width: 40px;
-    left: 640px;
-    height: 450px;
-    text-align: center;
-    border-bottom: double 5px #000000;
-    border-right: double 5px #000000;
+.group-4-color {
+    background-color: #9932CC;
+}
+
+.group-5-color {
+    background-color: #FFA500;
+}
+
+.group-6-color {
+    background-color: #FF1493;
+}
+
+.group-7-color {
+    background-color: #00CED1;
+}
+
+.group-8-color {
+    background-color: #FFD700;
+}
+
+.group-9-color {
+    background-color: #8B4513;
+}
+
+/* Record images */
+.group-1.spinning {
+    background-image: url(@/assets/images/records/record1.png);
+}
+
+.group-2.spinning {
+    background-image: url(@/assets/images/records/record2.png);
+}
+
+.group-3.spinning {
+    background-image: url(@/assets/images/records/record3.png);
+}
+
+.group-4.spinning {
+    background-image: url(@/assets/images/records/record4.png);
+}
+
+.group-5.spinning {
+    background-image: url(@/assets/images/records/record5.png);
+}
+
+.group-6.spinning {
+    background-image: url(@/assets/images/records/record6.png);
+}
+
+.group-7.spinning {
+    background-image: url(@/assets/images/records/record7.png);
+}
+
+.group-8.spinning {
+    background-image: url(@/assets/images/records/record8.png);
+}
+
+.group-9.spinning {
+    background-image: url(@/assets/images/records/record9.png);
+}
+
+.slider-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    grid-template-rows: repeat(3, 1fr);
+    gap: 10px;
+    max-width: 960px;
+    margin: 20px auto;
+    padding: 10px;
+}
+
+.volume-range {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.volume-range input[type="range"] {
+    width: 80%;
+}
+
+.disc-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    grid-template-rows: repeat(3, 1fr);
+    gap: 20px;
+    max-width: 960px;
+    margin: 20px auto;
+    padding: 10px;
+    justify-items: center;
+    align-items: center;
+}
+
+.mini-disc {
+    width: 60px;
+    height: 60px;
+    background-size: cover;
+    cursor: grab;
+    border-radius: 50%;
+    transition: transform 0.2s;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.mini-disc:hover {
+    transform: scale(1.1);
+}
+
+.mini-disc:active {
+    cursor: grabbing;
+}
+
+/* Mini disc images */
+.group-1-disc {
+    background-image: url(@/assets/images/records/record1.png);
+    border: 2px solid #1c0eb7;
+}
+
+.group-2-disc {
+    background-image: url(@/assets/images/records/record2.png);
+    border: 2px solid #b01111;
+}
+
+.group-3-disc {
+    background-image: url(@/assets/images/records/record3.png);
+    border: 2px solid #11b011;
+}
+
+.group-4-disc {
+    background-image: url(@/assets/images/records/record4.png);
+    border: 2px solid #9932CC;
+}
+
+.group-5-disc {
+    background-image: url(@/assets/images/records/record5.png);
+    border: 2px solid #FFA500;
+}
+
+.group-6-disc {
+    background-image: url(@/assets/images/records/record6.png);
+    border: 2px solid #FF1493;
+}
+
+.group-7-disc {
+    background-image: url(@/assets/images/records/record7.png);
+    border: 2px solid #00CED1;
+}
+
+.group-8-disc {
+    background-image: url(@/assets/images/records/record8.png);
+    border: 2px solid #FFD700;
+}
+
+.group-9-disc {
+    background-image: url(@/assets/images/records/record9.png);
+    border: 2px solid #8B4513;
 }
 
 .box5 {
-    position: absolute;
-    top: 390px;
-    left: 0;
-    width: 640px;
-    height: 60px;
+    position: relative;
+    width: 100%;
+    max-width: 960px;
+    margin: 20px auto;
+    padding: 20px;
     border-bottom: double 5px #000000;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.instructions {
+    text-align: center;
+    font-weight: bold;
+}
+
+.controls {
     display: flex;
     justify-content: center;
     align-items: center;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    font-weight: bold;
+    gap: 20px;
+}
+
+.instrument-selector {
+    display: flex;
+    gap: 10px;
+}
+
+.instrument-select {
+    padding: 8px;
+    border-radius: 4px;
+    border: 1px solid #ccc;
+}
+
+.add-instrument-button {
+    padding: 8px 16px;
+    border-radius: 4px;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    cursor: pointer;
+}
+
+.add-instrument-button:disabled {
+    background-color: #cccccc;
+    cursor: not-allowed;
+}
+
+.add-instrument-button:hover:not(:disabled) {
+    background-color: #45a049;
+}
+
+.vocal-button {
+    padding: 8px 16px;
+    border-radius: 4px;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    cursor: pointer;
+}
+
+.vocal-button:hover {
+    background-color: #45a049;
 }
 </style>

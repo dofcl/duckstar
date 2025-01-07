@@ -6,7 +6,8 @@
                 <video id="preview-video" class="preview-video" :src="videoUrl" type="video/mp4" playsinline></video>
             </div>
             <div class="video-container">
-                <video id="preview-video-dubbed" class="preview-video" :src="videoUrlDubbed" type="video/mp4" playsinline></video>
+                <video id="preview-video-dubbed" class="preview-video" :src="videoUrlDubbed" type="video/mp4"
+                    playsinline></video>
             </div>
         </div>
     </div>
@@ -67,14 +68,14 @@ function play() {
 
 
 const handleTransition = async () => {
-      await fadeOutAndStop(2000); // Fade out over 2 seconds
-    }
+    await fadeOutAndStop(2000); // Fade out over 2 seconds
+}
 
-    onMounted(() => {
-      console.log('Onboard page mounted');
-      initAudio();
-      handleTransition();
-    });
+onMounted(() => {
+    console.log('Onboard page mounted');
+    initAudio();
+    handleTransition();
+});
 
 
 </script>
