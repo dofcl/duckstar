@@ -40,7 +40,7 @@
 <script setup lang="ts">
 import { VideoPause, VideoPlay } from '@element-plus/icons-vue';
 import { onMounted, ref } from 'vue';
-let bgAudio: HTMLAudioElement | null = null;
+import { initAudio, fadeOutAndStop } from '@/utils/fadeout';
 const videoUrl = new URL('/src/assets/videos/demo1.mp4', import.meta.url).href;
 const videoUrlDubbed = new URL('/src/assets/videos/dan-dub.mp4', import.meta.url).href;
 const playing = ref(false);
@@ -66,51 +66,16 @@ function play() {
 }
 
 
-const initAudio = () => {
-    if (bgAudio) {
-        bgAudio.volume = 0.6; // Set initial volume
-        bgAudio.play();
-    }
-}
-
-const fadeOutAndStop = (duration: number = 1000): Promise<void> => {
-    return new Promise((resolve) => {
-        if (!bgAudio) {
-            resolve();
-            return;
-        }
-
-        const startVolume = bgAudio.volume;
-        const steps = 20; // Number of steps in the fade
-        const volumeStep = startVolume / steps;
-        const intervalTime = duration / steps;
-
-        const fadeInterval = setInterval(() => {
-            if (bgAudio) {
-                if (bgAudio.volume > volumeStep) {
-                    bgAudio.volume -= volumeStep;
-                } else {
-                    bgAudio.volume = 0;
-                    bgAudio.pause();
-                    clearInterval(fadeInterval);
-                    resolve();
-                }
-            }
-        }, intervalTime);
-    });
-}
-
-// Usage example:
 const handleTransition = async () => {
-    await fadeOutAndStop(2000); // Fade out over 2 seconds
-}
+      await fadeOutAndStop(2000); // Fade out over 2 seconds
+    }
 
-onMounted(() => {
-    console.log('Onboard page mounted');
-    bgAudio = document.getElementById('bg-audio') as HTMLAudioElement;
-    initAudio();
-    handleTransition();
-});
+    onMounted(() => {
+      console.log('Onboard page mounted');
+      initAudio();
+      handleTransition();
+    });
+
 
 </script>
 <style>
