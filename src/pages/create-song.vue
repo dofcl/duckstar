@@ -35,42 +35,44 @@
                             <span class="text-white text-center disc-version">{{ disc.index + 1 }}</span>
                         </div>
 
+                    </div>
                 </div>
+
+
             </div>
 
-
         </div>
 
-    </div>
+        <!-- Controls -->
+        <p class="text-white text-center ma-0 pa-0 mt-4">Add another instrument layer</p>
+        <div class="controls ma-0 pa-0">
 
-    <!-- Controls -->
-    <p class="text-white text-center ma-0 pa-0 mt-4">Add another instrument layer</p>
-    <div class="controls ma-0 pa-0">
-
-        <el-select v-if="enableChangeMix" v-model="currentMix" @change="changeMix" placeholder="Select Mix"
-            class="mt-0 pt-0">
-            <el-option label="Mix 1" value="mix1"></el-option>
-            <el-option label="Mix 2" value="mix2"></el-option>
-        </el-select>
-
-        <div class="instrument-selector  mb-4 mt-2 pt-0">
-
-            <el-select v-model="currentInstrument" placeholder="Add Instrument..." size="large"
-                class="w-full instrument-selecta">
-                <el-option v-for="inst in availableInstruments" :key="inst.id" :label="inst.label"
-                    :value="inst.id"></el-option>
+            <el-select v-if="enableChangeMix" v-model="currentMix" @change="changeMix" placeholder="Select Mix"
+                class="mt-0 pt-0">
+                <el-option label="Mix 1" value="mix1"></el-option>
+                <el-option label="Mix 2" value="mix2"></el-option>
             </el-select>
-            <el-button @click="addInstrument" :disabled="!currentInstrument" type="primary"
-                class="add-instrument-button" size="large">
-                Add
-            </el-button>
+
+            <div class="instrument-selector  mb-4 mt-2 pt-0">
+
+                <el-select v-model="currentInstrument" placeholder="Add Instrument..." size="large"
+                    class="w-full instrument-selecta">
+                    <el-option v-for="inst in availableInstruments" :key="inst.id" :label="inst.label"
+                        :value="inst.id"></el-option>
+                </el-select>
+                <el-button @click="addInstrument" :disabled="!currentInstrument" type="primary"
+                    class="add-instrument-button" size="large">
+                    Add
+                </el-button>
+            </div>
+            <br>
         </div>
-        <br>
-    </div>
     </div>
 
     <div class="action-buttons mx-auto text-center mt-0 pt-0">
-        <p class="text-white ma-0 pa-0 mb-1">Add {{ 3 - instrumentsSelected }} more layees to enable: </p>
+        <p class="text-white ma-0 pa-0 mb-1" v-if="instrumentsSelected < 4">Add {{ 3 - instrumentsSelected }} more layers
+            to sent to producer: </p>
+        <p class="text-white ma-0 pa-0 mb-1" v-else>Add sent to producer: </p>
         <el-button @click="toggleBackingVocals" :class="['backing-vocal-button', { 'active': backingVocalEnabled }]"
             :disabled="instrumentsSelected < 3" size="large">
             {{ backingVocalEnabled ? 'Remove' : 'Add' }} Vocals
@@ -183,7 +185,7 @@ const loadAudioBuffer = async (url) => {
 watch(currentMix, async (newMix) => {
     // Reload all audio buffers with the new mix
     for (const disc of discs.value) {
-        const audioUrl = `../src/assets/music/${newMix}/${disc.audioPrefix}${disc.audioIndex}.mp3`
+        const audioUrl = rl = new URL(`../assets/music/${newMix}/${disc.audioPrefix}${disc.audioIndex}.mp3`, import.meta.url).href
         const audioBuffer = await loadAudioBuffer(audioUrl)
         audioElements.value[`audio${disc.id}`] = audioBuffer
     }
@@ -260,7 +262,9 @@ function getAudioUrl(group) {
     const disc = discs.value.find(d =>
         d.group === group.id && d.id === group.currentDiscId
     )
-    const url = `../src/assets/music/${currentMix.value}/${group.audioPrefix}${disc?.audioIndex || 1}.mp3`
+    const url = new URL(`../assets/music/${currentMix.value}/${group.audioPrefix}${disc?.audioIndex || 1}.mp3`, import.meta.url).href
+
+
     return url
 }
 
@@ -676,16 +680,16 @@ onUnmounted(() => {
 function startDrag(e, disc, discClass) {
     currentDraggedDisc.value = disc
     isDragging.value = true
-    
+
     if (e.type === 'touchstart') {
         const touch = e.touches[0]
         const rect = e.target.getBoundingClientRect()
-        
+
         touchStartPos.value = {
             x: touch.clientX - rect.left,
             y: touch.clientY - rect.top
         }
-        
+
         // Create visual clone with proper styling
         const clone = document.createElement('div')
         clone.style.position = 'fixed'
@@ -697,13 +701,13 @@ function startDrag(e, disc, discClass) {
         clone.style.pointerEvents = 'none'
         clone.style.left = `${touch.clientX - touchStartPos.value.x}px`
         clone.style.top = `${touch.clientY - touchStartPos.value.y}px`
-        
+
         // Add the record styling
         clone.style.backgroundImage = `url(${new URL('@/assets/images/records/record1.png', import.meta.url).href})`
         clone.style.backgroundSize = 'cover'
         clone.style.backgroundColor = '#000000'
         clone.style.border = `2px solid ${getDiscColor(disc.group)}`
-        
+
         // Add disc number
         const numberDiv = document.createElement('div')
         numberDiv.style.width = '100%'
@@ -714,7 +718,7 @@ function startDrag(e, disc, discClass) {
         numberDiv.style.color = 'white'
         numberDiv.textContent = disc.index + 1
         clone.appendChild(numberDiv)
-        
+
         document.body.appendChild(clone)
         dragClone.value = clone
     } else {
@@ -742,9 +746,9 @@ function getDiscColor(groupId) {
 // Update handleTouchMove for smoother movement
 function handleTouchMove(e) {
     if (!currentDraggedDisc.value || !dragClone.value) return
-    
+
     const touch = e.touches[0]
-    
+
     // Add smooth transition
     dragClone.value.style.transition = 'all 0.1s'
     dragClone.value.style.left = `${touch.clientX - touchStartPos.value.x}px`
@@ -754,13 +758,13 @@ function handleTouchMove(e) {
 // Update handleDrop to include smoother cleanup
 async function handleDrop(e, group) {
     if (!currentDraggedDisc.value) return
-    
+
     let discId
-    
+
     if (e.type === 'touchend') {
         const touch = e.changedTouches[0]
         const dropTarget = document.elementFromPoint(touch.clientX, touch.clientY)
-        
+
         if (!dropTarget?.closest('.record-player')) {
             // Animate clone back to original position or fade out
             if (dragClone.value) {
@@ -777,9 +781,9 @@ async function handleDrop(e, group) {
             currentDraggedDisc.value = null
             return
         }
-        
+
         discId = currentDraggedDisc.value.id
-        
+
         // Animate clone to final position
         if (dragClone.value) {
             const playerRect = dropTarget.closest('.record-player').getBoundingClientRect()
@@ -787,7 +791,7 @@ async function handleDrop(e, group) {
             dragClone.value.style.left = `${playerRect.left}px`
             dragClone.value.style.top = `${playerRect.top}px`
             dragClone.value.style.opacity = '0'
-            
+
             setTimeout(() => {
                 if (dragClone.value) {
                     dragClone.value.remove()
