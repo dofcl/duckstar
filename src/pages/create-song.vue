@@ -1,73 +1,94 @@
 <template>
-    <div class="dj-app p-4">
-        <div v-for="group in groups" :key="group.id" class="grid grid-cols-3 gap-4 items-center mb-4">
-            <!-- Record Player (Drop Zone) -->
-            <div :class="['record-player', `group-${group.id}`, { 'spinning': group.isSpinning }]" @dragover.prevent
-                @drop.prevent="(e) => handleDrop(e, group)">
-                <div :class="`color-indicator group-${group.id}-color`"></div>
-            </div>
+    <h1 class="pa-0 ma-0 text-white">Create a Song</h1>
+    <p class="text-white text-sm text-center mt-0 pt-0">Drag the records onto the record player.</p>
+    <div class="dj-app px-2 mt-0 mt-0">
+        <div v-for="group in groups" :key="group.id" class="instrument-group">
+            <div class="flex justify-center mt-0 pt-0 mb-0">
+                <div>
+                    <span class="text-white slider">{{ group.label }}</span>
+                    <input type="range" min="0" max="120" step="10" @change="(e) => setVolume(group.id, e.target.value)"
+                        class="volume-slider-horizontal" />
 
-            <!-- Draggable Discs -->
-            <div class="flex gap-2">
-                <div v-for="disc in getGroupDiscs(group.id)" :key="disc.id"
-                    :class="['mini-disc', `group-${disc.group}-disc`]" draggable="true"
-                    @dragstart="(e) => startDrag(e, disc)" v-show="!disc.hidden">
-                    V{{ disc.id }}
                 </div>
             </div>
+            <div class="grid grid-cols-3 gap-2 items-center mt-0 pt-0">
+                <!-- Record Player (Drop Zone) -->
+                <div :class="['record-player', `group-${group.id}`, { 'spinning': group.isSpinning }]" @dragover.prevent
+                    @drop.prevent="(e) => handleDrop(e, group)">
+                    <p class="text-white ">{{ group.currentDiscId }}</p>
+                    <div :class="`color-indicator group-${group.id}-color`"></div>
+                </div>
 
-            <!-- Volume Control -->
-            <div class="flex flex-col items-center">
-                <input type="range" min="0" max="120" step="10" @change="(e) => setVolume(group.id, e.target.value)"
-                    class="volume-slider-vertical" />
-                <span>{{ group.label }}</span>
+                <!-- Draggable Discs -->
+                <div class="flex gap-2">
+
+                    <div v-for="disc in getGroupDiscs(group.id)" :key="disc.id"
+                        :class="['mini-disc', `group-${disc.group}-disc`]" draggable="true"
+                        @dragstart="(e) => startDrag(e, disc)" v-show="!disc.hidden">
+                        <div class="flex items-center justify-center h-full">
+                            <span class="text-white text-center disc-version">{{ disc.index }}</span>
+                        </div>
+                    </div>
+                </div>
+
+
             </div>
+
         </div>
 
         <!-- Controls -->
-        <div class="controls space-y-4">
-            <select v-model="currentMix" @change="changeMix">
-                <option value="mix1">Mix 1</option>
-                <option value="mix2">Mix 2</option>
-            </select>
+        <p class="text-white text-center ma-0 pa-0 mt-4">Add another instrument layer</p>
+        <div class="controls ma-0 pa-0">
 
-            <div class="instrument-selector">
-                <select v-model="currentInstrument">
-                    <option value="">Add Instrument...</option>
-                    <option v-for="inst in availableInstruments" :key="inst.id" :value="inst.id">
-                        {{ inst.label }}
-                    </option>
-                </select>
-                <button @click="addInstrument" :disabled="!currentInstrument" class="add-instrument-button">
+            <el-select v-if="enableChangeMix" v-model="currentMix" @change="changeMix" placeholder="Select Mix" class="mt-0 pt-0">
+                <el-option label="Mix 1" value="mix1"></el-option>
+                <el-option label="Mix 2" value="mix2"></el-option>
+            </el-select>
+
+            <div class="instrument-selector  mb-4 mt-2 pt-0">
+
+                <el-select v-model="currentInstrument" placeholder="Add Instrument..." size="large" class="w-full instrument-selecta">
+                    <el-option v-for="inst in availableInstruments" :key="inst.id" :label="inst.label"
+                        :value="inst.id"></el-option>
+                </el-select>
+                <el-button @click="addInstrument" :disabled="!currentInstrument" type="primary"
+                    class="add-instrument-button" size="large">
                     Add
-                </button>
-            </div>
-
-            <div class="action-buttons">
-                <el-button @click="toggleBackingVocals"
-                    :class="['backing-vocal-button', { 'active': backingVocalEnabled }]">
-                    {{ backingVocalEnabled ? 'Remove' : 'Add' }} Vocals
                 </el-button>
-
-                <button @click="toggleMainBackingTrack"
-                    :class="['main-backing-track-button', { 'active': mainBackingTrackEnabled }]">
-                    {{ mainBackingTrackEnabled ? 'Disable' : 'Enable' }} Main Backing Track
-                </button>
-
-                <el-button @click="restartAudio">Restart</el-button>
             </div>
+            <br>
         </div>
     </div>
+
+    <div class="action-buttons mx-auto text-center mt-0 pt-0">
+        <p class="text-sm text-white ma-0 pa-0 mb-1">Add  {{ 3-instrumentsSelected }} more layes to enable: </p>
+        <el-button @click="toggleBackingVocals" :class="['backing-vocal-button', { 'active': backingVocalEnabled }]" :disabled="instrumentsSelected < 3">
+            {{ backingVocalEnabled ? 'Remove' : 'Add' }}  Vocals
+        </el-button>
+
+        <el-button @click="toggleMainBackingTrack"
+            :class="['main-backing-track-button', { 'active': mainBackingTrackEnabled }]" :disabled="instrumentsSelected < 3">
+            {{ mainBackingTrackEnabled ? 'Remove' : 'Add' }} Polish
+        </el-button>
+
+    </div>
+    <div class="action-buttons mx-auto text-center mt-6 text-black">
+        <el-button @click="restartAudio" class="text-black">Replay</el-button>
+        <br>
+    </div>
+    <br>
+
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { fadeOutAndStop } from '@/utils/fadeout';
 
 // Audio Context Setup
 const audioContext = new (window.AudioContext || window.webkitAudioContext)()
 
 // State Management
+const enableChangeMix = ref(false)
 const currentMix = ref('mix1')
 const currentInstrument = ref('')
 const currentDraggedDisc = ref(null)
@@ -78,6 +99,7 @@ const backingVocalSource = ref(null)
 const mainBackingTrackEnabled = ref(false)
 const mainBackingTrackSource = ref(null)
 const mainTrack = 'main1.mp3'
+const instrumentsSelected = ref(1)
 
 // Configuration
 const instrumentConfig = [
@@ -98,7 +120,8 @@ function generateInitialDiscs(group) {
         group: group.id,
         index: i,
         hidden: false,
-        audioIndex: i + 1 // Reset to 1-4 for each group
+        audioIndex: i + 1, // Reset to 1-4 for each group
+        audioPrefix: group.audioPrefix
     }))
 }
 
@@ -116,47 +139,29 @@ const groups = ref([
     }
 ])
 
+
 const discs = ref(generateInitialDiscs(groups.value[0]))
+const audioElements = ref({})
 
-// Robust Audio Loading Function
-async function loadAudioBuffer(url) {
-    try {
-        // Check if buffer is already cached
-        if (audioBuffers.value[url]) {
-            return audioBuffers.value[url]
-        }
-
-        // Fetch the audio file
-        const response = await fetch(url)
-
-        // Check if the fetch was successful
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}, url: ${url}`)
-        }
-
-        const arrayBuffer = await response.arrayBuffer()
-
-        // Decode the audio data
-        const audioBuffer = await new Promise((resolve, reject) => {
-            audioContext.decodeAudioData(
-                arrayBuffer,
-                (buffer) => resolve(buffer),
-                (error) => {
-                    console.error(`Decoding error for ${url}:`, error)
-                    reject(error)
-                }
-            )
-        })
-
-        // Cache the buffer
-        audioBuffers.value[url] = audioBuffer
-        return audioBuffer
-    } catch (error) {
-        console.error(`Audio loading error for ${url}:`, error)
-        throw error
-    }
+// Function to load audio buffer
+const loadAudioBuffer = async (url) => {
+    const response = await fetch(url)
+    const arrayBuffer = await response.arrayBuffer()
+    return await audioContext.decodeAudioData(arrayBuffer)
 }
 
+// Watcher to reload audio buffers when currentMix changes
+watch(currentMix, async (newMix) => {
+    // Reload all audio buffers with the new mix
+    for (const disc of discs.value) {
+        const audioUrl = `../src/assets/music/${newMix}/${disc.audioPrefix}${disc.audioIndex}.mp3`
+        const audioBuffer = await loadAudioBuffer(audioUrl)
+        audioElements.value[`audio${disc.id}`] = audioBuffer
+    }
+
+    // Restart all audio to ensure sync with the new mix
+    restartAllAudioInSync()
+})
 // Audio Playback Function
 async function playGroupAudio(group) {
     if (!group.currentDiscId) return
@@ -226,7 +231,8 @@ function getAudioUrl(group) {
     const disc = discs.value.find(d =>
         d.group === group.id && d.id === group.currentDiscId
     )
-    return `../src/assets/music/${currentMix.value}/${group.audioPrefix}${disc?.audioIndex || 1}.mp3`
+    const url = `../src/assets/music/${currentMix.value}/${group.audioPrefix}${disc?.audioIndex || 1}.mp3`
+    return url
 }
 
 // Get Discs for a Specific Group
@@ -271,8 +277,8 @@ async function handleDrop(e, group) {
 }
 
 // Add Instrument Function
-// Add Instrument Function
 function addInstrument() {
+    instrumentsSelected.value += 1
     if (!currentInstrument.value) return
 
     const instrument = instrumentConfig.find(
@@ -317,7 +323,8 @@ function addInstrument() {
 
 
 // Mix Change Handler
-function changeMix() {
+function changeMix(event) {
+    currentMix.value = event.target.value
     // Stop all current audio sources
     groups.value.forEach(group => {
         stopGroupAudio(group)
@@ -592,8 +599,18 @@ onMounted(async () => {
 </script>
 
 <style scoped>
+
+.el-select.el-select--large.w-full.instrument-selecta {
+    width: 200px;
+}
 .text-black {
     color: #000000;
+}
+
+span.group-title.text-white {
+    position: absolute;
+    margin-top: -128px;
+    margin-left: 4px;
 }
 
 .top-bar {
@@ -737,11 +754,11 @@ onMounted(async () => {
 }
 
 .record-player {
-    width: 180px;
-    height: 180px;
+    width: 90px;
+    height: 90px;
     border-radius: 50%;
     background-color: #000000;
-    margin: 0 auto;
+    margin-left: -8px;
     position: relative;
 }
 
@@ -769,6 +786,7 @@ onMounted(async () => {
     border-radius: 50%;
 }
 
+/* Group colors */
 /* Group colors */
 .group-1-color {
     background-color: #1c0eb7;
@@ -806,50 +824,61 @@ onMounted(async () => {
     background-color: #8B4513;
 }
 
-/* Record images */
+/* Record images with matching border colors */
 .group-1.spinning {
     background-image: url(@/assets/images/records/record1.png);
+    border: 2px solid #1c0eb7;
 }
 
 .group-2.spinning {
-    background-image: url(@/assets/images/records/record2.png);
+    background-image: url(@/assets/images/records/record1.png);
+    border: 2px solid #b01111;
 }
 
 .group-3.spinning {
-    background-image: url(@/assets/images/records/record3.png);
+    background-image: url(@/assets/images/records/record1.png);
+    border: 2px solid #11b011;
 }
 
 .group-4.spinning {
-    background-image: url(@/assets/images/records/record4.png);
+    background-image: url(@/assets/images/records/record1.png);
+    border: 2px solid #9932CC;
 }
 
 .group-5.spinning {
-    background-image: url(@/assets/images/records/record5.png);
+    background-image: url(@/assets/images/records/record1.png);
+    border: 2px solid #FFA500;
 }
 
 .group-6.spinning {
-    background-image: url(@/assets/images/records/record6.png);
+    background-image: url(@/assets/images/records/record1.png);
+    border: 2px solid #FF1493;
 }
 
 .group-7.spinning {
-    background-image: url(@/assets/images/records/record7.png);
+    background-image: url(@/assets/images/records/record1.png);
+    border: 2px solid #00CED1;
 }
 
 .group-8.spinning {
-    background-image: url(@/assets/images/records/record8.png);
+    background-image: url(@/assets/images/records/record1.png);
+    border: 2px solid #FFD700;
 }
 
 .group-9.spinning {
-    background-image: url(@/assets/images/records/record9.png);
+    background-image: url(@/assets/images/records/record1.png);
+    border: 2px solid #8B4513;
 }
 
-.volume-slider-vertical {
-    writing-mode: bt-lr;
-    /* Bottom to top, left to right */
-    appearance: slider-vertical;
-    -webkit-appearance: slider-vertical;
-    width: 8px;
-    height: 150px;
+
+span.text-white.slider {
+    float: left;
+    position: absolute;
+    left: 38px;
+    margin-top: 4px;
+}
+
+.volume-slider-horizontal {
     margin: 10px 0;
 }
 
@@ -900,42 +929,42 @@ onMounted(async () => {
 }
 
 .group-2-disc {
-    background-image: url(@/assets/images/records/record2.png);
+    background-image: url(@/assets/images/records/record1.png);
     border: 2px solid #b01111;
 }
 
 .group-3-disc {
-    background-image: url(@/assets/images/records/record3.png);
+    background-image: url(@/assets/images/records/record1.png);
     border: 2px solid #11b011;
 }
 
 .group-4-disc {
-    background-image: url(@/assets/images/records/record4.png);
+    background-image: url(@/assets/images/records/record1.png);
     border: 2px solid #9932CC;
 }
 
 .group-5-disc {
-    background-image: url(@/assets/images/records/record5.png);
+    background-image: url(@/assets/images/records/record1.png);
     border: 2px solid #FFA500;
 }
 
 .group-6-disc {
-    background-image: url(@/assets/images/records/record6.png);
+    background-image: url(@/assets/images/records/record1.png);
     border: 2px solid #FF1493;
 }
 
 .group-7-disc {
-    background-image: url(@/assets/images/records/record7.png);
+    background-image: url(@/assets/images/records/record1.png);
     border: 2px solid #00CED1;
 }
 
 .group-8-disc {
-    background-image: url(@/assets/images/records/record8.png);
+    background-image: url(@/assets/images/records/record1.png);
     border: 2px solid #FFD700;
 }
 
 .group-9-disc {
-    background-image: url(@/assets/images/records/record9.png);
+    background-image: url(@/assets/images/records/record1.png);
     border: 2px solid #8B4513;
 }
 
