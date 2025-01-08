@@ -24,44 +24,49 @@
                 <!-- Draggable Discs -->
                 <div class="flex gap-2 disc-wrapper">
 
+                    <!-- Update the draggable discs section -->
                     <div v-for="disc in getGroupDiscs(group.id)" :key="disc.id"
                         :class="['mini-disc', `group-${disc.group}-disc`]" draggable="true"
-                        @dragstart="(e) => startDrag(e, disc)" v-show="!disc.hidden">
+                        @dragstart="(e) => startDrag(e, disc, `group-${disc.group}-disc`)"
+                        @touchstart.prevent="(e) => startDrag(e, disc, `group-${disc.group}-disc`)"
+                        @touchmove.prevent="handleTouchMove" @touchend.prevent="(e) => handleDrop(e, group)"
+                        v-show="!disc.hidden">
                         <div class="flex items-center justify-center h-full">
                             <span class="text-white text-center disc-version">{{ disc.index + 1 }}</span>
                         </div>
-                    </div>
+
                 </div>
-
-
             </div>
+
 
         </div>
 
-        <!-- Controls -->
-        <p class="text-white text-center ma-0 pa-0 mt-4">Add another instrument layer</p>
-        <div class="controls ma-0 pa-0">
+    </div>
 
-            <el-select v-if="enableChangeMix" v-model="currentMix" @change="changeMix" placeholder="Select Mix"
-                class="mt-0 pt-0">
-                <el-option label="Mix 1" value="mix1"></el-option>
-                <el-option label="Mix 2" value="mix2"></el-option>
+    <!-- Controls -->
+    <p class="text-white text-center ma-0 pa-0 mt-4">Add another instrument layer</p>
+    <div class="controls ma-0 pa-0">
+
+        <el-select v-if="enableChangeMix" v-model="currentMix" @change="changeMix" placeholder="Select Mix"
+            class="mt-0 pt-0">
+            <el-option label="Mix 1" value="mix1"></el-option>
+            <el-option label="Mix 2" value="mix2"></el-option>
+        </el-select>
+
+        <div class="instrument-selector  mb-4 mt-2 pt-0">
+
+            <el-select v-model="currentInstrument" placeholder="Add Instrument..." size="large"
+                class="w-full instrument-selecta">
+                <el-option v-for="inst in availableInstruments" :key="inst.id" :label="inst.label"
+                    :value="inst.id"></el-option>
             </el-select>
-
-            <div class="instrument-selector  mb-4 mt-2 pt-0">
-
-                <el-select v-model="currentInstrument" placeholder="Add Instrument..." size="large"
-                    class="w-full instrument-selecta">
-                    <el-option v-for="inst in availableInstruments" :key="inst.id" :label="inst.label"
-                        :value="inst.id"></el-option>
-                </el-select>
-                <el-button @click="addInstrument" :disabled="!currentInstrument" type="primary"
-                    class="add-instrument-button" size="large">
-                    Add
-                </el-button>
-            </div>
-            <br>
+            <el-button @click="addInstrument" :disabled="!currentInstrument" type="primary"
+                class="add-instrument-button" size="large">
+                Add
+            </el-button>
         </div>
+        <br>
+    </div>
     </div>
 
     <div class="action-buttons mx-auto text-center mt-0 pt-0">
@@ -81,7 +86,7 @@
     <hr class="mt-8">
     <div class="text-center mt-4">
         <el-button @click="restartAudio" size="large">Replay</el-button>
-        <el-button @click="rewin" size="large" class="play-all-button"><el-icon>
+        <el-button @click="pausePlay" size="large" class="play-all-button"><el-icon>
                 <VideoPlay />
             </el-icon></el-button>
     </div>
@@ -120,6 +125,10 @@ const mainBackingTrackEnabled = ref(false)
 const mainBackingTrackSource = ref(null)
 const mainTrack = 'main1.mp3'
 const instrumentsSelected = ref(1)
+const isPlaying = ref(false)
+const isDragging = ref(false)
+const touchStartPos = ref({ x: 0, y: 0 })
+const dragClone = ref(null)
 
 // Configuration
 const instrumentConfig = [
@@ -267,34 +276,7 @@ const availableInstruments = computed(() => {
     return instrumentConfig.filter(inst => !currentIds.includes(inst.id))
 })
 
-// Drag and Drop Handlers
-function startDrag(e, disc) {
-    currentDraggedDisc.value = disc
-}
 
-async function handleDrop(e, group) {
-    const disc = currentDraggedDisc.value
-    if (!disc || disc.group !== group.id) return
-
-    // Find if the group already has a current disc
-    const previouslyDroppedDisc = discs.value.find(
-        d => d.group === group.id && d.id === group.currentDiscId
-    )
-
-    // If there was a previously dropped disc, make it visible again
-    if (previouslyDroppedDisc) {
-        previouslyDroppedDisc.hidden = false
-    }
-
-    // Hide current disc and update group state
-    disc.hidden = true
-    group.currentDiscId = disc.id
-
-    // Play the audio for this group
-    await playGroupAudio(group)
-
-    currentDraggedDisc.value = null
-}
 
 // Add Instrument Function
 function addInstrument() {
@@ -691,6 +673,187 @@ onUnmounted(() => {
     })
 })
 
+function startDrag(e, disc, discClass) {
+    currentDraggedDisc.value = disc
+    isDragging.value = true
+    
+    if (e.type === 'touchstart') {
+        const touch = e.touches[0]
+        const rect = e.target.getBoundingClientRect()
+        
+        touchStartPos.value = {
+            x: touch.clientX - rect.left,
+            y: touch.clientY - rect.top
+        }
+        
+        // Create visual clone with proper styling
+        const clone = document.createElement('div')
+        clone.style.position = 'fixed'
+        clone.style.zIndex = '1000'
+        clone.style.opacity = '0.8'
+        clone.style.width = `${rect.width}px`
+        clone.style.height = `${rect.height}px`
+        clone.style.borderRadius = '50%'
+        clone.style.pointerEvents = 'none'
+        clone.style.left = `${touch.clientX - touchStartPos.value.x}px`
+        clone.style.top = `${touch.clientY - touchStartPos.value.y}px`
+        
+        // Add the record styling
+        clone.style.backgroundImage = `url(${new URL('@/assets/images/records/record1.png', import.meta.url).href})`
+        clone.style.backgroundSize = 'cover'
+        clone.style.backgroundColor = '#000000'
+        clone.style.border = `2px solid ${getDiscColor(disc.group)}`
+        
+        // Add disc number
+        const numberDiv = document.createElement('div')
+        numberDiv.style.width = '100%'
+        numberDiv.style.height = '100%'
+        numberDiv.style.display = 'flex'
+        numberDiv.style.alignItems = 'center'
+        numberDiv.style.justifyContent = 'center'
+        numberDiv.style.color = 'white'
+        numberDiv.textContent = disc.index + 1
+        clone.appendChild(numberDiv)
+        
+        document.body.appendChild(clone)
+        dragClone.value = clone
+    } else {
+        e.dataTransfer.effectAllowed = 'move'
+        e.dataTransfer.setData('text/plain', disc.id)
+    }
+}
+
+// Add helper function to get disc color
+function getDiscColor(groupId) {
+    const colorMap = {
+        1: '#1c0eb7',
+        2: '#b01111',
+        3: '#11b011',
+        4: '#9932CC',
+        5: '#FFA500',
+        6: '#FF1493',
+        7: '#00CED1',
+        8: '#FFD700',
+        9: '#8B4513'
+    }
+    return colorMap[groupId] || '#000000'
+}
+
+// Update handleTouchMove for smoother movement
+function handleTouchMove(e) {
+    if (!currentDraggedDisc.value || !dragClone.value) return
+    
+    const touch = e.touches[0]
+    
+    // Add smooth transition
+    dragClone.value.style.transition = 'all 0.1s'
+    dragClone.value.style.left = `${touch.clientX - touchStartPos.value.x}px`
+    dragClone.value.style.top = `${touch.clientY - touchStartPos.value.y}px`
+}
+
+// Update handleDrop to include smoother cleanup
+async function handleDrop(e, group) {
+    if (!currentDraggedDisc.value) return
+    
+    let discId
+    
+    if (e.type === 'touchend') {
+        const touch = e.changedTouches[0]
+        const dropTarget = document.elementFromPoint(touch.clientX, touch.clientY)
+        
+        if (!dropTarget?.closest('.record-player')) {
+            // Animate clone back to original position or fade out
+            if (dragClone.value) {
+                dragClone.value.style.transition = 'all 0.3s'
+                dragClone.value.style.opacity = '0'
+                setTimeout(() => {
+                    if (dragClone.value) {
+                        dragClone.value.remove()
+                        dragClone.value = null
+                    }
+                }, 300)
+            }
+            isDragging.value = false
+            currentDraggedDisc.value = null
+            return
+        }
+        
+        discId = currentDraggedDisc.value.id
+        
+        // Animate clone to final position
+        if (dragClone.value) {
+            const playerRect = dropTarget.closest('.record-player').getBoundingClientRect()
+            dragClone.value.style.transition = 'all 0.3s'
+            dragClone.value.style.left = `${playerRect.left}px`
+            dragClone.value.style.top = `${playerRect.top}px`
+            dragClone.value.style.opacity = '0'
+            
+            setTimeout(() => {
+                if (dragClone.value) {
+                    dragClone.value.remove()
+                    dragClone.value = null
+                }
+            }, 300)
+        }
+    } else {
+        discId = e.dataTransfer.getData('text/plain')
+    }
+
+    // Rest of your existing handleDrop code...
+    const disc = discs.value.find(d => d.id === discId)
+    if (!disc || disc.group !== group.id) return
+
+    const previouslyDroppedDisc = discs.value.find(
+        d => d.group === group.id && d.id === group.currentDiscId
+    )
+    if (previouslyDroppedDisc) {
+        previouslyDroppedDisc.hidden = false
+    }
+
+    disc.hidden = true
+    group.currentDiscId = disc.id
+    group.isSpinning = true
+    isDragging.value = false
+
+    await playGroupAudio(group)
+    currentDraggedDisc.value = null
+}
+
+
+// Pause/Play Toggle Function
+function pausePlay() {
+    if (isPlaying.value) {
+        // Pause all currently playing audio
+        Object.values(activeSources.value).forEach(({ source }) => {
+            source.stop()
+        })
+        isPlaying.value = false
+    } else {
+        // Play all audio from the current state
+        Object.keys(audioElements.value).forEach(key => {
+            const audioData = audioElements.value[key]
+            if (audioData?.buffer) {
+                const source = audioContext.createBufferSource()
+                source.buffer = audioData.buffer
+                source.loop = true
+
+                const gainNode = audioContext.createGain()
+                gainNode.gain.value = 1.0
+                gainNodes.value[key] = gainNode
+
+                source.connect(gainNode)
+                gainNode.connect(audioContext.destination)
+
+                source.start()
+                audioElements.value[key] = { buffer: audioData.buffer, source, gainNode }
+                activeSources.value[key] = { source, gainNode }
+            }
+        })
+
+        isPlaying.value = true
+    }
+}
+
 // Initial Audio Loading
 onMounted(async () => {
     await fadeOutAndStop(2000)
@@ -729,6 +892,33 @@ onMounted(async () => {
     to {
         opacity: 1;
     }
+}
+
+
+.dragging {
+    opacity: 0.8;
+    background: #000;
+}
+
+.record-player {
+    touch-action: none;
+}
+
+.mini-disc {
+    touch-action: none;
+    -webkit-user-select: none;
+    user-select: none;
+    transform-origin: center center;
+    will-change: transform;
+}
+
+[data-dragging="true"] {
+    transition: transform 0.1s ease-out;
+    background: #000;
+}
+
+.disc-wrapper {
+    touch-action: none;
 }
 
 .disc-center {
