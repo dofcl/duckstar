@@ -423,35 +423,52 @@ function addInstrument() {
 }
 
 // Add this to your script section
-function removeInstrument(groupId) {
-    // Stop audio for the group
-    const group = groups.value.find(g => g.id === groupId)
-    if (group) {
-        stopGroupAudio(group)
-    }
+async function removeInstrument(groupId) {
+    try {
+        // Find the group
+        const group = groups.value.find(g => g.id === groupId);
+        if (!group) return;
 
-    // Remove the group
-    groups.value = groups.value.filter(g => g.id !== groupId)
-
-    // Reset discs for this group to visible
-    discs.value.forEach(disc => {
-        if (disc.group === groupId) {
-            disc.hidden = false
+        // Stop and cleanup audio
+        if (group.source) {
+            cleanupAudioSource(group.source, group.gainNode);
+            group.source = null;
+            group.gainNode = null;
         }
-    })
 
-    // Update instrument count
-    instrumentsSelected.value = Math.max(1, instrumentsSelected.value - 1)
+        // Remove from audioSourceMap if present
+        audioSourceMap.value.delete(groupId);
 
-    // If we're below 3 instruments now, disable vocals and polish if they're enabled
-    if (instrumentsSelected.value < 3) {
-        if (backingVocalEnabled.value) {
-            toggleBackingVocals()
+        // Reset discs for this group
+        discs.value.forEach(disc => {
+            if (disc.group === groupId) {
+                disc.hidden = false;
+            }
+        });
+
+        // Remove the group from groups array
+        groups.value = groups.value.filter(g => g.id !== groupId);
+
+        // Update instrument count
+        instrumentsSelected.value = Math.max(1, instrumentsSelected.value - 1);
+
+        // If we're below 3 instruments now, disable vocals and polish if they're enabled
+        if (instrumentsSelected.value < 3) {
+            if (backingVocalEnabled.value) {
+                await toggleBackingVocals();
+            }
+            if (mainBackingTrackEnabled.value) {
+                await toggleMainBackingTrack();
+            }
+            produced.value = false;
         }
-        if (mainBackingTrackEnabled.value) {
-            toggleMainBackingTrack()
+
+        // Resync remaining audio to ensure everything is playing correctly
+        if (isPlaying.value) {
+            await syncAllAudio();
         }
-        produced.value = false
+    } catch (error) {
+        console.error('Error removing instrument:', error);
     }
 }
 
@@ -624,7 +641,7 @@ const audioChunks = ref([])
 // Utility function to perform fade on a gain node
 function fadeGainNode(gainNode, fromValue, toValue, duration) {
     if (!gainNode) return;
-    
+
     const currentTime = audioContext.currentTime;
     gainNode.gain.setValueAtTime(fromValue, currentTime);
     gainNode.gain.exponentialRampToValueAtTime(Math.max(toValue, 0.0001), currentTime + duration);
@@ -691,7 +708,7 @@ function fadeOutAllTracks(duration = 1) {
 // Updated recording functions
 async function startRecording() {
     let destination;
-    
+
     try {
         // Check supported formats first
         const formats = [
@@ -701,7 +718,7 @@ async function startRecording() {
             'audio/mpeg',
             'audio/wav'
         ];
-        
+
         const supportedFormats = formats.filter(format => {
             try {
                 return MediaRecorder.isTypeSupported(format);
@@ -709,15 +726,15 @@ async function startRecording() {
                 return false;
             }
         });
-        
+
         console.log('Supported formats:', supportedFormats);
-        
+
         if (supportedFormats.length === 0) {
             throw new Error('No supported audio formats found');
         }
 
         await syncAllAudio();
-        
+
         destination = audioContext.createMediaStreamDestination();
 
         // Connect all tracks to destination
@@ -757,10 +774,10 @@ async function startRecording() {
             const downloadLink = document.createElement('a');
             downloadLink.href = audioUrl;
             // Use the appropriate extension based on the format
-            const extension = supportedFormats[0].includes('webm') ? 'webm' : 
-                            supportedFormats[0].includes('mpeg') ? 'mp3' : 
-                            supportedFormats[0].includes('wav') ? 'wav' : 'mp3';
-            
+            const extension = supportedFormats[0].includes('webm') ? 'webm' :
+                supportedFormats[0].includes('mpeg') ? 'mp3' :
+                    supportedFormats[0].includes('wav') ? 'wav' : 'mp3';
+
             downloadLink.download = `DuckStar_${currentMix.value}-${new Date().toLocaleDateString("en-CA").replace(/[:.]/g, '-')}.${extension}`;
 
             document.body.appendChild(downloadLink);
@@ -775,11 +792,11 @@ async function startRecording() {
         isRecording.value = true;
 
         await fadeInAllTracks(1.0);
-        
+
     } catch (error) {
         console.error('Recording setup failed:', error);
         isRecording.value = false;
-        
+
         // If everything fails, try basic WebM without options
         if (destination) {
             try {
