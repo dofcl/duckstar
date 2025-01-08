@@ -390,7 +390,7 @@ async function toggleBackingVocals() {
         await restartAllAudioInSync(false)
 
         // Load the backing vocal audio
-        const audioUrl = `../src/assets/music/${currentMix.value}/main-vocal1.mp3`
+        const audioUrl = new URL(`../assets/music/${currentMix.value}/main-vocal1.mp3`, import.meta.url).href
         const audioBuffer = await loadAudioBuffer(audioUrl)
 
         // Create source and gain node
@@ -437,7 +437,7 @@ async function toggleMainBackingTrack() {
         await restartAllAudioInSync(false)
 
         // Load the main backing track audio
-        const audioUrl = `../src/assets/music/${currentMix.value}/${mainTrack}`
+        const audioUrl = new URL(`../assets/music/${currentMix.value}/${mainTrack}`, import.meta.url).href
         const audioBuffer = await loadAudioBuffer(audioUrl)
 
         // Create source and gain node
