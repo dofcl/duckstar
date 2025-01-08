@@ -81,7 +81,7 @@
         </div>
     </div>
 
-<hr>
+    <hr>
     <div class="action-buttons mx-auto text-center mt-0 pt-0">
         <p class="text-white text-center ma-0 pa-0 ma-0 pa-0 mb-1" v-if="instrumentsSelected < 3">
             Add at least {{ 3 - instrumentsSelected }} layers to sent to producer<br>
@@ -123,15 +123,15 @@
     <br>
     <el-dialog title="Producer" v-model="showProducerDialog" width="80%" :before-close="handleCloseProducer">
         <div class="mx-auto text-center">
-   <p>Great start!</p>
-   
-   <p>Let me add some post polish and give you and example vocal track to help you get started.</p>
-   <hr>
-        <span slot="footer" class="dialog-footer mt-8">
-            <el-button @click="showProducerDialog = false">Not yet</el-button>
-            <el-button type="primary" @click="handleConfirmProducer">Do your thing!</el-button>
-        </span>
-    </div>
+            <p>Great start!</p>
+
+            <p>Let me add some post polish and give you and example vocal track to help you get started.</p>
+            <hr>
+            <span slot="footer" class="dialog-footer mt-8">
+                <el-button @click="showProducerDialog = false">Not yet</el-button>
+                <el-button type="primary" @click="handleConfirmProducer">Do your thing!</el-button>
+            </span>
+        </div>
     </el-dialog>
 
 </template>
@@ -207,10 +207,26 @@ const discs = ref(generateInitialDiscs(groups.value[0]))
 const audioElements = ref({})
 
 // Function to load audio buffer
-const loadAudioBuffer = async (url) => {
-    const response = await fetch(url)
-    const arrayBuffer = await response.arrayBuffer()
-    return await audioContext.decodeAudioData(arrayBuffer)
+async function loadAudioBuffer(url, retryCount = 3) {
+    for (let i = 0; i < retryCount; i++) {
+        try {
+            const response = await fetch(url);
+            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+            const arrayBuffer = await response.arrayBuffer();
+
+            // Add a small delay before decoding on Android
+            if (/Android/.test(navigator.userAgent)) {
+                await new Promise(resolve => setTimeout(resolve, 100));
+            }
+
+            return await audioContext.decodeAudioData(arrayBuffer);
+        } catch (error) {
+            console.warn(`Attempt ${i + 1} failed to load audio:`, error);
+            if (i === retryCount - 1) throw error;
+            // Add exponential backoff delay between retries
+            await new Promise(resolve => setTimeout(resolve, Math.pow(2, i) * 1000));
+        }
+    }
 }
 
 // Watcher to reload audio buffers when currentMix changes
@@ -227,39 +243,58 @@ watch(currentMix, async (newMix) => {
 })
 // Audio Playback Function
 async function playGroupAudio(group) {
-    if (!group.currentDiscId) return
+    if (!group.currentDiscId) return;
 
     try {
-        const audioUrl = getAudioUrl(group)
-        const audioBuffer = await loadAudioBuffer(audioUrl)
+        // Resume audio context if suspended (important for mobile)
+        if (audioContext.state === 'suspended') {
+            await audioContext.resume();
+        }
+
+        const audioUrl = getAudioUrl(group);
+        const audioBuffer = await loadAudioBuffer(audioUrl);
 
         // Stop any existing source for this group
-        stopGroupAudio(group)
+        stopGroupAudio(group);
 
         // Create new source and gain node
-        const source = audioContext.createBufferSource()
-        const gainNode = audioContext.createGain()
+        const source = audioContext.createBufferSource();
+        const gainNode = audioContext.createGain();
 
-        source.buffer = audioBuffer
-        source.loop = true
-        gainNode.gain.value = 0.5
+        // Add compression for mobile devices
+        const compressor = audioContext.createDynamicsCompressor();
+        compressor.threshold.value = -50;
+        compressor.knee.value = 40;
+        compressor.ratio.value = 12;
+        compressor.attack.value = 0;
+        compressor.release.value = 0.25;
 
-        source.connect(gainNode)
-        gainNode.connect(audioContext.destination)
+        source.buffer = audioBuffer;
+        source.loop = true;
+        gainNode.gain.value = 0.5;
 
-        // Start the source
-        source.start()
+        // Connect through compressor on mobile
+        source.connect(gainNode);
+        gainNode.connect(compressor);
+        compressor.connect(audioContext.destination);
+
+        // Start the source with a small delay on Android
+        if (/Android/.test(navigator.userAgent)) {
+            await new Promise(resolve => setTimeout(resolve, 100));
+        }
+        source.start();
 
         // Update group state
-        group.source = source
-        group.gainNode = gainNode
-        group.isSpinning = true
+        group.source = source;
+        group.gainNode = gainNode;
+        group.isSpinning = true;
+        activeSources.value[group.id] = { source, gainNode };
 
-        // Track the active source
-        activeSources.value[group.id] = { source, gainNode }
     } catch (error) {
-        console.error('Audio playback failed:', error)
-        group.isSpinning = false
+        console.error('Audio playback failed:', error);
+        group.isSpinning = false;
+        // Notify user of error
+        alert('Audio playback failed. Please try again.');
     }
 }
 
@@ -921,9 +956,15 @@ function handleConfirmProducer() {
 
 }
 
+
 // Initial Audio Loading
 onMounted(async () => {
     await fadeOutAndStop(2000)
+    if (!window.AudioContext && !window.webkitAudioContext) {
+        alert('Web Audio API not supported in this browser.');
+        throw new Error('Web Audio API not supported');
+    }
+
     try {
         // Preload audio for initial group
         for (const disc of discs.value) {
@@ -938,6 +979,7 @@ onMounted(async () => {
         console.error('Audio initialization failed:', error)
     }
 })
+
 </script>
 
 <style scoped>
