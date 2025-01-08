@@ -149,6 +149,7 @@ import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { fadeOutAndStop } from '@/utils/fadeout';
 import { tr } from 'element-plus/es/locale/index.mjs';
 
+const publicStatic = 'https://duckstar-public.s3.eu-central-1.amazonaws.com'
 // Audio Context Setup
 const audioContext = new (window.AudioContext || window.webkitAudioContext)()
 
@@ -261,7 +262,7 @@ async function loadAudioBuffer(url, retryCount = 3) {
 watch(currentMix, async (newMix) => {
     // Reload all audio buffers with the new mix
     for (const disc of discs.value) {
-        const audioUrl = rl = new URL(`../assets/music/${newMix}/${disc.audioPrefix}${disc.audioIndex}.mp3`, import.meta.url).href
+        const audioUrl = `${publicStatic}/music/${newMix}/${disc.audioPrefix}${disc.audioIndex}.mp3`
         const audioBuffer = await loadAudioBuffer(audioUrl)
         audioElements.value[`audio${disc.id}`] = audioBuffer
     }
@@ -341,7 +342,7 @@ function getAudioUrl(group) {
     const disc = discs.value.find(d =>
         d.group === group.id && d.id === group.currentDiscId
     )
-    const url = new URL(`../assets/music/${currentMix.value}/${group.audioPrefix}${disc?.audioIndex || 1}.mp3`, import.meta.url).href
+    const url = `${publicStatic}/music/${currentMix.value}/${group.audioPrefix}${disc?.audioIndex || 1}.mp3`
 
 
     return url
@@ -544,7 +545,7 @@ async function toggleBackingVocals() {
             return
         }
 
-        const audioUrl = new URL(`../assets/music/${currentMix.value}/main-vocal1.mp3`, import.meta.url).href
+        const audioUrl = `${publicStatic}music/${currentMix.value}/main-vocal1.mp3`
         const audioBuffer = await loadAudioBuffer(audioUrl)
 
         const source = audioContext.createBufferSource()
@@ -583,7 +584,7 @@ async function toggleMainBackingTrack() {
             return
         }
 
-        const audioUrl = new URL(`../assets/music/${currentMix.value}/${mainTrack}`, import.meta.url).href
+        const audioUrl = `${publicStatic}/music/${currentMix.value}/${mainTrack}`
         const audioBuffer = await loadAudioBuffer(audioUrl)
 
         const source = audioContext.createBufferSource()
