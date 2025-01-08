@@ -150,3 +150,7 @@ h1,
 .large-icon {
   bottom: 6px;
 }
+
+.el-dialog.produced-dialog {
+  max-width: 554px;
+}

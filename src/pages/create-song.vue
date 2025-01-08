@@ -1,10 +1,12 @@
 <template>
     <h1 class="pa-0 ma-0 text-white">Create a Song</h1>
     <p class="text-white text-sm text-center mt-0 pt-0">Drag the records onto the record player.</p>
+
     <div class="dj-app px-2 mt-0 mt-0">
         <div v-for="group in groups" :key="group.id" class="instrument-group my-2">
 
             <div class="flex justify-center mt-0 pt-0 mb-0 relative">
+                
                 <el-button v-if="groups.length > 1" @click="removeInstrument(group.id)" class="remove-instrument-btn"
                     size="small" type="danger" circle>
                     <el-icon>
@@ -50,7 +52,8 @@
 
         </div>
 
-        <div class="text-center mt-4">
+        <div class="text-center mt-4 relative">
+            <p class="text-white sync-load blink hide-sync">Syncronizing...</p>
             <el-button v-if="!isPlaying" @click="restartAudio" size="large"><el-icon>
                     <VideoPlay />
                 </el-icon></el-button>
@@ -59,6 +62,7 @@
                     <VideoPause />
                 </el-icon>
             </el-button>
+        
         </div>
 
         <!-- Controls -->
@@ -127,13 +131,17 @@
     </div>
 
     <br>
-    <el-dialog title="Producer" v-model="showProducerDialog" width="80%" :before-close="handleCloseProducer">
-        <div class="mx-auto text-center">
+    <el-dialog title="Producer" v-model="showProducerDialog" width="80%" class="produced-dialog"
+        :before-close="handleCloseProducer">
+        <div class="mx-auto text-left">
             <p>Great start!</p>
 
             <p>Let me add some post polish and give you and example vocal track to help you get started.</p>
-            <p>Do whay lyrics do you want?</p>
-            <el-input placeholder="Lyrics" v-model="lyrics"></el-input>
+            <p>Do what style lyrics do you want? I can do:</p>
+            <el-select placeholder="Lyrics" v-model="lyrics">
+                <el-option v-for="item in lyricStyles" :key="item.value" :label="item.label" :value="item.value" />
+
+            </el-select>
             <hr>
             <span slot="footer" class="dialog-footer mt-8">
                 <el-button @click="showProducerDialog = false">Not yet</el-button>
@@ -173,6 +181,11 @@ const dragClone = ref(null)
 const showProducerDialog = ref(true)
 const produced = ref(false)
 const lyrics = ref('')
+const lyricStyles = ref([
+    { label: 'Pop', value: 'pop' },
+    { label: 'Rap', value: 'rap' },
+    { label: 'Hip-hop', value: 'hip-hop' }
+])
 
 // Configuration
 const instrumentConfig = [
@@ -180,10 +193,9 @@ const instrumentConfig = [
     { id: 2, color: '#1c0eb7', audioPrefix: 'Bass', label: 'Bass' },
     { id: 3, color: '#9932CC', audioPrefix: 'Piano', label: 'Piano' },
     { id: 4, color: '#b01111', audioPrefix: 'Cello', label: 'Cello' },
-    { id: 5, color: '#FFA500', audioPrefix: 'Perc', label: 'Perc' },
-    { id: 6, color: '#FF1493', audioPrefix: 'Top', label: 'Top' },
+    { id: 5, color: '#FFA500', audioPrefix: 'Perc', label: 'Percussion' },
+    { id: 6, color: '#FF1493', audioPrefix: 'Top', label: 'Top Hat' },
     { id: 7, color: '#00CED1', audioPrefix: 'Violin', label: 'Violin' },
-    { id: 8, color: '#FFD700', audioPrefix: 'Vocal', label: 'Vocal' }
 ]
 
 // Utility Functions
@@ -545,7 +557,7 @@ async function toggleBackingVocals() {
             return
         }
 
-        const audioUrl = `${publicStatic}music/${currentMix.value}/main-vocal1.mp3`
+        const audioUrl = `${publicStatic}/music/${currentMix.value}/vocal-1-${lyrics.value || 'pop'}.mp3`
         const audioBuffer = await loadAudioBuffer(audioUrl)
 
         const source = audioContext.createBufferSource()
@@ -826,7 +838,90 @@ function handleTouchMove(e) {
     dragClone.value.style.top = `${touch.clientY - touchStartPos.value.y}px`
 }
 
+// Add this helper function to sync all audio sources
+async function syncAllAudioSources() {
+    try {
+        // Stop all current audio
+        groups.value.forEach(group => {
+            cleanupAudioSource(group.source, group.gainNode);
+            group.source = null;
+            group.gainNode = null;
+            group.isSpinning = false;
+        });
+
+        // Clear audio sources
+        audioSourceMap.value.clear();
+
+        // Store backing track states
+        const wasVocalEnabled = backingVocalEnabled.value;
+        const wasMainTrackEnabled = mainBackingTrackEnabled.value;
+
+        // Clean up backing tracks but maintain their state
+        if (backingVocalSource.value) {
+            cleanupAudioSource(backingVocalSource.value, backingVocalSource.value.gainNode);
+            backingVocalSource.value = null;
+        }
+        if (mainBackingTrackSource.value) {
+            cleanupAudioSource(mainBackingTrackSource.value, mainBackingTrackSource.value.gainNode);
+            mainBackingTrackSource.value = null;
+        }
+
+        // Calculate common start time
+        const commonStartTime = audioContext.currentTime + 0.1;
+
+        // Start all active tracks with the same timestamp
+        await Promise.all(groups.value.map(async (group) => {
+            if (!group.currentDiscId) return;
+
+            try {
+                const audioUrl = getAudioUrl(group);
+                const audioBuffer = await loadAudioBuffer(audioUrl);
+
+                const source = audioContext.createBufferSource();
+                const gainNode = audioContext.createGain();
+
+                source.buffer = audioBuffer;
+                source.loop = true;
+                gainNode.gain.value = 0.5;
+
+                source.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+
+                source.start(commonStartTime);
+
+                group.source = source;
+                group.gainNode = gainNode;
+                group.isSpinning = true;
+                audioSourceMap.value.set(group.id, { source, gainNode });
+            } catch (error) {
+                console.error(`Failed to start audio for group ${group.id}:`, error);
+            }
+        }));
+
+        // Restore backing tracks if they were enabled
+        if (wasVocalEnabled || wasMainTrackEnabled) {
+            setTimeout(async () => {
+                if (wasVocalEnabled) {
+                    await toggleBackingVocals();
+                }
+                if (wasMainTrackEnabled) {
+                    await toggleMainBackingTrack();
+                }
+            }, 50);
+        }
+
+    } catch (error) {
+        console.error('Error syncing audio sources:', error);
+    }
+}
+
 async function handleDrop(e, group) {
+    document.querySelectorAll('.sync-load').forEach(item => {
+        item.classList.remove('hide-sync')
+        item.classList.add('blink')
+        
+        
+    })
     if (!currentDraggedDisc.value) return;
 
     let discId;
@@ -878,8 +973,17 @@ async function handleDrop(e, group) {
         await audioContext.resume();
     }
 
-    // Play the audio
-    await playGroupAudio(group);
+    // Sync all audio sources instead of just playing the new one
+    await syncAllAudioSources();
+
+    document.querySelectorAll('.sync-load').forEach(item => {
+        item.classList.remove('blink')
+    })
+    setTimeout(() => {
+        document.querySelectorAll('.sync-load').forEach(item => {
+            item.classList.add('hide-sync')
+        })
+    }, 1000)
 
     isPlaying.value = true;
     isDragging.value = false;
@@ -929,7 +1033,7 @@ async function pausePlay() {
             document.querySelectorAll('.spinning').forEach(item => {
                 item.classList.add('stop')
             })
-            
+
             isPlaying.value = false
 
             // Preserve the enabled states
@@ -969,7 +1073,7 @@ async function restartAllAudioInSync(resetBackingTracks = true) {
                 backingVocalSource.value = null
                 backingVocalEnabled.value = false
             }
-            
+
             if (mainBackingTrackSource.value) {
                 cleanupAudioSource(mainBackingTrackSource.value, mainBackingTrackSource.value.gainNode)
                 mainBackingTrackSource.value = null
@@ -981,7 +1085,7 @@ async function restartAllAudioInSync(resetBackingTracks = true) {
                 cleanupAudioSource(backingVocalSource.value, backingVocalSource.value.gainNode)
                 backingVocalSource.value = null
             }
-            
+
             if (mainBackingTrackSource.value) {
                 cleanupAudioSource(mainBackingTrackSource.value, mainBackingTrackSource.value.gainNode)
                 mainBackingTrackSource.value = null
@@ -1003,19 +1107,19 @@ async function restartAllAudioInSync(resetBackingTracks = true) {
             try {
                 const audioUrl = getAudioUrl(group)
                 const audioBuffer = await loadAudioBuffer(audioUrl)
-                
+
                 const source = audioContext.createBufferSource()
                 const gainNode = audioContext.createGain()
-                
+
                 source.buffer = audioBuffer
                 source.loop = true
                 gainNode.gain.value = 0.5
-                
+
                 source.connect(gainNode)
                 gainNode.connect(audioContext.destination)
-                
+
                 source.start(commonStartTime)
-                
+
                 group.source = source
                 group.gainNode = gainNode
                 group.isSpinning = true
@@ -1083,16 +1187,18 @@ function handleCloseProducer() {
 }
 
 function handleConfirmProducer() {
-    toggleBackingVocals()
-    toggleMainBackingTrack()
     produced.value = true
     showProducerDialog.value = false
+    restartAudio()
+    toggleBackingVocals()
+    toggleMainBackingTrack()
 
 }
 
 
 // Initial Audio Loading
 onMounted(async () => {
+    
     await fadeOutAndStop(2000)
     if (!window.AudioContext && !window.webkitAudioContext) {
         alert('Web Audio API not supported in this browser.');
@@ -1631,5 +1737,43 @@ span.text-white.slider {
 
 .vocal-button:hover {
     background-color: #45a049;
+}
+
+.text-small {
+    font-size: 12px;
+}
+
+.hide-sync {
+    animation: blinkThenFade 1s linear forwards;
+}
+
+@keyframes blinkThenFade {
+    /* First blink */
+    0% { opacity: 1; }
+    10% { opacity: 0; }
+    20% { opacity: 1; }
+    
+    /* Second blink */
+    30% { opacity: 0; }
+    40% { opacity: 1; }
+    
+    /* Third blink */
+    50% { opacity: 0; }
+    60% { opacity: 1; }
+    
+    /* Pause briefly */
+    70% { opacity: 1; }
+    
+    /* Final fade out */
+    80% { opacity: 1; }
+    100% { opacity: 0; }
+}
+
+.sync-load {
+    position: absolute;
+    left:5px;
+    top:-22px;
+    font-size: 12px;
+    color: #ddd;
 }
 </style>
