@@ -5,6 +5,12 @@
         <div v-for="group in groups" :key="group.id" class="instrument-group my-2">
 
             <div class="flex justify-center mt-0 pt-0 mb-0 relative">
+                <el-button v-if="groups.length > 1" @click="removeInstrument(group.id)" class="remove-instrument-btn"
+                    size="small" type="danger" circle>
+                    <el-icon>
+                        <Delete />
+                    </el-icon>
+                </el-button>
 
                 <input type="range" min="0" max="120" step="10" @change="(e) => setVolume(group.id, e.target.value)"
                     class="volume-slider-horizontal mt-2" />
@@ -126,6 +132,8 @@
             <p>Great start!</p>
 
             <p>Let me add some post polish and give you and example vocal track to help you get started.</p>
+            <p>Do whay lyrics do you want?</p>
+            <el-input placeholder="Lyrics" v-model="lyrics"></el-input>
             <hr>
             <span slot="footer" class="dialog-footer mt-8">
                 <el-button @click="showProducerDialog = false">Not yet</el-button>
@@ -149,7 +157,7 @@ const enableChangeMix = ref(false)
 const currentMix = ref('mix1')
 const currentInstrument = ref('')
 const currentDraggedDisc = ref(null)
-const audioBuffers = ref({}) // Store decoded audio buffers
+const audioSourceMap = ref(new Map()) // Tracks all active audio sources
 const activeSources = ref({}) // Track active audio sources
 const backingVocalEnabled = ref(false)
 const backingVocalSource = ref(null)
@@ -163,6 +171,7 @@ const touchStartPos = ref({ x: 0, y: 0 })
 const dragClone = ref(null)
 const showProducerDialog = ref(true)
 const produced = ref(false)
+const lyrics = ref('')
 
 // Configuration
 const instrumentConfig = [
@@ -206,6 +215,25 @@ const groups = ref([
 const discs = ref(generateInitialDiscs(groups.value[0]))
 const audioElements = ref({})
 
+// Helper function to stop and cleanup an audio source
+function cleanupAudioSource(source, gainNode) {
+    if (source) {
+        try {
+            source.stop()
+            source.disconnect()
+        } catch (error) {
+            console.warn('Error stopping source:', error)
+        }
+    }
+    if (gainNode) {
+        try {
+            gainNode.disconnect()
+        } catch (error) {
+            console.warn('Error disconnecting gain node:', error)
+        }
+    }
+}
+
 // Function to load audio buffer
 async function loadAudioBuffer(url, retryCount = 3) {
     for (let i = 0; i < retryCount; i++) {
@@ -246,7 +274,7 @@ async function playGroupAudio(group) {
     if (!group.currentDiscId) return;
 
     try {
-        // Resume audio context if suspended (important for mobile)
+        // Resume audio context if suspended
         if (audioContext.state === 'suspended') {
             await audioContext.resume();
         }
@@ -261,27 +289,13 @@ async function playGroupAudio(group) {
         const source = audioContext.createBufferSource();
         const gainNode = audioContext.createGain();
 
-        // Add compression for mobile devices
-        const compressor = audioContext.createDynamicsCompressor();
-        compressor.threshold.value = -50;
-        compressor.knee.value = 40;
-        compressor.ratio.value = 12;
-        compressor.attack.value = 0;
-        compressor.release.value = 0.25;
-
         source.buffer = audioBuffer;
         source.loop = true;
         gainNode.gain.value = 0.5;
 
-        // Connect through compressor on mobile
         source.connect(gainNode);
-        gainNode.connect(compressor);
-        compressor.connect(audioContext.destination);
+        gainNode.connect(audioContext.destination);
 
-        // Start the source with a small delay on Android
-        if (/Android/.test(navigator.userAgent)) {
-            await new Promise(resolve => setTimeout(resolve, 100));
-        }
         source.start();
 
         // Update group state
@@ -293,8 +307,6 @@ async function playGroupAudio(group) {
     } catch (error) {
         console.error('Audio playback failed:', error);
         group.isSpinning = false;
-        // Notify user of error
-        alert('Audio playback failed. Please try again.');
     }
 }
 
@@ -394,6 +406,39 @@ function addInstrument() {
     }
 }
 
+// Add this to your script section
+function removeInstrument(groupId) {
+    // Stop audio for the group
+    const group = groups.value.find(g => g.id === groupId)
+    if (group) {
+        stopGroupAudio(group)
+    }
+
+    // Remove the group
+    groups.value = groups.value.filter(g => g.id !== groupId)
+
+    // Reset discs for this group to visible
+    discs.value.forEach(disc => {
+        if (disc.group === groupId) {
+            disc.hidden = false
+        }
+    })
+
+    // Update instrument count
+    instrumentsSelected.value = Math.max(1, instrumentsSelected.value - 1)
+
+    // If we're below 3 instruments now, disable vocals and polish if they're enabled
+    if (instrumentsSelected.value < 3) {
+        if (backingVocalEnabled.value) {
+            toggleBackingVocals()
+        }
+        if (mainBackingTrackEnabled.value) {
+            toggleMainBackingTrack()
+        }
+        produced.value = false
+    }
+}
+
 
 // Mix Change Handler
 function changeMix(event) {
@@ -409,29 +454,75 @@ function changeMix(event) {
     discs.value.forEach(disc => disc.hidden = false)
 }
 
-// Comprehensive Restart Function
-function restartAudio() {
-    isPlaying.value = true
-    // Stop all current audio sources
-    groups.value.forEach(group => {
-        stopGroupAudio(group)
-        group.isSpinning = false
-        group.currentDiscId = null
-    })
+// Update the restartAudio function
+async function restartAudio() {
+    try {
+        isPlaying.value = true;
 
-    // Reset disc visibility
-    discs.value.forEach(disc => disc.hidden = false)
+        // Store current states
+        const wasVocalEnabled = backingVocalEnabled.value;
+        const wasMainTrackEnabled = mainBackingTrackEnabled.value;
 
-    // Restart all initially active tracks
-    groups.value.forEach(async (group) => {
-        const initialDisc = discs.value.find(d => d.group === group.id)
-        if (initialDisc) {
-            initialDisc.hidden = true
-            group.currentDiscId = initialDisc.id
-            await playGroupAudio(group)
+        // Stop everything first
+        groups.value.forEach(group => {
+            if (group.source) {
+                group.source.stop();
+                group.source.disconnect();
+            }
+            if (group.gainNode) {
+                group.gainNode.disconnect();
+            }
+            group.source = null;
+            group.gainNode = null;
+            group.isSpinning = false;
+        });
+
+        // Resume audioContext if suspended
+        if (audioContext.state === 'suspended') {
+            await audioContext.resume();
         }
-    })
+
+        // Calculate a common start time
+        const commonStartTime = audioContext.currentTime + 0.1;
+
+        // Start all active tracks
+        for (const group of groups.value) {
+            if (group.currentDiscId) {
+                const audioUrl = getAudioUrl(group);
+                const audioBuffer = await loadAudioBuffer(audioUrl);
+
+                const source = audioContext.createBufferSource();
+                const gainNode = audioContext.createGain();
+
+                source.buffer = audioBuffer;
+                source.loop = true;
+                gainNode.gain.value = 0.5;
+
+                source.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+
+                source.start(commonStartTime);
+
+                group.source = source;
+                group.gainNode = gainNode;
+                group.isSpinning = true;
+            }
+        }
+
+        // Restore backing tracks if they were enabled
+        if (wasVocalEnabled) {
+            setTimeout(() => toggleBackingVocals(), 100);
+        }
+        if (wasMainTrackEnabled) {
+            setTimeout(() => toggleMainBackingTrack(), 100);
+        }
+
+    } catch (error) {
+        console.error('Error in restartAudio:', error);
+        isPlaying.value = false;
+    }
 }
+
 
 // Volume Control
 function setVolume(groupId, value) {
@@ -443,29 +534,19 @@ function setVolume(groupId, value) {
 
 async function toggleBackingVocals() {
     try {
-        // If backing vocals are currently playing, stop them
         if (backingVocalEnabled.value) {
             if (backingVocalSource.value) {
-                try {
-                    backingVocalSource.value.stop()
-                    backingVocalSource.value.disconnect()
-                } catch (error) {
-                    console.warn('Error stopping backing vocal source:', error)
-                }
+                cleanupAudioSource(backingVocalSource.value, backingVocalSource.value.gainNode)
                 backingVocalSource.value = null
             }
             backingVocalEnabled.value = false
+            audioSourceMap.value.delete('backingVocal')
             return
         }
 
-        // Restart all audio to ensure sync, but not the backing tracks themselves
-        await restartAllAudioInSync(false)
-
-        // Load the backing vocal audio
         const audioUrl = new URL(`../assets/music/${currentMix.value}/main-vocal1.mp3`, import.meta.url).href
         const audioBuffer = await loadAudioBuffer(audioUrl)
 
-        // Create source and gain node
         const source = audioContext.createBufferSource()
         const gainNode = audioContext.createGain()
 
@@ -476,43 +557,35 @@ async function toggleBackingVocals() {
         source.connect(gainNode)
         gainNode.connect(audioContext.destination)
 
-        // Start the backing vocal
         source.start()
 
-        // Store the source and mark as enabled
         backingVocalSource.value = source
         backingVocalEnabled.value = true
+
+        // Track the source
+        audioSourceMap.value.set('backingVocal', { source, gainNode })
     } catch (error) {
         console.error('Backing vocal playback failed:', error)
         backingVocalEnabled.value = false
     }
 }
 
+// Updated toggleMainBackingTrack function
 async function toggleMainBackingTrack() {
     try {
-        // If main backing track is currently playing, stop it
         if (mainBackingTrackEnabled.value) {
             if (mainBackingTrackSource.value) {
-                try {
-                    mainBackingTrackSource.value.stop()
-                    mainBackingTrackSource.value.disconnect()
-                } catch (error) {
-                    console.warn('Error stopping main backing track source:', error)
-                }
+                cleanupAudioSource(mainBackingTrackSource.value, mainBackingTrackSource.value.gainNode)
                 mainBackingTrackSource.value = null
             }
             mainBackingTrackEnabled.value = false
+            audioSourceMap.value.delete('mainTrack')
             return
         }
 
-        // Restart all audio to ensure sync, but not the backing tracks themselves
-        await restartAllAudioInSync(false)
-
-        // Load the main backing track audio
         const audioUrl = new URL(`../assets/music/${currentMix.value}/${mainTrack}`, import.meta.url).href
         const audioBuffer = await loadAudioBuffer(audioUrl)
 
-        // Create source and gain node
         const source = audioContext.createBufferSource()
         const gainNode = audioContext.createGain()
 
@@ -523,94 +596,17 @@ async function toggleMainBackingTrack() {
         source.connect(gainNode)
         gainNode.connect(audioContext.destination)
 
-        // Start the main backing track
         source.start()
 
-        // Store the source and mark as enabled
         mainBackingTrackSource.value = source
         mainBackingTrackEnabled.value = true
+
+        // Track the source
+        audioSourceMap.value.set('mainTrack', { source, gainNode })
     } catch (error) {
         console.error('Main backing track playback failed:', error)
         mainBackingTrackEnabled.value = false
     }
-}
-
-// Modify restartAllAudioInSync to optionally preserve backing tracks
-async function restartAllAudioInSync(resetBackingTracks = true) {
-    // Stop all current audio sources
-    groups.value.forEach(group => {
-        stopGroupAudio(group)
-        group.isSpinning = false
-        group.currentDiscId = null
-    })
-
-    // Reset disc visibility
-    discs.value.forEach(disc => disc.hidden = false)
-
-    // Optionally stop backing tracks
-    if (resetBackingTracks) {
-        if (backingVocalSource.value) {
-            try {
-                backingVocalSource.value.stop()
-                backingVocalSource.value.disconnect()
-            } catch (error) {
-                console.warn('Error stopping backing vocal source:', error)
-            }
-            backingVocalSource.value = null
-            backingVocalEnabled.value = false
-        }
-
-        if (mainBackingTrackSource.value) {
-            try {
-                mainBackingTrackSource.value.stop()
-                mainBackingTrackSource.value.disconnect()
-            } catch (error) {
-                console.warn('Error stopping main backing track source:', error)
-            }
-            mainBackingTrackSource.value = null
-            mainBackingTrackEnabled.value = false
-        }
-    }
-
-    // Calculate a common start time
-    const commonStartTime = audioContext.currentTime + 0.1
-
-    // Restart all tracks at the same time
-    const restartPromises = groups.value.map(async (group) => {
-        const initialDisc = discs.value.find(d => d.group === group.id)
-        if (initialDisc) {
-            initialDisc.hidden = true
-            group.currentDiscId = initialDisc.id
-
-            try {
-                const audioUrl = getAudioUrl(group)
-                const audioBuffer = await loadAudioBuffer(audioUrl)
-
-                const source = audioContext.createBufferSource()
-                const gainNode = audioContext.createGain()
-
-                source.buffer = audioBuffer
-                source.loop = true
-                gainNode.gain.value = 0.5
-
-                source.connect(gainNode)
-                gainNode.connect(audioContext.destination)
-
-                source.start(commonStartTime)
-
-                group.source = source
-                group.gainNode = gainNode
-                group.isSpinning = true
-
-                activeSources.value[group.id] = { source, gainNode }
-            } catch (error) {
-                console.error(`Failed to restart audio for group ${group.id}:`, error)
-                group.isSpinning = false
-            }
-        }
-    })
-
-    await Promise.all(restartPromises)
 }
 
 // Stop all current audio sources
@@ -733,16 +729,22 @@ function stopRecording() {
 
 // Cleanup Function
 onUnmounted(() => {
-    // Stop all audio sources when component is unmounted
-    Object.values(activeSources.value).forEach(({ source, gainNode }) => {
-        try {
-            source.stop()
-            source.disconnect()
-            gainNode.disconnect()
-        } catch (error) {
-            console.warn('Error during cleanup:', error)
-        }
+    // Stop and cleanup all audio sources
+    audioSourceMap.value.forEach(({ source, gainNode }) => {
+        cleanupAudioSource(source, gainNode)
     })
+    audioSourceMap.value.clear()
+
+    // Clear all group sources
+    groups.value.forEach(group => {
+        group.source = null
+        group.gainNode = null
+        group.isSpinning = false
+    })
+
+    // Clear backing track sources
+    backingVocalSource.value = null
+    mainBackingTrackSource.value = null
 })
 
 function startDrag(e, disc, discClass) {
@@ -823,101 +825,231 @@ function handleTouchMove(e) {
     dragClone.value.style.top = `${touch.clientY - touchStartPos.value.y}px`
 }
 
-// Update handleDrop to include smoother cleanup
 async function handleDrop(e, group) {
-    if (!currentDraggedDisc.value) return
-    isPlaying.value = true
+    if (!currentDraggedDisc.value) return;
 
-    let discId
+    let discId;
 
     if (e.type === 'touchend') {
-        const touch = e.changedTouches[0]
-        const dropTarget = document.elementFromPoint(touch.clientX, touch.clientY)
+        const touch = e.changedTouches[0];
+        const dropTarget = document.elementFromPoint(touch.clientX, touch.clientY);
 
         if (!dropTarget?.closest('.record-player')) {
-            // Animate clone back to original position or fade out
             if (dragClone.value) {
-                dragClone.value.style.transition = 'all 0.3s'
-                dragClone.value.style.opacity = '0'
+                dragClone.value.style.transition = 'all 0.3s';
+                dragClone.value.style.opacity = '0';
                 setTimeout(() => {
                     if (dragClone.value) {
-                        dragClone.value.remove()
-                        dragClone.value = null
+                        dragClone.value.remove();
+                        dragClone.value = null;
                     }
-                }, 300)
+                }, 300);
             }
-            isDragging.value = false
-            currentDraggedDisc.value = null
-            return
+            isDragging.value = false;
+            currentDraggedDisc.value = null;
+            return;
         }
 
-        discId = currentDraggedDisc.value.id
-
-        // Animate clone to final position
-        if (dragClone.value) {
-            const playerRect = dropTarget.closest('.record-player').getBoundingClientRect()
-            dragClone.value.style.transition = 'all 0.3s'
-            dragClone.value.style.left = `${playerRect.left}px`
-            dragClone.value.style.top = `${playerRect.top}px`
-            dragClone.value.style.opacity = '0'
-
-            setTimeout(() => {
-                if (dragClone.value) {
-                    dragClone.value.remove()
-                    dragClone.value = null
-                }
-            }, 300)
-        }
+        discId = currentDraggedDisc.value.id;
     } else {
-        discId = e.dataTransfer.getData('text/plain')
+        discId = e.dataTransfer.getData('text/plain');
     }
 
-    // Rest of your existing handleDrop code...
-    const disc = discs.value.find(d => d.id === discId)
-    if (!disc || disc.group !== group.id) return
+    const disc = discs.value.find(d => d.id === discId);
+    if (!disc || disc.group !== group.id) return;
 
+    // Find if the group already has a current disc
     const previouslyDroppedDisc = discs.value.find(
         d => d.group === group.id && d.id === group.currentDiscId
-    )
+    );
+
+    // If there was a previous disc, unhide it
     if (previouslyDroppedDisc) {
-        previouslyDroppedDisc.hidden = false
+        previouslyDroppedDisc.hidden = false;
     }
 
-    disc.hidden = true
-    group.currentDiscId = disc.id
-    group.isSpinning = true
-    isDragging.value = false
+    // Hide the newly dropped disc
+    disc.hidden = true;
+    group.currentDiscId = disc.id;
 
-    await playGroupAudio(group)
-    currentDraggedDisc.value = null
+    // Resume audio context if suspended
+    if (audioContext.state === 'suspended') {
+        await audioContext.resume();
+    }
+
+    // Play the audio
+    await playGroupAudio(group);
+
+    isPlaying.value = true;
+    isDragging.value = false;
+    currentDraggedDisc.value = null;
+
+    // Clean up clone if it exists
+    if (dragClone.value) {
+        dragClone.value.remove();
+        dragClone.value = null;
+    }
 }
-
 
 // Pause/Play Toggle Function
-function pausePlay() {
-    if (isPlaying.value) {
-        // Pause all currently playing audio
-        Object.values(activeSources.value).forEach(({ source }) => {
-            source.stop()
-        })
-        activeSources.value = {} // Clear active sources
-        isPlaying.value = false
-        document.querySelectorAll('.spinning').forEach(item => {
-            console.log(item)
-            item.classList.add('stop')
-        })
-    } else {
-        // Resume audio context if it is suspended
-        if (audioContext.state === 'suspended') {
-            audioContext.resume().then(() => {
-                playAllAudio()
+async function pausePlay() {
+    try {
+        if (isPlaying.value) {
+            // Store the state of backing tracks
+            const wasVocalEnabled = backingVocalEnabled.value
+            const wasMainTrackEnabled = mainBackingTrackEnabled.value
+
+            // Stop all instrument tracks
+            groups.value.forEach(group => {
+                if (group.source) {
+                    cleanupAudioSource(group.source, group.gainNode)
+                    group.source = null
+                    group.gainNode = null
+                    group.isSpinning = false
+                }
             })
+
+            // Stop backing vocal track
+            if (backingVocalSource.value) {
+                cleanupAudioSource(backingVocalSource.value, backingVocalSource.value.gainNode)
+                backingVocalSource.value = null
+            }
+
+            // Stop main backing track
+            if (mainBackingTrackSource.value) {
+                cleanupAudioSource(mainBackingTrackSource.value, mainBackingTrackSource.value.gainNode)
+                mainBackingTrackSource.value = null
+            }
+
+            // Clear source map but maintain enabled states
+            audioSourceMap.value.clear()
+
+            // Update UI
+            document.querySelectorAll('.spinning').forEach(item => {
+                item.classList.add('stop')
+            })
+            
+            isPlaying.value = false
+
+            // Preserve the enabled states
+            backingVocalEnabled.value = wasVocalEnabled
+            mainBackingTrackEnabled.value = wasMainTrackEnabled
         } else {
-            playAllAudio()
+            // Resume playback with existing backing track states
+            await restartAllAudioInSync(false) // Pass false to maintain backing track states
+            isPlaying.value = true
         }
+    } catch (error) {
+        console.error('Error in pausePlay:', error)
+        isPlaying.value = false
     }
 }
+async function restartAllAudioInSync(resetBackingTracks = true) {
+    try {
+        // Stop all current audio and clear sources
+        groups.value.forEach(group => {
+            cleanupAudioSource(group.source, group.gainNode)
+            group.source = null
+            group.gainNode = null
+            group.isSpinning = false
+        })
 
+        // Store the state of backing tracks before clearing them
+        const wasVocalEnabled = backingVocalEnabled.value
+        const wasMainTrackEnabled = mainBackingTrackEnabled.value
+
+        // Clear existing audio sources
+        audioSourceMap.value.clear()
+
+        // Only reset backing track states if requested
+        if (resetBackingTracks) {
+            if (backingVocalSource.value) {
+                cleanupAudioSource(backingVocalSource.value, backingVocalSource.value.gainNode)
+                backingVocalSource.value = null
+                backingVocalEnabled.value = false
+            }
+            
+            if (mainBackingTrackSource.value) {
+                cleanupAudioSource(mainBackingTrackSource.value, mainBackingTrackSource.value.gainNode)
+                mainBackingTrackSource.value = null
+                mainBackingTrackEnabled.value = false
+            }
+        } else {
+            // Clean up the audio sources without resetting their enabled state
+            if (backingVocalSource.value) {
+                cleanupAudioSource(backingVocalSource.value, backingVocalSource.value.gainNode)
+                backingVocalSource.value = null
+            }
+            
+            if (mainBackingTrackSource.value) {
+                cleanupAudioSource(mainBackingTrackSource.value, mainBackingTrackSource.value.gainNode)
+                mainBackingTrackSource.value = null
+            }
+        }
+
+        // Resume audioContext if needed
+        if (audioContext.state === 'suspended') {
+            await audioContext.resume()
+        }
+
+        // Calculate common start time
+        const commonStartTime = audioContext.currentTime + 0.1
+
+        // Start all active tracks
+        await Promise.all(groups.value.map(async (group) => {
+            if (!group.currentDiscId) return
+
+            try {
+                const audioUrl = getAudioUrl(group)
+                const audioBuffer = await loadAudioBuffer(audioUrl)
+                
+                const source = audioContext.createBufferSource()
+                const gainNode = audioContext.createGain()
+                
+                source.buffer = audioBuffer
+                source.loop = true
+                gainNode.gain.value = 0.5
+                
+                source.connect(gainNode)
+                gainNode.connect(audioContext.destination)
+                
+                source.start(commonStartTime)
+                
+                group.source = source
+                group.gainNode = gainNode
+                group.isSpinning = true
+
+                // Track the source
+                audioSourceMap.value.set(group.id, { source, gainNode })
+            } catch (error) {
+                console.error(`Failed to start audio for group ${group.id}:`, error)
+            }
+        }))
+
+        // Restore backing tracks if they were enabled
+        if (!resetBackingTracks) {
+            // Use setTimeout to ensure tracks start in sync
+            const restoreBackingTracks = async () => {
+                if (wasVocalEnabled) {
+                    await toggleBackingVocals()
+                }
+                if (wasMainTrackEnabled) {
+                    await toggleMainBackingTrack()
+                }
+            }
+            setTimeout(restoreBackingTracks, 50)
+        }
+
+        // Update UI state
+        isPlaying.value = true
+        document.querySelectorAll('.spinning.stop').forEach(item => {
+            item.classList.remove('stop')
+        })
+    } catch (error) {
+        console.error('Error in restartAllAudioInSync:', error)
+        isPlaying.value = false
+    }
+}
 function playAllAudio() {
     console.log('Playing all audio', audioElements.value)
     // Play all audio from the current state
@@ -944,6 +1076,7 @@ function playAllAudio() {
 
     isPlaying.value = true
 }
+
 function handleCloseProducer() {
     showProducerDialog.value = false
 }
