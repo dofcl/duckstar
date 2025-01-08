@@ -3,20 +3,22 @@
     <p class="text-white text-sm text-center mt-0 pt-0">Drag the records onto the record player.</p>
     <div class="dj-app px-2 mt-0 mt-0">
         <div v-for="group in groups" :key="group.id" class="instrument-group my-2">
-            
-            <div class="flex justify-center mt-0 pt-0 mb-0 relative">
-                
-                    <input type="range" min="0" max="120" step="10" @change="(e) => setVolume(group.id, e.target.value)"
-                        class="volume-slider-horizontal mt-2" />
 
-                
-                <span class="text-white slider-title coiny">{{ group.label}}<span vif="group.currentDiscId">: v{{group.currentDiscId?.slice(2)}}</span></span>
+            <div class="flex justify-center mt-0 pt-0 mb-0 relative">
+
+                <input type="range" min="0" max="120" step="10" @change="(e) => setVolume(group.id, e.target.value)"
+                    class="volume-slider-horizontal mt-2" />
+
+
+                <span class="text-white slider-title coiny">{{ group.label }}<span vif="group.currentDiscId">:
+                        v{{ group.currentDiscId?.slice(2) }}</span></span>
             </div>
             <div class="grid grid-cols-3  items-center mt-0 pt-0 mt-5 pt-5">
                 <!-- Record Player (Drop Zone) -->
                 <div :class="['record-player', `group-${group.id}`, { 'spinning': group.isSpinning }]" @dragover.prevent
                     @drop.prevent="(e) => handleDrop(e, group)">
-                    <div :class="`color-indicator group-${group.id}-color`"><img  class="center-duck"src="@/assets/images/records/little-duck.png"/></div>
+                    <div :class="`color-indicator group-${group.id}-color`"><img class="center-duck"
+                            src="@/assets/images/records/little-duck.png" /></div>
 
                 </div>
 
@@ -42,15 +44,19 @@
 
         </div>
 
-            <div class="text-center mt-4">
-        <el-button @click="restartAudio" size="large">Replay</el-button>
-        <el-button @click="pausePlay" size="large" class="play-all-button"><el-icon>
-                <VideoPlay />
-            </el-icon></el-button>
-    </div>
+        <div class="text-center mt-4">
+            <el-button v-if="!isPlaying" @click="restartAudio" size="large"><el-icon>
+                    <VideoPlay />
+                </el-icon></el-button>
+            <el-button v-else @click="pausePlay" size="large" class="play-all-button">
+                <el-icon>
+                    <VideoPause />
+                </el-icon>
+            </el-button>
+        </div>
 
         <!-- Controls -->
-        <p class="text-white text-center ma-0 pa-0 mt-4">Add another instrument layer</p>
+        <p class="text-white text-center ma-0 pa-0 mt-4">Add instrument layer</p>
         <div class="controls ma-0 pa-0">
 
             <el-select v-if="enableChangeMix" v-model="currentMix" @change="changeMix" placeholder="Select Mix"
@@ -74,21 +80,21 @@
             <br>
         </div>
     </div>
-    
 
+<hr>
     <div class="action-buttons mx-auto text-center mt-0 pt-0">
         <p class="text-white text-center ma-0 pa-0 ma-0 pa-0 mb-1" v-if="instrumentsSelected < 3">
-            Add {{ 3 - instrumentsSelected }} more layers to sent to producer<br>
+            Add at least {{ 3 - instrumentsSelected }} layers to sent to producer<br>
         </p>
-            <el-button @click="showProducerDialog = true" size="large" class="mt-2"
-                :type="instrumentsSelected < 3 ? 'default' :'primary'" 
-                :disabled="instrumentsSelected < 3" >
-                Send to Producer
-            </el-button>
-            
+        <el-button v-if="!produced" @click="showProducerDialog = true" size="large" class="mt-2"
+            :type="instrumentsSelected < 3 ? 'default' : 'primary'" :disabled="instrumentsSelected < 3">
+            Send to Producer
+        </el-button>
+
 
 
         <div v-if="produced">
+            <p class="text-white">Producers added effects:</p>
             <el-button @click="toggleBackingVocals" :class="['backing-vocal-button', { 'active': backingVocalEnabled }]"
                 :disabled="instrumentsSelected < 3" size="large">
                 {{ backingVocalEnabled ? 'Remove' : 'Add' }} Vocals
@@ -115,23 +121,17 @@
     </div>
 
     <br>
-    <el-dialog title="Manage Backing Tracks" :visible.sync="showProducerDialog" width="30%" :before-close="handleClose">
-        <span>
-            <el-button @click="toggleBackingVocals" :class="['backing-vocal-button', { 'active': backingVocalEnabled }]"
-                :disabled="instrumentsSelected < 3" size="large">
-                {{ backingVocalEnabled ? 'Remove' : 'Add' }} Vocals
-            </el-button>
-
-            <el-button @click="toggleMainBackingTrack"
-                :class="['main-backing-track-button', { 'active': mainBackingTrackEnabled }]"
-                :disabled="instrumentsSelected < 3" size="large">
-                {{ mainBackingTrackEnabled ? 'Remove' : 'Add' }} Polish
-            </el-button>
+    <el-dialog title="Producer" v-model="showProducerDialog" width="80%" :before-close="handleCloseProducer">
+        <div class="mx-auto text-center">
+   <p>Great start!</p>
+   
+   <p>Let me add some post polish and give you and example vocal track to help you get started.</p>
+   <hr>
+        <span slot="footer" class="dialog-footer mt-8">
+            <el-button @click="showProducerDialog = false">Not yet</el-button>
+            <el-button type="primary" @click="handleConfirmProducer">Do your thing!</el-button>
         </span>
-        <span slot="footer" class="dialog-footer">
-            <el-button @click="showProducerDialog = false">Cancel</el-button>
-            <el-button type="primary" @click="handleConfirm">Confirm</el-button>
-        </span>
+    </div>
     </el-dialog>
 
 </template>
@@ -139,6 +139,7 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { fadeOutAndStop } from '@/utils/fadeout';
+import { tr } from 'element-plus/es/locale/index.mjs';
 
 // Audio Context Setup
 const audioContext = new (window.AudioContext || window.webkitAudioContext)()
@@ -160,7 +161,7 @@ const isPlaying = ref(false)
 const isDragging = ref(false)
 const touchStartPos = ref({ x: 0, y: 0 })
 const dragClone = ref(null)
-const showProducerDialog = ref(false)
+const showProducerDialog = ref(true)
 const produced = ref(false)
 
 // Configuration
@@ -375,6 +376,7 @@ function changeMix(event) {
 
 // Comprehensive Restart Function
 function restartAudio() {
+    isPlaying.value = true
     // Stop all current audio sources
     groups.value.forEach(group => {
         stopGroupAudio(group)
@@ -789,6 +791,7 @@ function handleTouchMove(e) {
 // Update handleDrop to include smoother cleanup
 async function handleDrop(e, group) {
     if (!currentDraggedDisc.value) return
+    isPlaying.value = true
 
     let discId
 
@@ -864,6 +867,10 @@ function pausePlay() {
         })
         activeSources.value = {} // Clear active sources
         isPlaying.value = false
+        document.querySelectorAll('.spinning').forEach(item => {
+            console.log(item)
+            item.classList.add('stop')
+        })
     } else {
         // Resume audio context if it is suspended
         if (audioContext.state === 'suspended') {
@@ -902,6 +909,18 @@ function playAllAudio() {
 
     isPlaying.value = true
 }
+function handleCloseProducer() {
+    showProducerDialog.value = false
+}
+
+function handleConfirmProducer() {
+    toggleBackingVocals()
+    toggleMainBackingTrack()
+    produced.value = true
+    showProducerDialog.value = false
+
+}
+
 // Initial Audio Loading
 onMounted(async () => {
     await fadeOutAndStop(2000)
@@ -1099,6 +1118,10 @@ span.group-title.text-white {
 .spinning {
     animation: spin 5s linear infinite;
     box-shadow: 2px 2px 13px #000;
+}
+
+.spinning.stop {
+    animation: none;
 }
 
 @keyframes spin {
