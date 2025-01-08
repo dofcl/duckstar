@@ -174,7 +174,7 @@ async function playGroupAudio(group) {
 
         source.buffer = audioBuffer
         source.loop = true
-        gainNode.gain.value = 1.0
+        gainNode.gain.value = 0.5
 
         source.connect(gainNode)
         gainNode.connect(audioContext.destination)
@@ -356,12 +356,10 @@ function restartAudio() {
 function setVolume(groupId, value) {
     const group = groups.value.find(g => g.id === groupId)
     if (group?.gainNode) {
-        group.gainNode.gain.value = value / 100
+        group.gainNode.gain.value = (value !== undefined ? value : 50) / 100
     }
 }
 
-
-// Modify the toggle functions to be independent
 async function toggleBackingVocals() {
     try {
         // If backing vocals are currently playing, stop them
@@ -378,6 +376,9 @@ async function toggleBackingVocals() {
             backingVocalEnabled.value = false
             return
         }
+
+        // Restart all audio to ensure sync, but not the backing tracks themselves
+        await restartAllAudioInSync(false)
 
         // Load the backing vocal audio
         const audioUrl = `../src/assets/music/${currentMix.value}/main-vocal1.mp3`
@@ -423,6 +424,9 @@ async function toggleMainBackingTrack() {
             return
         }
 
+        // Restart all audio to ensure sync, but not the backing tracks themselves
+        await restartAllAudioInSync(false)
+
         // Load the main backing track audio
         const audioUrl = `../src/assets/music/${currentMix.value}/${mainTrack}`
         const audioBuffer = await loadAudioBuffer(audioUrl)
@@ -433,7 +437,7 @@ async function toggleMainBackingTrack() {
 
         source.buffer = audioBuffer
         source.loop = true
-        gainNode.gain.value = 1.0
+        gainNode.gain.value = 0.5
 
         source.connect(gainNode)
         gainNode.connect(audioContext.destination)
@@ -450,8 +454,8 @@ async function toggleMainBackingTrack() {
     }
 }
 
-// Modify restartAllAudioInSync to handle independent track management
-async function restartAllAudioInSync() {
+// Modify restartAllAudioInSync to optionally preserve backing tracks
+async function restartAllAudioInSync(resetBackingTracks = true) {
     // Stop all current audio sources
     groups.value.forEach(group => {
         stopGroupAudio(group)
@@ -461,6 +465,31 @@ async function restartAllAudioInSync() {
 
     // Reset disc visibility
     discs.value.forEach(disc => disc.hidden = false)
+
+    // Optionally stop backing tracks
+    if (resetBackingTracks) {
+        if (backingVocalSource.value) {
+            try {
+                backingVocalSource.value.stop()
+                backingVocalSource.value.disconnect()
+            } catch (error) {
+                console.warn('Error stopping backing vocal source:', error)
+            }
+            backingVocalSource.value = null
+            backingVocalEnabled.value = false
+        }
+
+        if (mainBackingTrackSource.value) {
+            try {
+                mainBackingTrackSource.value.stop()
+                mainBackingTrackSource.value.disconnect()
+            } catch (error) {
+                console.warn('Error stopping main backing track source:', error)
+            }
+            mainBackingTrackSource.value = null
+            mainBackingTrackEnabled.value = false
+        }
+    }
 
     // Calculate a common start time
     const commonStartTime = audioContext.currentTime + 0.1
@@ -481,7 +510,7 @@ async function restartAllAudioInSync() {
 
                 source.buffer = audioBuffer
                 source.loop = true
-                gainNode.gain.value = 1.0
+                gainNode.gain.value = 0.5
 
                 source.connect(gainNode)
                 gainNode.connect(audioContext.destination)
@@ -499,55 +528,6 @@ async function restartAllAudioInSync() {
             }
         }
     })
-
-    // Restart backing tracks if they were enabled
-    if (backingVocalEnabled.value) {
-        try {
-            const audioUrl = `../src/assets/music/${currentMix.value}/main-vocal1.mp3`
-            const audioBuffer = await loadAudioBuffer(audioUrl)
-
-            const source = audioContext.createBufferSource()
-            const gainNode = audioContext.createGain()
-
-            source.buffer = audioBuffer
-            source.loop = true
-            gainNode.gain.value = 1.0
-
-            source.connect(gainNode)
-            gainNode.connect(audioContext.destination)
-
-            source.start(commonStartTime)
-
-            backingVocalSource.value = source
-        } catch (error) {
-            console.error('Failed to restart backing vocals:', error)
-            backingVocalEnabled.value = false
-        }
-    }
-
-    if (mainBackingTrackEnabled.value) {
-        try {
-            const audioUrl = `../src/assets/music/${currentMix.value}/${mainTrack}`
-            const audioBuffer = await loadAudioBuffer(audioUrl)
-
-            const source = audioContext.createBufferSource()
-            const gainNode = audioContext.createGain()
-
-            source.buffer = audioBuffer
-            source.loop = true
-            gainNode.gain.value = 1.0
-
-            source.connect(gainNode)
-            gainNode.connect(audioContext.destination)
-
-            source.start(commonStartTime)
-
-            mainBackingTrackSource.value = source
-        } catch (error) {
-            console.error('Failed to restart main backing track:', error)
-            mainBackingTrackEnabled.value = false
-        }
-    }
 
     await Promise.all(restartPromises)
 }
@@ -577,40 +557,6 @@ if (backingVocalSource.value) {
 // Calculate a common start time
 const commonStartTime = audioContext.currentTime + 0.1
 
-// Restart all tracks at the same time
-const restartPromises = groups.value.map(async (group) => {
-    const initialDisc = discs.value.find(d => d.group === group.id)
-    if (initialDisc) {
-        initialDisc.hidden = true
-        group.currentDiscId = initialDisc.id
-
-        try {
-            const audioUrl = getAudioUrl(group)
-            const audioBuffer = await loadAudioBuffer(audioUrl)
-
-            const source = audioContext.createBufferSource()
-            const gainNode = audioContext.createGain()
-
-            source.buffer = audioBuffer
-            source.loop = true
-            gainNode.gain.value = 1.0
-
-            source.connect(gainNode)
-            gainNode.connect(audioContext.destination)
-
-            source.start(commonStartTime)
-
-            group.source = source
-            group.gainNode = gainNode
-            group.isSpinning = true
-
-            activeSources.value[group.id] = { source, gainNode }
-        } catch (error) {
-            console.error(`Failed to restart audio for group ${group.id}:`, error)
-            group.isSpinning = false
-        }
-    }
-})
 
 // Cleanup Function
 onUnmounted(() => {
