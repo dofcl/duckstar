@@ -1,15 +1,15 @@
 <template>
     <h1 class="pa-0 ma-0 text-white">Create a Song</h1>
     <p class="text-white text-sm text-center mt-0 pt-0">Drag the records onto the record player.<br>
-        <img src="@/assets/images/arrow-drop.png" class="arrow-drop mx-auto text-center"/>  
-        </p>
-    
+        <img src="@/assets/images/arrow-drop.png" class="arrow-drop mx-auto text-center" />
+    </p>
+
 
     <div class="dj-app px-2 mt-0 mt-0">
         <div v-for="group in groups" :key="group.id" class="instrument-group my-2">
 
             <div class="flex justify-center mt-0 pt-0 mb-0 relative">
-                
+
                 <el-button v-if="groups.length > 1" @click="removeInstrument(group.id)" class="remove-instrument-btn"
                     size="small" type="danger" circle>
                     <el-icon>
@@ -65,7 +65,7 @@
                     <VideoPause />
                 </el-icon>
             </el-button>
-        
+
         </div>
 
         <!-- Controls -->
@@ -104,20 +104,20 @@
             Send to Producer
         </el-button>
 
-
-
         <div v-if="produced">
             <p class="text-white">Producers added effects:</p>
             <el-button @click="toggleBackingVocals" :class="['backing-vocal-button', { 'active': backingVocalEnabled }]"
                 :disabled="instrumentsSelected < 3" size="large">
                 {{ backingVocalEnabled ? 'Remove' : 'Add' }} Vocals
             </el-button>
+            <el-slider v-model="trackVolumes.vocals" @input="setVocalVolume" :min="0" :max="200" />
 
             <el-button @click="toggleMainBackingTrack"
                 :class="['main-backing-track-button', { 'active': mainBackingTrackEnabled }]"
                 :disabled="instrumentsSelected < 3" size="large">
                 {{ mainBackingTrackEnabled ? 'Remove' : 'Add' }} Polish
             </el-button>
+            <el-slider v-model="trackVolumes.master" @input="setMasterVolume" :min="0" :max="200" />
         </div>
 
     </div>
@@ -189,6 +189,10 @@ const lyricStyles = ref([
     { label: 'Rap', value: 'rap' },
     { label: 'Hip-hop', value: 'hip-hop' }
 ])
+const trackVolumes = ref({
+    vocals: 70,
+    master: 70
+})
 
 // Configuration
 const instrumentConfig = [
@@ -307,7 +311,7 @@ async function playGroupAudio(group) {
 
         source.buffer = audioBuffer;
         source.loop = true;
-        gainNode.gain.value = 0.5;
+        gainNode.gain.value = 0.3;
 
         source.connect(gainNode);
         gainNode.connect(audioContext.destination);
@@ -379,10 +383,10 @@ const availableInstruments = computed(() => {
 // Modified addInstrument function
 function addInstrument() {
     if (!currentInstrument.value) return
-    
+
     const instrumentId = parseInt(currentInstrument.value)
     const instrument = instrumentConfig.find(inst => inst.id === instrumentId)
-    
+
     if (!instrument || groups.value.some(g => g.id === instrumentId)) {
         console.warn('Invalid instrument selection or already added')
         return
@@ -467,11 +471,40 @@ function changeMix(event) {
 }
 
 
-// Volume Control
+// Volume control functions for all track types
 function setVolume(groupId, value) {
     const group = groups.value.find(g => g.id === groupId)
     if (group?.gainNode) {
-        group.gainNode.gain.value = (value !== undefined ? value : 50) / 100
+        const normalizedValue = (value !== undefined ? value : 50) / 100
+        group.gainNode.gain.value = normalizedValue
+        // Store the volume level with the group
+        group.volume = value
+    }
+}
+
+function setVocalVolume(value) {
+    trackVolumes.value.vocals = value
+    // Get the current audio source from the map
+    const vocalSource = audioSourceMap.value.get('backingVocal')
+    if (vocalSource?.gainNode) {
+        vocalSource.gainNode.gain.value = value / 100
+    }
+    // Also update the backing vocal source if it exists
+    if (backingVocalSource.value?.gainNode) {
+        backingVocalSource.value.gainNode.gain.value = value / 100
+    }
+}
+
+function setMasterVolume(value) {
+    trackVolumes.value.master = value
+    // Get the current audio source from the map
+    const masterSource = audioSourceMap.value.get('mainTrack')
+    if (masterSource?.gainNode) {
+        masterSource.gainNode.gain.value = value / 100
+    }
+    // Also update the main backing track source if it exists
+    if (mainBackingTrackSource.value?.gainNode) {
+        mainBackingTrackSource.value.gainNode.gain.value = value / 100
     }
 }
 
@@ -495,17 +528,20 @@ async function toggleBackingVocals() {
 
         source.buffer = audioBuffer
         source.loop = true
-        gainNode.gain.value = 1.0
+        // Use stored volume setting
+        gainNode.gain.value = trackVolumes.value.vocals / 100
 
         source.connect(gainNode)
         gainNode.connect(audioContext.destination)
 
         source.start()
 
+        // Store both source and gainNode
         backingVocalSource.value = source
+        backingVocalSource.value.gainNode = gainNode
         backingVocalEnabled.value = true
 
-        // Track the source
+        // Store in audio source map
         audioSourceMap.value.set('backingVocal', { source, gainNode })
     } catch (error) {
         console.error('Backing vocal playback failed:', error)
@@ -513,7 +549,6 @@ async function toggleBackingVocals() {
     }
 }
 
-// Updated toggleMainBackingTrack function
 async function toggleMainBackingTrack() {
     try {
         if (mainBackingTrackEnabled.value) {
@@ -534,17 +569,20 @@ async function toggleMainBackingTrack() {
 
         source.buffer = audioBuffer
         source.loop = true
-        gainNode.gain.value = 0.5
+        // Use stored volume setting
+        gainNode.gain.value = trackVolumes.value.master / 100
 
         source.connect(gainNode)
         gainNode.connect(audioContext.destination)
 
         source.start()
 
+        // Store both source and gainNode
         mainBackingTrackSource.value = source
+        mainBackingTrackSource.value.gainNode = gainNode
         mainBackingTrackEnabled.value = true
 
-        // Track the source
+        // Store in audio source map
         audioSourceMap.value.set('mainTrack', { source, gainNode })
     } catch (error) {
         console.error('Main backing track playback failed:', error)
@@ -583,93 +621,191 @@ const isRecording = ref(false)
 const mediaRecorder = ref(null)
 const audioChunks = ref([])
 
-// Function to start recording
-function startRecording() {
-    syncAllAudio()
-    try {
-        // Create a MediaStream from the audio context
-        const destination = audioContext.createMediaStreamDestination()
+// Utility function to perform fade on a gain node
+function fadeGainNode(gainNode, fromValue, toValue, duration) {
+    if (!gainNode) return;
+    
+    const currentTime = audioContext.currentTime;
+    gainNode.gain.setValueAtTime(fromValue, currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(Math.max(toValue, 0.0001), currentTime + duration);
+}
 
-        // Connect all active sources to the destination
-        // Group tracks
-        groups.value.forEach(group => {
-            if (group.source && group.gainNode) {
-                group.gainNode.connect(destination)
-            }
-        })
-
-        // Backing vocals
-        if (backingVocalSource.value) {
-            const backingVocalGainNode = audioContext.createGain()
-            backingVocalSource.value.connect(backingVocalGainNode)
-            backingVocalGainNode.connect(destination)
+// Function to fade in all tracks
+async function fadeInAllTracks(duration = 1) {
+    // Fade in group tracks
+    groups.value.forEach(group => {
+        if (group.gainNode) {
+            const targetVolume = (group.volume || 50) / 100;
+            fadeGainNode(group.gainNode, 0.0001, targetVolume, duration);
         }
+    });
 
-        // Main backing track
-        if (mainBackingTrackSource.value) {
-            const mainTrackGainNode = audioContext.createGain()
-            mainBackingTrackSource.value.connect(mainTrackGainNode)
-            mainTrackGainNode.connect(destination)
-        }
+    // Fade in backing vocal if active
+    const vocalSource = audioSourceMap.value.get('backingVocal');
+    if (vocalSource?.gainNode) {
+        const targetVolume = trackVolumes.value.vocals / 100;
+        fadeGainNode(vocalSource.gainNode, 0.0001, targetVolume, duration);
+    }
 
-        // Create MediaRecorder
-        mediaRecorder.value = new MediaRecorder(destination.stream)
-
-        // Event handlers for recording
-        mediaRecorder.value.ondataavailable = (event) => {
-            audioChunks.value.push(event.data)
-        }
-
-        mediaRecorder.value.onstop = () => {
-            const audioBlob = new Blob(audioChunks.value, { type: 'audio/mpeg' })
-            const audioUrl = URL.createObjectURL(audioBlob)
-
-            // Create a download link
-            const downloadLink = document.createElement('a')
-            downloadLink.href = audioUrl
-            downloadLink.download = `DuckStar_mix_${currentMix}${new Date().toISOString().replace(/[:.]/g, '-')}.mp4`
-
-            // Trigger download
-            document.body.appendChild(downloadLink)
-            downloadLink.click()
-            document.body.removeChild(downloadLink)
-
-            // Clean up
-            audioChunks.value = []
-            URL.revokeObjectURL(audioUrl)
-        }
-
-        // Start recording
-        mediaRecorder.value.start()
-        isRecording.value = true
-    } catch (error) {
-        console.error('Recording setup failed:', error)
+    // Fade in main track if active
+    const masterSource = audioSourceMap.value.get('mainTrack');
+    if (masterSource?.gainNode) {
+        const targetVolume = trackVolumes.value.master / 100;
+        fadeGainNode(masterSource.gainNode, 0.0001, targetVolume, duration);
     }
 }
 
-// Function to stop recording
-function stopRecording() {
-    if (mediaRecorder.value && isRecording.value) {
-        mediaRecorder.value.stop()
-        isRecording.value = false
+// Function to fade out all tracks and return a promise that resolves when fade is complete
+function fadeOutAllTracks(duration = 1) {
+    return new Promise(resolve => {
+        // Store current volumes for restoration
+        const groupVolumes = groups.value.map(group => ({
+            id: group.id,
+            volume: group.gainNode?.gain.value || 0
+        }));
 
-        // Disconnect gain nodes
+        // Fade out group tracks
         groups.value.forEach(group => {
             if (group.gainNode) {
-                group.gainNode.disconnect()
+                fadeGainNode(group.gainNode, group.gainNode.gain.value, 0.0001, duration);
             }
-        })
+        });
 
-        if (backingVocalSource.value) {
-            backingVocalSource.value.disconnect()
+        // Fade out backing vocal if active
+        const vocalSource = audioSourceMap.value.get('backingVocal');
+        if (vocalSource?.gainNode) {
+            fadeGainNode(vocalSource.gainNode, vocalSource.gainNode.gain.value, 0.0001, duration);
         }
 
-        if (mainBackingTrackSource.value) {
-            mainBackingTrackSource.value.disconnect()
+        // Fade out main track if active
+        const masterSource = audioSourceMap.value.get('mainTrack');
+        if (masterSource?.gainNode) {
+            fadeGainNode(masterSource.gainNode, masterSource.gainNode.gain.value, 0.0001, duration);
+        }
+
+        // Wait for fade to complete before resolving
+        setTimeout(resolve, duration * 1000);
+    });
+}
+
+// Updated recording functions
+async function startRecording() {
+    let destination;
+    
+    try {
+        // Check supported formats first
+        const formats = [
+            'audio/webm;codecs=opus',
+            'audio/webm',
+            'audio/mp3',
+            'audio/mpeg',
+            'audio/wav'
+        ];
+        
+        const supportedFormats = formats.filter(format => {
+            try {
+                return MediaRecorder.isTypeSupported(format);
+            } catch {
+                return false;
+            }
+        });
+        
+        console.log('Supported formats:', supportedFormats);
+        
+        if (supportedFormats.length === 0) {
+            throw new Error('No supported audio formats found');
+        }
+
+        await syncAllAudio();
+        
+        destination = audioContext.createMediaStreamDestination();
+
+        // Connect all tracks to destination
+        groups.value.forEach(group => {
+            if (group.source && group.gainNode) {
+                group.gainNode.gain.setValueAtTime(0.0001, audioContext.currentTime);
+                group.gainNode.connect(destination);
+            }
+        });
+
+        if (backingVocalSource.value?.gainNode) {
+            backingVocalSource.value.gainNode.gain.setValueAtTime(0.0001, audioContext.currentTime);
+            backingVocalSource.value.gainNode.connect(destination);
+        }
+
+        if (mainBackingTrackSource.value?.gainNode) {
+            mainBackingTrackSource.value.gainNode.gain.setValueAtTime(0.0001, audioContext.currentTime);
+            mainBackingTrackSource.value.gainNode.connect(destination);
+        }
+
+        // Use the first supported format
+        const options = {
+            mimeType: supportedFormats[0],
+            bitsPerSecond: 256000
+        };
+
+        mediaRecorder.value = new MediaRecorder(destination.stream, options);
+
+        mediaRecorder.value.ondataavailable = (event) => {
+            audioChunks.value.push(event.data);
+        };
+
+        mediaRecorder.value.onstop = () => {
+            const audioBlob = new Blob(audioChunks.value, { type: supportedFormats[0] });
+            const audioUrl = URL.createObjectURL(audioBlob);
+
+            const downloadLink = document.createElement('a');
+            downloadLink.href = audioUrl;
+            // Use the appropriate extension based on the format
+            const extension = supportedFormats[0].includes('webm') ? 'webm' : 
+                            supportedFormats[0].includes('mpeg') ? 'mp3' : 
+                            supportedFormats[0].includes('wav') ? 'wav' : 'mp3';
+            
+            downloadLink.download = `DuckStar_${currentMix.value}-${new Date().toLocaleDateString("en-CA").replace(/[:.]/g, '-')}.${extension}`;
+
+            document.body.appendChild(downloadLink);
+            downloadLink.click();
+            document.body.removeChild(downloadLink);
+
+            audioChunks.value = [];
+            URL.revokeObjectURL(audioUrl);
+        };
+
+        mediaRecorder.value.start();
+        isRecording.value = true;
+
+        await fadeInAllTracks(1.0);
+        
+    } catch (error) {
+        console.error('Recording setup failed:', error);
+        isRecording.value = false;
+        
+        // If everything fails, try basic WebM without options
+        if (destination) {
+            try {
+                mediaRecorder.value = new MediaRecorder(destination.stream);
+                mediaRecorder.value.start();
+                isRecording.value = true;
+                await fadeInAllTracks(1.0);
+            } catch (fallbackError) {
+                console.error('Basic recording fallback failed:', fallbackError);
+                isRecording.value = false;
+            }
         }
     }
 }
 
+async function stopRecording() {
+    if (mediaRecorder.value && isRecording.value) {
+        try {
+            await fadeOutAllTracks(1.0);
+            mediaRecorder.value.stop();
+            isRecording.value = false;
+        } catch (error) {
+            console.error('Error stopping recording:', error);
+        }
+    }
+}
 // Cleanup Function
 onUnmounted(() => {
     // Stop and cleanup all audio sources
@@ -768,8 +904,7 @@ function handleTouchMove(e) {
     dragClone.value.style.top = `${touch.clientY - touchStartPos.value.y}px`
 }
 
-// Add this helper function to sync all audio sources
-// Unified sync function that combines best practices from both
+
 async function syncAllAudio() {
     try {
         // Show sync loading indicator
@@ -778,10 +913,16 @@ async function syncAllAudio() {
             item.classList.add('blink')
         })
 
-        // Store current states BEFORE stopping anything
+        // Store current states AND volumes
         const wasVocalEnabled = backingVocalEnabled.value
         const wasMainTrackEnabled = mainBackingTrackEnabled.value
-        
+
+        // Store current volumes for each group
+        const groupVolumes = {}
+        groups.value.forEach(group => {
+            groupVolumes[group.id] = group.gainNode?.gain.value * 100 || group.volume || 50
+        })
+
         // Temporarily set flags to false while we restart everything
         backingVocalEnabled.value = false
         mainBackingTrackEnabled.value = false
@@ -828,7 +969,11 @@ async function syncAllAudio() {
 
                 source.buffer = audioBuffer
                 source.loop = true
-                gainNode.gain.value = 0.5
+
+                // Restore the previous volume
+                const previousVolume = groupVolumes[group.id]
+                gainNode.gain.value = previousVolume / 100
+                group.volume = previousVolume // Store the volume with the group
 
                 source.connect(gainNode)
                 gainNode.connect(audioContext.destination)
@@ -844,11 +989,11 @@ async function syncAllAudio() {
             }
         }))
 
-        // After starting main tracks, restore backing tracks if they were enabled
+        // Restore backing tracks with their volumes
         const restoreBackingTracks = async () => {
             try {
                 if (wasVocalEnabled) {
-                    backingVocalEnabled.value = true // Restore the flag
+                    backingVocalEnabled.value = true
                     const audioUrl = `${publicStatic}/music/${currentMix.value}/vocal-1-${lyrics.value || 'pop'}.mp3`
                     const audioBuffer = await loadAudioBuffer(audioUrl)
 
@@ -857,7 +1002,7 @@ async function syncAllAudio() {
 
                     source.buffer = audioBuffer
                     source.loop = true
-                    gainNode.gain.value = 1.0
+                    gainNode.gain.value = trackVolumes.value.vocals / 100
 
                     source.connect(gainNode)
                     gainNode.connect(audioContext.destination)
@@ -865,11 +1010,12 @@ async function syncAllAudio() {
                     source.start(audioContext.currentTime)
 
                     backingVocalSource.value = source
+                    backingVocalSource.value.gainNode = gainNode
                     audioSourceMap.value.set('backingVocal', { source, gainNode })
                 }
 
                 if (wasMainTrackEnabled) {
-                    mainBackingTrackEnabled.value = true // Restore the flag
+                    mainBackingTrackEnabled.value = true
                     const audioUrl = `${publicStatic}/music/${currentMix.value}/${mainTrack}`
                     const audioBuffer = await loadAudioBuffer(audioUrl)
 
@@ -878,7 +1024,7 @@ async function syncAllAudio() {
 
                     source.buffer = audioBuffer
                     source.loop = true
-                    gainNode.gain.value = 0.5
+                    gainNode.gain.value = trackVolumes.value.master / 100
 
                     source.connect(gainNode)
                     gainNode.connect(audioContext.destination)
@@ -886,6 +1032,7 @@ async function syncAllAudio() {
                     source.start(audioContext.currentTime)
 
                     mainBackingTrackSource.value = source
+                    mainBackingTrackSource.value.gainNode = gainNode
                     audioSourceMap.value.set('mainTrack', { source, gainNode })
                 }
             } catch (error) {
@@ -911,7 +1058,7 @@ async function syncAllAudio() {
     } catch (error) {
         console.error('Error in syncAllAudio:', error)
         isPlaying.value = false
-        
+
         // Ensure sync indicator is hidden even if there's an error
         document.querySelectorAll('.sync-load').forEach(item => {
             item.classList.remove('blink')
@@ -920,13 +1067,12 @@ async function syncAllAudio() {
     }
 }
 
-
 async function handleDrop(e, group) {
     document.querySelectorAll('.sync-load').forEach(item => {
         item.classList.remove('hide-sync')
         item.classList.add('blink')
-        
-        
+
+
     })
     if (!currentDraggedDisc.value) return;
 
@@ -1119,7 +1265,7 @@ async function restartAllAudioInSync(resetBackingTracks = true) {
 
                 source.buffer = audioBuffer
                 source.loop = true
-                gainNode.gain.value = 0.5
+                gainNode.gain.value = 0.3
 
                 source.connect(gainNode)
                 gainNode.connect(audioContext.destination)
@@ -1204,7 +1350,7 @@ function handleConfirmProducer() {
 
 // Initial Audio Loading
 onMounted(async () => {
-    
+
     await fadeOutAndStop(2000)
     if (!window.AudioContext && !window.webkitAudioContext) {
         alert('Web Audio API not supported in this browser.');
@@ -1230,9 +1376,10 @@ onMounted(async () => {
 
 <style scoped>
 .arrow-drop {
-    margin-top:10px;
+    margin-top: 10px;
     max-width: 60px;
 }
+
 .el-select.el-select--large.w-full.instrument-selecta {
     width: 200px;
 }
@@ -1758,31 +1905,57 @@ span.text-white.slider {
 }
 
 @keyframes blinkThenFade {
+
     /* First blink */
-    0% { opacity: 1; }
-    10% { opacity: 0; }
-    20% { opacity: 1; }
-    
+    0% {
+        opacity: 1;
+    }
+
+    10% {
+        opacity: 0;
+    }
+
+    20% {
+        opacity: 1;
+    }
+
     /* Second blink */
-    30% { opacity: 0; }
-    40% { opacity: 1; }
-    
+    30% {
+        opacity: 0;
+    }
+
+    40% {
+        opacity: 1;
+    }
+
     /* Third blink */
-    50% { opacity: 0; }
-    60% { opacity: 1; }
-    
+    50% {
+        opacity: 0;
+    }
+
+    60% {
+        opacity: 1;
+    }
+
     /* Pause briefly */
-    70% { opacity: 1; }
-    
+    70% {
+        opacity: 1;
+    }
+
     /* Final fade out */
-    80% { opacity: 1; }
-    100% { opacity: 0; }
+    80% {
+        opacity: 1;
+    }
+
+    100% {
+        opacity: 0;
+    }
 }
 
 .sync-load {
     position: absolute;
-    left:5px;
-    top:-22px;
+    left: 5px;
+    top: -22px;
     font-size: 12px;
     color: #ddd;
 }
