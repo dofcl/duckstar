@@ -43,6 +43,13 @@
 
         </div>
 
+            <div class="text-center mt-4">
+        <el-button @click="restartAudio" size="large">Replay</el-button>
+        <el-button @click="pausePlay" size="large" class="play-all-button"><el-icon>
+                <VideoPlay />
+            </el-icon></el-button>
+    </div>
+
         <!-- Controls -->
         <p class="text-white text-center ma-0 pa-0 mt-4">Add another instrument layer</p>
         <div class="controls ma-0 pa-0">
@@ -68,30 +75,35 @@
             <br>
         </div>
     </div>
+    
 
     <div class="action-buttons mx-auto text-center mt-0 pt-0">
-        <p class="text-white ma-0 pa-0 mb-1" v-if="instrumentsSelected < 4">Add {{ 3 - instrumentsSelected }} more layers
-            to sent to producer: </p>
-        <p class="text-white ma-0 pa-0 mb-1" v-else>Add sent to producer: </p>
-        <el-button @click="toggleBackingVocals" :class="['backing-vocal-button', { 'active': backingVocalEnabled }]"
-            :disabled="instrumentsSelected < 3" size="large">
-            {{ backingVocalEnabled ? 'Remove' : 'Add' }} Vocals
-        </el-button>
+        <p class="text-white text-center ma-0 pa-0 ma-0 pa-0 mb-1" v-if="instrumentsSelected < 3">
+            Add {{ 3 - instrumentsSelected }} more layers to sent to producer<br>
+        </p>
+            <el-button @click="showProducerDialog = true" size="large" class="mt-2"
+                :type="instrumentsSelected < 3 ? 'default' :'primary'" 
+                :disabled="instrumentsSelected < 3" >
+                Send to Producer
+            </el-button>
+            
 
-        <el-button @click="toggleMainBackingTrack"
-            :class="['main-backing-track-button', { 'active': mainBackingTrackEnabled }]"
-            :disabled="instrumentsSelected < 3" size="large">
-            {{ mainBackingTrackEnabled ? 'Remove' : 'Add' }} Polish
-        </el-button>
+
+        <div v-if="produced">
+            <el-button @click="toggleBackingVocals" :class="['backing-vocal-button', { 'active': backingVocalEnabled }]"
+                :disabled="instrumentsSelected < 3" size="large">
+                {{ backingVocalEnabled ? 'Remove' : 'Add' }} Vocals
+            </el-button>
+
+            <el-button @click="toggleMainBackingTrack"
+                :class="['main-backing-track-button', { 'active': mainBackingTrackEnabled }]"
+                :disabled="instrumentsSelected < 3" size="large">
+                {{ mainBackingTrackEnabled ? 'Remove' : 'Add' }} Polish
+            </el-button>
+        </div>
 
     </div>
     <hr class="mt-8">
-    <div class="text-center mt-4">
-        <el-button @click="restartAudio" size="large">Replay</el-button>
-        <el-button @click="pausePlay" size="large" class="play-all-button"><el-icon>
-                <VideoPlay />
-            </el-icon></el-button>
-    </div>
     <div class="recording-controls mx-auto pa-4 text-center">
 
 
@@ -104,6 +116,24 @@
     </div>
 
     <br>
+    <el-dialog title="Manage Backing Tracks" :visible.sync="showProducerDialog" width="30%" :before-close="handleClose">
+        <span>
+            <el-button @click="toggleBackingVocals" :class="['backing-vocal-button', { 'active': backingVocalEnabled }]"
+                :disabled="instrumentsSelected < 3" size="large">
+                {{ backingVocalEnabled ? 'Remove' : 'Add' }} Vocals
+            </el-button>
+
+            <el-button @click="toggleMainBackingTrack"
+                :class="['main-backing-track-button', { 'active': mainBackingTrackEnabled }]"
+                :disabled="instrumentsSelected < 3" size="large">
+                {{ mainBackingTrackEnabled ? 'Remove' : 'Add' }} Polish
+            </el-button>
+        </span>
+        <span slot="footer" class="dialog-footer">
+            <el-button @click="showProducerDialog = false">Cancel</el-button>
+            <el-button type="primary" @click="handleConfirm">Confirm</el-button>
+        </span>
+    </el-dialog>
 
 </template>
 
@@ -131,6 +161,8 @@ const isPlaying = ref(false)
 const isDragging = ref(false)
 const touchStartPos = ref({ x: 0, y: 0 })
 const dragClone = ref(null)
+const showProducerDialog = ref(false)
+const produced = ref(false)
 
 // Configuration
 const instrumentConfig = [
@@ -831,33 +863,46 @@ function pausePlay() {
         Object.values(activeSources.value).forEach(({ source }) => {
             source.stop()
         })
+        activeSources.value = {} // Clear active sources
         isPlaying.value = false
     } else {
-        // Play all audio from the current state
-        Object.keys(audioElements.value).forEach(key => {
-            const audioData = audioElements.value[key]
-            if (audioData?.buffer) {
-                const source = audioContext.createBufferSource()
-                source.buffer = audioData.buffer
-                source.loop = true
-
-                const gainNode = audioContext.createGain()
-                gainNode.gain.value = 1.0
-                gainNodes.value[key] = gainNode
-
-                source.connect(gainNode)
-                gainNode.connect(audioContext.destination)
-
-                source.start()
-                audioElements.value[key] = { buffer: audioData.buffer, source, gainNode }
-                activeSources.value[key] = { source, gainNode }
-            }
-        })
-
-        isPlaying.value = true
+        // Resume audio context if it is suspended
+        if (audioContext.state === 'suspended') {
+            audioContext.resume().then(() => {
+                playAllAudio()
+            })
+        } else {
+            playAllAudio()
+        }
     }
 }
 
+function playAllAudio() {
+    console.log('Playing all audio', audioElements.value)
+    // Play all audio from the current state
+    Object.keys(audioElements.value).forEach(key => {
+        console.log(audioElements.value)
+        const audioData = audioElements.value[key]
+        if (audioData?.buffer) {
+            const source = audioContext.createBufferSource()
+            source.buffer = audioData.buffer
+            source.loop = true
+
+            const gainNode = audioContext.createGain()
+            gainNode.gain.value = 1.0
+            gainNodes.value[key] = gainNode
+
+            source.connect(gainNode)
+            gainNode.connect(audioContext.destination)
+
+            source.start()
+            audioElements.value[key] = { buffer: audioData.buffer, source, gainNode }
+            activeSources.value[key] = { source, gainNode }
+        }
+    })
+
+    isPlaying.value = true
+}
 // Initial Audio Loading
 onMounted(async () => {
     await fadeOutAndStop(2000)
