@@ -41,7 +41,7 @@
 <script setup lang="ts">
 import { VideoPause, VideoPlay } from '@element-plus/icons-vue';
 import { onMounted, ref } from 'vue';
-import { initAudio, fadeOutAndStop } from '@/utils/fadeout';
+import { fadeOutAndStop } from '@/utils/fadeout';
 const videoUrl = new URL('/src/assets/videos/demo1.mp4', import.meta.url).href;
 const videoUrlDubbed = new URL('/src/assets/videos/dan-dub.mp4', import.meta.url).href;
 const playing = ref(false);
@@ -67,14 +67,10 @@ function play() {
 }
 
 
-const handleTransition = async () => {
-    await fadeOutAndStop(2000); // Fade out over 2 seconds
-}
 
 onMounted(() => {
     console.log('Onboard page mounted');
-    initAudio();
-    handleTransition();
+    fadeOutAndStop(2000)
 });
 
 

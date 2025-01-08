@@ -15,6 +15,7 @@ export const initAudio = (): Promise<void> => {
 }
 
 export const fadeOutAndStop = (duration: number = 1000): Promise<void> => {
+    initAudio();
     return new Promise<void>((resolve) => {
         if (!bgAudio) {
             resolve();
