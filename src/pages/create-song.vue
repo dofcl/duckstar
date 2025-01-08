@@ -3,21 +3,20 @@
     <p class="text-white text-sm text-center mt-0 pt-0">Drag the records onto the record player.</p>
     <div class="dj-app px-2 mt-0 mt-0">
         <div v-for="group in groups" :key="group.id" class="instrument-group my-2">
+            
             <div class="flex justify-center mt-0 pt-0 mb-0 relative">
-                <span class="text-white slider-title coiny">{{ group.label }}</span>
-                <div>
+                
                     <input type="range" min="0" max="120" step="10" @change="(e) => setVolume(group.id, e.target.value)"
-                        class="volume-slider-horizontal" />
+                        class="volume-slider-horizontal mt-2" />
 
-                </div>
+                
+                <span class="text-white slider-title coiny">{{ group.label}}<span vif="group.currentDiscId">: v{{group.currentDiscId?.slice(2)}}</span></span>
             </div>
-            <div class="grid grid-cols-3 gap-2 items-center mt-0 pt-0">
+            <div class="grid grid-cols-3  items-center mt-0 pt-0 mt-5 pt-5">
                 <!-- Record Player (Drop Zone) -->
                 <div :class="['record-player', `group-${group.id}`, { 'spinning': group.isSpinning }]" @dragover.prevent
                     @drop.prevent="(e) => handleDrop(e, group)">
-                    <div :class="`color-indicator group-${group.id}-color`"></div>
-                    <p class="text-white disc-center flex items-center justify-center h-full">{{ group.currentDiscId }}
-                    </p>
+                    <div :class="`color-indicator group-${group.id}-color`"><img  class="center-duck"src="@/assets/images/records/little-duck.png"/></div>
 
                 </div>
 
@@ -1144,7 +1143,7 @@ span.group-title.text-white {
 }
 
 .disc-wrapper {
-    overflow: hidden;
+    overflow-x: scroll;
     min-width: 200px;
     margin-bottom: 16px;
     padding-top: 10px;
@@ -1169,12 +1168,19 @@ span.group-title.text-white {
 
 .color-indicator {
     position: absolute;
-    top: 32%;
-    right: 32%;
-    left: 32%;
-    bottom: 32%;
-    border: 1px solid #ffffff;
+    top: 29%;
+    right: 29%;
+    left: 29%;
+    bottom: 29%;
+    border: 2px solid var(--el-color-primary);
     border-radius: 50%;
+
+}
+
+img.center-duck {
+    margin: 1px 0px 0px 2px;
+    height: 30px;
+    width: 30px;
 }
 
 /* Group colors */
@@ -1278,7 +1284,8 @@ span.text-white.slider {
 }
 
 .volume-slider-horizontal {
-    margin: 10px 0;
+    position: absolute;
+    right: 16px;
 }
 
 .volume-range {
