@@ -2,10 +2,10 @@
     <h1 class="pa-0 ma-0 text-white">Create a Song</h1>
     <p class="text-white text-sm text-center mt-0 pt-0">Drag the records onto the record player.</p>
     <div class="dj-app px-2 mt-0 mt-0">
-        <div v-for="group in groups" :key="group.id" class="instrument-group">
-            <div class="flex justify-center mt-0 pt-0 mb-0">
+        <div v-for="group in groups" :key="group.id" class="instrument-group my-2">
+            <div class="flex justify-center mt-0 pt-0 mb-0 relative">
+                <span class="text-white slider-title coiny">{{ group.label }}</span>
                 <div>
-                    <span class="text-white slider">{{ group.label }}</span>
                     <input type="range" min="0" max="120" step="10" @change="(e) => setVolume(group.id, e.target.value)"
                         class="volume-slider-horizontal" />
 
@@ -15,18 +15,20 @@
                 <!-- Record Player (Drop Zone) -->
                 <div :class="['record-player', `group-${group.id}`, { 'spinning': group.isSpinning }]" @dragover.prevent
                     @drop.prevent="(e) => handleDrop(e, group)">
-                    <p class="text-white ">{{ group.currentDiscId }}</p>
                     <div :class="`color-indicator group-${group.id}-color`"></div>
+                    <p class="text-white disc-center flex items-center justify-center h-full">{{ group.currentDiscId }}
+                    </p>
+
                 </div>
 
                 <!-- Draggable Discs -->
-                <div class="flex gap-2">
+                <div class="flex gap-2 disc-wrapper">
 
                     <div v-for="disc in getGroupDiscs(group.id)" :key="disc.id"
                         :class="['mini-disc', `group-${disc.group}-disc`]" draggable="true"
                         @dragstart="(e) => startDrag(e, disc)" v-show="!disc.hidden">
                         <div class="flex items-center justify-center h-full">
-                            <span class="text-white text-center disc-version">{{ disc.index }}</span>
+                            <span class="text-white text-center disc-version">{{ disc.index + 1 }}</span>
                         </div>
                     </div>
                 </div>
@@ -40,14 +42,16 @@
         <p class="text-white text-center ma-0 pa-0 mt-4">Add another instrument layer</p>
         <div class="controls ma-0 pa-0">
 
-            <el-select v-if="enableChangeMix" v-model="currentMix" @change="changeMix" placeholder="Select Mix" class="mt-0 pt-0">
+            <el-select v-if="enableChangeMix" v-model="currentMix" @change="changeMix" placeholder="Select Mix"
+                class="mt-0 pt-0">
                 <el-option label="Mix 1" value="mix1"></el-option>
                 <el-option label="Mix 2" value="mix2"></el-option>
             </el-select>
 
             <div class="instrument-selector  mb-4 mt-2 pt-0">
 
-                <el-select v-model="currentInstrument" placeholder="Add Instrument..." size="large" class="w-full instrument-selecta">
+                <el-select v-model="currentInstrument" placeholder="Add Instrument..." size="large"
+                    class="w-full instrument-selecta">
                     <el-option v-for="inst in availableInstruments" :key="inst.id" :label="inst.label"
                         :value="inst.id"></el-option>
                 </el-select>
@@ -61,21 +65,37 @@
     </div>
 
     <div class="action-buttons mx-auto text-center mt-0 pt-0">
-        <p class="text-sm text-white ma-0 pa-0 mb-1">Add  {{ 3-instrumentsSelected }} more layes to enable: </p>
-        <el-button @click="toggleBackingVocals" :class="['backing-vocal-button', { 'active': backingVocalEnabled }]" :disabled="instrumentsSelected < 3">
-            {{ backingVocalEnabled ? 'Remove' : 'Add' }}  Vocals
+        <p class="text-white ma-0 pa-0 mb-1">Add {{ 3 - instrumentsSelected }} more layees to enable: </p>
+        <el-button @click="toggleBackingVocals" :class="['backing-vocal-button', { 'active': backingVocalEnabled }]"
+            :disabled="instrumentsSelected < 3" size="large">
+            {{ backingVocalEnabled ? 'Remove' : 'Add' }} Vocals
         </el-button>
 
         <el-button @click="toggleMainBackingTrack"
-            :class="['main-backing-track-button', { 'active': mainBackingTrackEnabled }]" :disabled="instrumentsSelected < 3">
+            :class="['main-backing-track-button', { 'active': mainBackingTrackEnabled }]"
+            :disabled="instrumentsSelected < 3" size="large">
             {{ mainBackingTrackEnabled ? 'Remove' : 'Add' }} Polish
         </el-button>
 
     </div>
-    <div class="action-buttons mx-auto text-center mt-6 text-black">
-        <el-button @click="restartAudio" class="text-black">Replay</el-button>
-        <br>
+    <hr class="mt-8">
+    <div class="text-center mt-4">
+        <el-button @click="restartAudio" size="large">Replay</el-button>
+        <el-button @click="rewin" size="large" class="play-all-button"><el-icon>
+                <VideoPlay />
+            </el-icon></el-button>
     </div>
+    <div class="recording-controls mx-auto pa-4 text-center">
+
+
+
+
+        <el-button @click="isRecording ? stopRecording() : startRecording()"
+            :class="['record-button', { 'recording': isRecording }]" size="large" type="primary">
+            {{ isRecording ? 'Stop Saving' : 'Save' }}
+        </el-button>
+    </div>
+
     <br>
 
 </template>
@@ -565,6 +585,98 @@ if (backingVocalSource.value) {
 const commonStartTime = audioContext.currentTime + 0.1
 
 
+// Add these to your existing state management
+const isRecording = ref(false)
+const mediaRecorder = ref(null)
+const audioChunks = ref([])
+
+// Function to start recording
+function startRecording() {
+    restartAudio()
+    try {
+        // Create a MediaStream from the audio context
+        const destination = audioContext.createMediaStreamDestination()
+
+        // Connect all active sources to the destination
+        // Group tracks
+        groups.value.forEach(group => {
+            if (group.source && group.gainNode) {
+                group.gainNode.connect(destination)
+            }
+        })
+
+        // Backing vocals
+        if (backingVocalSource.value) {
+            const backingVocalGainNode = audioContext.createGain()
+            backingVocalSource.value.connect(backingVocalGainNode)
+            backingVocalGainNode.connect(destination)
+        }
+
+        // Main backing track
+        if (mainBackingTrackSource.value) {
+            const mainTrackGainNode = audioContext.createGain()
+            mainBackingTrackSource.value.connect(mainTrackGainNode)
+            mainTrackGainNode.connect(destination)
+        }
+
+        // Create MediaRecorder
+        mediaRecorder.value = new MediaRecorder(destination.stream)
+
+        // Event handlers for recording
+        mediaRecorder.value.ondataavailable = (event) => {
+            audioChunks.value.push(event.data)
+        }
+
+        mediaRecorder.value.onstop = () => {
+            const audioBlob = new Blob(audioChunks.value, { type: 'audio/mpeg' })
+            const audioUrl = URL.createObjectURL(audioBlob)
+
+            // Create a download link
+            const downloadLink = document.createElement('a')
+            downloadLink.href = audioUrl
+            downloadLink.download = `DuckStar_mix_${currentMix}${new Date().toISOString().replace(/[:.]/g, '-')}.mp4`
+
+            // Trigger download
+            document.body.appendChild(downloadLink)
+            downloadLink.click()
+            document.body.removeChild(downloadLink)
+
+            // Clean up
+            audioChunks.value = []
+            URL.revokeObjectURL(audioUrl)
+        }
+
+        // Start recording
+        mediaRecorder.value.start()
+        isRecording.value = true
+    } catch (error) {
+        console.error('Recording setup failed:', error)
+    }
+}
+
+// Function to stop recording
+function stopRecording() {
+    if (mediaRecorder.value && isRecording.value) {
+        mediaRecorder.value.stop()
+        isRecording.value = false
+
+        // Disconnect gain nodes
+        groups.value.forEach(group => {
+            if (group.gainNode) {
+                group.gainNode.disconnect()
+            }
+        })
+
+        if (backingVocalSource.value) {
+            backingVocalSource.value.disconnect()
+        }
+
+        if (mainBackingTrackSource.value) {
+            mainBackingTrackSource.value.disconnect()
+        }
+    }
+}
+
 // Cleanup Function
 onUnmounted(() => {
     // Stop all audio sources when component is unmounted
@@ -599,12 +711,37 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-
 .el-select.el-select--large.w-full.instrument-selecta {
     width: 200px;
 }
+
 .text-black {
     color: #000000;
+}
+
+
+
+@keyframes pulse {
+    from {
+        opacity: 0.7;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+.disc-center {
+    position: relative;
+    margin: 0px 2px 9px -5px;
+}
+
+.slider-title {
+    text-align: left;
+    float: right;
+    position: absolute;
+    left: 11px;
+    top: 3px;
 }
 
 span.group-title.text-white {
@@ -655,6 +792,7 @@ span.group-title.text-white {
     border-radius: 50%;
     background-color: #000000;
     position: relative;
+    padding-left: 5px;
 }
 
 .discs-grid {
@@ -669,6 +807,7 @@ span.group-title.text-white {
     border-radius: 50%;
     background-color: #000000;
     cursor: grab;
+    box-shadow: 2px 2px 13px #000;
 }
 
 .mixer-controls {
@@ -721,6 +860,7 @@ span.group-title.text-white {
 /* Maintain your existing color classes and animations */
 .spinning {
     animation: spin 5s linear infinite;
+    box-shadow: 2px 2px 13px #000;
 }
 
 @keyframes spin {
@@ -758,8 +898,20 @@ span.group-title.text-white {
     height: 90px;
     border-radius: 50%;
     background-color: #000000;
-    margin-left: -8px;
+    margin-left: 6px;
     position: relative;
+    margin-bottom: 9px;
+    margin-top: -7px;
+}
+
+.disc-wrapper {
+    overflow: hidden;
+    min-width: 200px;
+    margin-bottom: 16px;
+    padding-top: 10px;
+    padding-bottom: 10px;
+    width: 153%;
+    padding-left: 6px;
 }
 
 .spinning {
@@ -778,11 +930,11 @@ span.group-title.text-white {
 
 .color-indicator {
     position: absolute;
-    top: 40%;
-    right: 40%;
-    left: 40%;
-    bottom: 40%;
-    border: 3px solid #ffffff;
+    top: 32%;
+    right: 32%;
+    left: 32%;
+    bottom: 32%;
+    border: 1px solid #ffffff;
     border-radius: 50%;
 }
 
@@ -874,8 +1026,16 @@ span.group-title.text-white {
 span.text-white.slider {
     float: left;
     position: absolute;
-    left: 38px;
     margin-top: 4px;
+    margin-left: -60px
+}
+
+.instrument-group {
+    border: 2px solid var(--el-color-primary);
+    padding: 0;
+    border-radius: 12px;
+    background: #333;
+    box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.2);
 }
 
 .volume-slider-horizontal {
@@ -916,6 +1076,7 @@ span.text-white.slider {
 
 .mini-disc:hover {
     transform: scale(1.1);
+    box-shadow: 2px 2px 13px #000;
 }
 
 .mini-disc:active {
@@ -1004,14 +1165,6 @@ span.text-white.slider {
     border: 1px solid #ccc;
 }
 
-.add-instrument-button {
-    padding: 8px 16px;
-    border-radius: 4px;
-    background-color: #4CAF50;
-    color: white;
-    border: none;
-    cursor: pointer;
-}
 
 .add-instrument-button:disabled {
     background-color: #cccccc;
