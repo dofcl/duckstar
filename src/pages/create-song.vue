@@ -140,7 +140,7 @@
             <p>Great start!</p>
 
             <p>Let me add some post polish and give you and example vocal track to help you get started.</p>
-            <p>Do what style lyrics do you want? I can do:</p>
+            <p>Do what style lyrics do you want? I can do pop, rap or hip-hop.</p>
             <el-select placeholder="Lyrics" v-model="lyrics">
                 <el-option v-for="item in lyricStyles" :key="item.value" :label="item.label" :value="item.value" />
 
