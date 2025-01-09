@@ -23,5 +23,6 @@ declare module 'vue-router/auto-routes' {
     '/lip-sync-battle': RouteRecordInfo<'/lip-sync-battle', '/lip-sync-battle', Record<never, never>, Record<never, never>>,
     '/login': RouteRecordInfo<'/login', '/login', Record<never, never>, Record<never, never>>,
     '/onboard': RouteRecordInfo<'/onboard', '/onboard', Record<never, never>, Record<never, never>>,
+    '/record-lyrics': RouteRecordInfo<'/record-lyrics', '/record-lyrics', Record<never, never>, Record<never, never>>,
   }
 }

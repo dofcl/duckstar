@@ -124,14 +124,13 @@
     <hr class="mt-8">
     <div class="recording-controls mx-auto pa-4 text-center">
 
-
-
-
         <el-button @click="isRecording ? stopRecording() : startRecording()"
             :class="['record-button', { 'recording': isRecording }]" size="large" type="primary">
             {{ isRecording ? 'Stop Saving' : 'Save' }}
         </el-button>
     </div>
+
+    <el-button @click="createLyrics">Create Lyrics</el-button>
 
     <br>
     <el-dialog title="Producer" v-model="showProducerDialog" width="80%" class="produced-dialog"
@@ -157,9 +156,11 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
+import { useRouter } from 'vue-router'
 import { fadeOutAndStop } from '@/utils/fadeout';
 import { tr } from 'element-plus/es/locale/index.mjs';
-
+import { routerKey } from 'vue-router';
+const router = useRouter()
 const publicStatic = 'https://duckstar-public.s3.eu-central-1.amazonaws.com'
 // Audio Context Setup
 const audioContext = new (window.AudioContext || window.webkitAudioContext)()
@@ -205,6 +206,10 @@ const instrumentConfig = [
     { id: 7, color: '#00CED1', audioPrefix: 'Violin', label: 'Violin' },
 ]
 
+function createLyrics() {
+
+    router.push('/record-lyrics')
+}
 // Utility Functions
 function generateInitialDiscs(group) {
     return Array.from({ length: 4 }, (_, i) => ({
