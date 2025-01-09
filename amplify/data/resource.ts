@@ -18,8 +18,9 @@ const schema = a.schema({
     .model({
       // Required fields
       userId: a.string().required(),
-      username: a.string().required(),
-      email: a.string().required(),
+      username: a.string().required(),//public
+      email: a.string(),
+      onboarded: a.boolean(),
       
       // Optional personal information
       firstName: a.string(),
@@ -33,13 +34,19 @@ const schema = a.schema({
       
       // Timestamps
       lastActive: a.datetime(),
-      createdAt: a.datetime(),
+      createdAt: a.datetime().default(new Date()),
       updatedAt: a.datetime(),
 
-      credits: a.integer(),
+      credits: a.integer().default(100),
+      songsCreated:a.integer(),
+      lipSyncBattlesAttempted:a.integer(),
+      lipSyncBattlesWon:a.integer(),
+      lipSyncBattlesLost:a.integer(),
+      producerId: a.string(),
+      aiCampanions: a.json(),
       
       // Optional additional fields
-      status: a.enum(['ACTIVE', 'INACTIVE', 'SUSPENDED']),
+      status: a.string().default('ACTIVE'),
 
     })
     .authorization(allow => [
