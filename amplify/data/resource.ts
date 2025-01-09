@@ -34,7 +34,7 @@ const schema = a.schema({
       
       // Timestamps
       lastActive: a.datetime(),
-      createdAt: a.datetime().default(() => new Date().toISOString()),
+      createdAt: a.datetime(),
       updatedAt: a.datetime(),
 
       credits: a.integer().default(100),

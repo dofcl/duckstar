@@ -193,7 +193,7 @@ const completeOnboarding = async () => {
     }
 onMounted(() => {
     initAudio();
-    completeOnboarding();
+    //completeOnboarding();
     
 });
 
