@@ -10,12 +10,7 @@
 
             <div class="flex justify-center mt-0 pt-0 mb-0 relative">
 
-                <el-button v-if="groups.length > 1" @click="removeInstrument(group.id)" class="remove-instrument-btn"
-                    size="small" type="danger" circle>
-                    <el-icon>
-                        <Delete />
-                    </el-icon>
-                </el-button>
+         
 
                 <input type="range" min="0" max="120" step="10" @change="(e) => setVolume(group.id, e.target.value)"
                     class="volume-slider-horizontal mt-2" />
@@ -23,6 +18,13 @@
 
                 <span class="text-white slider-title coiny">{{ group.label }}<span vif="group.currentDiscId">:
                         v{{ group.currentDiscId?.slice(2) }}</span></span>
+
+                        <el-button v-if="groups.length > 1" @click="removeInstrument(group.id)" class="remove-instrument-btn"
+                    size="small" circle>
+                    <el-icon>
+                        <Delete  />
+                    </el-icon>
+                </el-button>
             </div>
             <div class="grid grid-cols-3  items-center mt-0 pt-0 mt-5 pt-5">
                 <!-- Record Player (Drop Zone) -->
@@ -78,17 +80,14 @@
                 <el-option label="Mix 2" value="mix2"></el-option>
             </el-select>
 
-            <div class="instrument-selector  mb-4 mt-2 pt-0">
+            <div class="instrument-selector  mb-2 mt-2 pt-0">
 
-                <el-select v-model="currentInstrument" placeholder="Add Instrument..." size="large"
-                    class="w-full instrument-selecta">
+                <el-select v-model="currentInstrument" size="large" class="w-full instrument-selecta"
+                    @change="addInstrument">
                     <el-option v-for="inst in availableInstruments" :key="inst.id" :label="inst.label"
                         :value="inst.id"></el-option>
                 </el-select>
-                <el-button @click="addInstrument" :disabled="!currentInstrument" type="primary"
-                    class="add-instrument-button" size="large">
-                    Add
-                </el-button>
+
             </div>
             <br>
         </div>
@@ -99,29 +98,41 @@
         <p class="text-white text-center ma-0 pa-0 ma-0 pa-0 mb-1" v-if="instrumentsSelected < 3">
             Add at least {{ 3 - instrumentsSelected }} layers to sent to producer<br>
         </p>
-        <el-button v-if="!produced" @click="showProducerDialog = true" size="large" class="mt-2"
+        <el-button v-if="!produced" @click="openProducerDialog" size="large" class="mt-2"
             :type="instrumentsSelected < 3 ? 'default' : 'primary'" :disabled="instrumentsSelected < 3">
             Send to Producer
         </el-button>
 
         <div v-if="produced">
-            <p class="text-white">Producers added effects:</p>
-            <el-button @click="toggleBackingVocals" :class="['backing-vocal-button', { 'active': backingVocalEnabled }]"
-                :disabled="instrumentsSelected < 3" size="large">
-                {{ backingVocalEnabled ? 'Remove' : 'Add' }} Vocals
-            </el-button>
-            <el-slider v-model="trackVolumes.vocals" @input="setVocalVolume" :min="0" :max="200" />
-
-            <el-button @click="toggleMainBackingTrack"
-                :class="['main-backing-track-button', { 'active': mainBackingTrackEnabled }]"
-                :disabled="instrumentsSelected < 3" size="large">
-                {{ mainBackingTrackEnabled ? 'Remove' : 'Add' }} Polish
-            </el-button>
-            <el-slider v-model="trackVolumes.master" @input="setMasterVolume" :min="0" :max="200" />
+            <p class="text-white mb-0 pb-2">Producer's effects:</p>
+            <span class="text-white mr-5 mt-0 pt-0">Style:</span> <el-select placeholder="Lyrics" v-model="lyrics" @change="changeLyrics" class="change-lyrics" size="large">
+                        <el-option v-for="item in lyricStyles" :key="item.value" :label="item.label"
+                            :value="item.value" />
+                    </el-select>
+            <div class="grid grid-cols-2 gap-4 mt-4">
+                <div>
+                    <el-button @click="toggleBackingVocals"
+                        :class="['backing-vocal-button', { 'active': backingVocalEnabled }]"
+                        :disabled="instrumentsSelected < 3" size="large">
+                        {{ backingVocalEnabled ? 'Remove' : 'Add' }} Vocals
+                    </el-button>
+                
+                    <el-slider v-model="trackVolumes.vocals" @input="setVocalVolume" :min="0" :max="200" />
+                </div>
+                <div>
+                    <el-button @click="toggleMainBackingTrack"
+                        :class="['main-backing-track-button', { 'active': mainBackingTrackEnabled }]"
+                        :disabled="instrumentsSelected < 3" size="large">
+                        {{ mainBackingTrackEnabled ? 'Remove' : 'Add' }} Effects
+                    </el-button>
+                    <el-slider v-model="trackVolumes.master" @input="setMasterVolume" :min="0" :max="200" />
+                </div>
+            </div>
         </div>
 
     </div>
-    <hr class="mt-8">
+
+    <hr class="mt-4">
     <div class="recording-controls mx-auto pa-4 text-center">
         <el-button @click="createLyrics" type="large">Create Lyrics</el-button>
         <el-button @click="isRecording ? stopRecording() : startRecording()"
@@ -135,12 +146,13 @@
     <br>
     <el-dialog title="Producer" v-model="showProducerDialog" width="80%" class="produced-dialog"
         :before-close="handleCloseProducer">
-        <div class="grid grid-cols-2 gap-4">
-            <video id="producer-vid1" class="video-producer mx-auto"
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-2 mt-0 pt-0">
+            <video id="producer-vid1" class="video-producer mx-auto mt-0 pt-0"
+                poster="https://duckstar-public.s3.eu-central-1.amazonaws.com/images/producers/tom/tom-256.png"
                 src="https://duckstar-public.s3.eu-central-1.amazonaws.com/videos/producers/tom/create-song/tom-create-v1.mp4"
                 autoplay @click="playProducer" playsinline></video>
-            <div class="mx-auto text-left">
-                <p>Great start!</p>
+            <div class="mx-auto text-left mt-0 pt-0">
+                <p class="mt-0 pt-0">Great start!</p>
                 <p>Let me refine it a bit and provide an example vocal track to help you kick things off.</p>
                 <p>What style of lyrics are you looking for? </p>
                 <el-select placeholder="Lyrics" v-model="lyrics">
@@ -148,9 +160,9 @@
                 </el-select>
 
             </div>
-            </div>
-            <div class="mx-auto text-center ma-2">
-                <hr class="ma-4">
+        </div>
+        <div class="mx-auto text-center ma-2">
+            <hr class="ma-4">
             <span slot="footer" class="dialog-footer mt-8">
                 <el-button @click="showProducerDialog = false">Not yet</el-button>
                 <el-button type="primary" @click="handleConfirmProducer">Do your thing!</el-button>
@@ -183,7 +195,7 @@ const backingVocalEnabled = ref(false)
 const backingVocalSource = ref(null)
 const mainBackingTrackEnabled = ref(false)
 const mainBackingTrackSource = ref(null)
-const mainTrack = 'main1.mp3'
+const mainTrack = 'main-1-pop.mp3'
 const instrumentsSelected = ref(1)
 const isPlaying = ref(false)
 const isDragging = ref(false)
@@ -194,6 +206,7 @@ const produced = ref(false)
 const lyrics = ref('')
 const lyricStyles = ref([
     { label: 'Pop', value: 'pop' },
+    { label: 'Pop Rock', value: 'pop-rock' },
     { label: 'Rap', value: 'rap' },
     { label: 'Hip-hop', value: 'hip-hop' }
 ])
@@ -579,6 +592,7 @@ async function toggleBackingVocals() {
 }
 
 async function toggleMainBackingTrack() {
+    console.log('toggleMainBackingTrack')
     try {
         if (mainBackingTrackEnabled.value) {
             if (mainBackingTrackSource.value) {
@@ -589,8 +603,8 @@ async function toggleMainBackingTrack() {
             audioSourceMap.value.delete('mainTrack')
             return
         }
-
-        const audioUrl = `${publicStatic}/music/${currentMix.value}/${mainTrack}`
+        const audioUrl = `${publicStatic}/music/${currentMix.value}/main-1-${lyrics.value || 'pop'}.mp3`
+        console.log('Main track URL:', audioUrl)
         const audioBuffer = await loadAudioBuffer(audioUrl)
 
         const source = audioContext.createBufferSource()
@@ -934,6 +948,14 @@ function handleTouchMove(e) {
 }
 
 
+function changeLyrics(value) {
+    lyrics.value = value
+
+    toggleBackingVocals()
+    toggleMainBackingTrack()
+
+
+}
 async function syncAllAudio() {
     try {
         // Show sync loading indicator
@@ -1045,7 +1067,7 @@ async function syncAllAudio() {
 
                 if (wasMainTrackEnabled) {
                     mainBackingTrackEnabled.value = true
-                    const audioUrl = `${publicStatic}/music/${currentMix.value}/${mainTrack}`
+                    const audioUrl = `${publicStatic}/music/${currentMix.value}/main-1-${lyrics.value || 'pop'}.mp3`
                     const audioBuffer = await loadAudioBuffer(audioUrl)
 
                     const source = audioContext.createBufferSource()
@@ -1363,8 +1385,20 @@ function playAllAudio() {
     isPlaying.value = true
 }
 
+function openProducerDialog() {
+    pausePlay()
+    showProducerDialog.value = true
+    const producerVid = document.getElementById('producer-vid1');
+    if (producerVid) {
+        producerVid.play();
+    }
+}
 function handleCloseProducer() {
     showProducerDialog.value = false
+    const producerVid = document.getElementById('producer-vid1');
+    if (producerVid) {
+        producerVid.pause();
+    }
 }
 
 function handleConfirmProducer() {
@@ -1376,7 +1410,7 @@ function handleConfirmProducer() {
 
 }
 
-function playProducer(){
+function playProducer() {
     document.getElementById('producer-vid1').play()
 }
 
@@ -1414,7 +1448,8 @@ onMounted(async () => {
 }
 
 .el-select.el-select--large.w-full.instrument-selecta {
-    width: 200px;
+    width: 160px;
+    margin-left: 20px;
 }
 
 .text-black {
@@ -1780,7 +1815,13 @@ span.text-white.slider {
 
 .volume-slider-horizontal {
     position: absolute;
-    right: 16px;
+    right: 40px;
+}
+
+circle.remove-instrument-btn {
+    position: absolute;
+    right: 6px;
+    top: 4px;
 }
 
 .volume-range {
@@ -2000,5 +2041,9 @@ span.text-white.slider {
     border: 4px solid #ddd;
     margin: auto;
     text-align: center;
+}
+
+.change-lyrics {
+    width: 125px;
 }
 </style>
