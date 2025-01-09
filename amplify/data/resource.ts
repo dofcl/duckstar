@@ -6,12 +6,45 @@ adding a new "isDone" field as a boolean. The authorization rule below
 specifies that any user authenticated via an API key can "create", "read",
 "update", and "delete" any "Todo" records.
 =========================================================================*/
+
 const schema = a.schema({
   Todo: a
     .model({
       content: a.string(),
     })
-    .authorization(allow => [allow.owner()]),
+    .authorization(allow => allow.owner()),
+
+  Profile: a
+    .model({
+      // Required fields
+      userId: a.string().required(),
+      username: a.string().required(),
+      email: a.string().required(),
+      
+      // Optional personal information
+      firstName: a.string(),
+      lastName: a.string(),
+      displayName: a.string(),
+      avatar: a.string(),
+      bio: a.string(),
+  
+      country: a.string(),
+      language: a.string(),
+      
+      // Timestamps
+      lastActive: a.datetime(),
+      createdAt: a.datetime(),
+      updatedAt: a.datetime(),
+
+      credits: a.integer(),
+      
+      // Optional additional fields
+      status: a.enum(['ACTIVE', 'INACTIVE', 'SUSPENDED']),
+
+    })
+    .authorization(allow => [
+      allow.owner()
+    ])
 });
 
 export type Schema = ClientSchema<typeof schema>;
@@ -22,6 +55,7 @@ export const data = defineData({
     defaultAuthorizationMode: "userPool",
   },
 });
+
 
 /*== STEP 2 ===============================================================
 Go to your frontend source code. From your client-side code, generate a
