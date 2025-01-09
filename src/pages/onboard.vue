@@ -109,7 +109,6 @@ import { useProfile } from '@/composables/useProfile'
 const { getOrCreateProfile, updateProfileFields } = useProfile()
 import { getCurrentUser } from 'aws-amplify/auth'
 const router = useRouter();
-const bgAudio = document.getElementById('bg-audio') as HTMLAudioElement;
 const myPersona = ref<string | null>(null)
 const stage = ref<number>(0)
 const createOwnModal = ref(false)
@@ -164,7 +163,7 @@ const next = async () => {
         console.log('Updating profile with persona:', myPersona.value);
       // Update with the actual selected persona path
       await updateProfileFields(userId.value, { 
-        aiCompanions: myPersona.value 
+        aiCompanions: myPersona.value
       });
     } catch (error) {
       console.error('Error updating profile:', error);

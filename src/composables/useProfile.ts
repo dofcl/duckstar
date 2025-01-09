@@ -24,7 +24,7 @@ type Profile = {
     lipSyncBattlesWon: number
     lipSyncBattlesLost: number
     producerId?: string | null
-    aiCompanions?: string| null
+    aiCompanions?: string | null
     status: string
     createdAt?: string
     updatedAt?: string
