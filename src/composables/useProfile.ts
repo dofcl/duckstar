@@ -45,7 +45,7 @@ export interface ProfileServiceReturn {
   profile: ComputedRef<ProfileData | null>
   loading: ComputedRef<boolean>
   error: ComputedRef<string | null>
-  getOrCreateProfile: (userData: Pick<ProfileData, 'userId' | 'username' | 'email'> & Partial<ProfileData>) => Promise<ProfileData>
+  getOrCreateProfile: (userData: Pick<ProfileData, 'userId' | 'username'> & Partial<ProfileData>) => Promise<ProfileData>
   createProfile: (data: CreateProfileInput) => Promise<AmplifyResponse<ProfileData>>
   updateProfile: (id: string, data: Partial<Omit<ProfileData, 'id' | 'userId' | 'createdAt'>>) => Promise<AmplifyResponse<ProfileData>>
   listProfiles: (filter?: ListProfilesFilter) => Promise<AmplifyListResponse<ProfileData>>
@@ -75,6 +75,11 @@ export function useProfile(): ProfileServiceReturn {
     error.value = null
     
     try {
+      if (!client.models || !client.models.Profile || typeof client.models.Profile.list !== 'function') {
+        console.error('Profile model is not correctly initialized', client.models)
+        throw new Error('Profile model is not correctly initialized')
+      }
+
       const response = await client.models.Profile.list({
         filter: { userId: { eq: userId } }
       }) as AmplifyListResponse<ProfileData>
@@ -99,7 +104,7 @@ export function useProfile(): ProfileServiceReturn {
   }
 
   async function getOrCreateProfile(
-    userData: Pick<ProfileData, 'userId' | 'username' | 'email'> & Partial<ProfileData>
+    userData: Pick<ProfileData, 'userId' | 'username'> & Partial<ProfileData>
   ): Promise<ProfileData> {
     if (!userData.userId) throw new Error('User ID is required')
 
@@ -112,6 +117,7 @@ export function useProfile(): ProfileServiceReturn {
       
       const initialData: CreateProfileInput = {
         ...userData,
+        email: userData.email ?? null,
         status: 'ACTIVE',
         credits: 100,
         onboarded: false,
@@ -208,10 +214,14 @@ export function useProfile(): ProfileServiceReturn {
     }
   }
 
+  const isLoading = computed(() => loading.value)
+  const currentError = computed(() => error.value)
+  const currentProfile = computed(() => profile.value)
+
   return {
-    profile: computed(() => profile.value),
-    loading: computed(() => loading.value),
-    error: computed(() => error.value),
+    profile: currentProfile,
+    loading: isLoading,
+    error: currentError,
     getOrCreateProfile,
     createProfile,
     updateProfile,

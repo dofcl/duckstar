@@ -59,12 +59,12 @@
 
         <div v-else-if="stage == 3" class="text-center">
             <h1 class="text-white ma-0 pa-0 mb-4">Review AI Companion</h1>
-            
+
             <img v-if="myPersona" :src="myPersona" alt="myPersona" class="persona-image rd-full" /><br>
             <div v-if="selectedCountry" class="mt-1 mb-2">
                 <CountryFlag :country="selectedCountry?.toLowerCase()" class="text-4xl" />
             </div>
-          
+
             <h3 class="text-white coiny ma-0 pa-0">{{ name }}</h3>
             <p class="text-white ma-0 pa-0 mb-6">{{ bio }}</p>
             <el-button @click="back" class="ma-2" type="text" text>Edit</el-button><br>
@@ -106,10 +106,8 @@ import CountryFlag from 'vue-country-flag-next'
 import { getData } from 'country-list'
 import { useRouter } from 'vue-router';
 import { useProfile } from '@/composables/useProfile'
-const { profile, loading, error, updateProfile } = useProfile()
+const { getOrCreateProfile, loading, error, updateProfile } = useProfile()
 import { getCurrentUser } from 'aws-amplify/auth'
-
-const { userId, username } = await getCurrentUser()
 const router = useRouter();
 const bgAudio = document.getElementById('bg-audio') as HTMLAudioElement;
 const myPersona = ref<string | null>(null)
@@ -118,6 +116,7 @@ const createOwnModal = ref(false)
 const name = ref('')
 const bio = ref('')
 const selectedCountry = ref<string>('')
+const userId = ref<string | null>(null)
 const countries = getData().map((country: { code: string; name: string }) => ({
     code: country.code,
     name: country.name
@@ -178,23 +177,40 @@ const initAudio = () => {
 }
 
 const completeOnboarding = async () => {
-      if (!profile.value?.id) return
-
-      try {
-        const response = await updateProfile(profile.value.id, {
-          onboarded: true,
-          updatedAt: new Date().toISOString()
+    console.log('completeOnboarding',userId.value)
+    if (userId.value) {
+        const userData = {
+            userId: userId.value as string,
+            username: '', // Add appropriate value
+            email: '' // Add appropriate value
+        };
+        await getOrCreateProfile(userData).then((data) => {
+            console.log('Profile created', data)
+        }).catch((err) => {
+            console.error('Error creating profile', err)
         })
-        
-        console.log('Onboarding completed:', response.data)
-      } catch (err) {
-        console.error('Failed to update onboarding status:', err)
-      }
     }
+}
+
+async function getUser() {
+    try {
+        const { userId, } = await getCurrentUser()
+        console.log('User ID:', userId)
+        return userId
+    } catch (err) {
+        console.error('Not signed in')
+        return null
+    }
+}
 onMounted(() => {
     initAudio();
-    //completeOnboarding();
+    getUser().then(id => {
+    userId.value = id
+    completeOnboarding()
+    }
+)
     
+
 });
 
 </script>
