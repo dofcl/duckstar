@@ -38,12 +38,12 @@ const schema = a.schema({
       updatedAt: a.datetime(),
 
       credits: a.integer().default(100),
-      songsCreated:a.integer(),
-      lipSyncBattlesAttempted:a.integer(),
-      lipSyncBattlesWon:a.integer(),
-      lipSyncBattlesLost:a.integer(),
+      songsCreated:a.integer().default(0),
+      lipSyncBattlesAttempted:a.integer().default(0),
+      lipSyncBattlesWon:a.integer().default(0),
+      lipSyncBattlesLost:a.integer().default(0),
       producerId: a.string(),
-      aiCampanions: a.json(),
+      aiCampanions: a.string(), //comma separated list of ids
       
       // Optional additional fields
       status: a.string().default('ACTIVE'),

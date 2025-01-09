@@ -106,17 +106,24 @@ import CountryFlag from 'vue-country-flag-next'
 import { getData } from 'country-list'
 import { useRouter } from 'vue-router';
 import { useProfile } from '@/composables/useProfile'
-const { getOrCreateProfile, loading, error, updateProfile } = useProfile()
+const { getOrCreateProfile, updateProfileFields } = useProfile()
 import { getCurrentUser } from 'aws-amplify/auth'
 const router = useRouter();
 const bgAudio = document.getElementById('bg-audio') as HTMLAudioElement;
 const myPersona = ref<string | null>(null)
-const stage = ref(0)
+const stage = ref<number>(0)
 const createOwnModal = ref(false)
 const name = ref('')
 const bio = ref('')
 const selectedCountry = ref<string>('')
 const userId = ref<string | null>(null)
+
+interface UserProfileInput {
+    userId: string
+    username: string
+}
+
+const username = ref<string | null>(null)
 const countries = getData().map((country: { code: string; name: string }) => ({
     code: country.code,
     name: country.name
@@ -133,6 +140,7 @@ const handleSelect = (item: Record<string, any>) => {
 
 function handleSelectedPersona(persona: string | null) {
     myPersona.value = persona
+
 }
 
 function handleClose(done: any) {
@@ -148,11 +156,24 @@ function change() {
     myPersona.value = null
 
 }
-function next() {
-    stage.value += 1
-    console.log("trigger welcome TTS")
 
+const next = async () => {
+    
+  if (stage.value === 0 && myPersona.value && userId.value) {
+    try {
+        console.log('Updating profile with persona:', myPersona.value);
+      // Update with the actual selected persona path
+      await updateProfileFields(userId.value, { 
+        aiCompanions: myPersona.value 
+      });
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      // Handle error in UI - maybe show an error message
+    }
+  }
+  stage.value += 1
 }
+
 function back() {
     stage.value -= 1
     console.log("trigger welcome TTS")
@@ -170,33 +191,47 @@ function lipSyncBattle() {
 }
 
 const initAudio = () => {
+    const bgAudio = document.getElementById('bg-audio') as HTMLAudioElement | null;
     if (bgAudio) {
-        bgAudio.volume = 0.6; // Set initial volume
-        bgAudio.play();
+        bgAudio.volume = 0.6;
+        try {
+            const playPromise = bgAudio.play();
+            if (playPromise !== undefined) {
+                playPromise.catch(error => {
+                    console.error("Audio playback failed:", error);
+                });
+            }
+        } catch (err) {
+            console.error("Error playing audio:", err);
+        }
     }
 }
 
-const completeOnboarding = async () => {
-    console.log('completeOnboarding',userId.value)
-    if (userId.value) {
-        const userData = {
-            userId: userId.value as string,
-            username: '', // Add appropriate value
-            email: '' // Add appropriate value
-        };
-        await getOrCreateProfile(userData).then((data) => {
-            console.log('Profile created', data)
-        }).catch((err) => {
-            console.error('Error creating profile', err)
-        })
+
+const getOrCreateProfileData = async () => {
+    if (!userId.value || !username.value) {
+        console.error('Missing user data');
+        return;
+    }
+
+    try {
+        const userData: UserProfileInput = {
+            userId: userId.value,
+            username: username.value
+        }
+        const profile = await getOrCreateProfile(userData);
+        return profile;
+    } catch (err) {
+        console.error('Error creating profile:', err);
+        throw err; // Propagate error for handling
     }
 }
 
 async function getUser() {
     try {
-        const { userId, } = await getCurrentUser()
+        const { userId, username } = await getCurrentUser()
         console.log('User ID:', userId)
-        return userId
+        return { userId, username }
     } catch (err) {
         console.error('Not signed in')
         return null
@@ -204,12 +239,16 @@ async function getUser() {
 }
 onMounted(() => {
     initAudio();
-    getUser().then(id => {
-    userId.value = id
-    completeOnboarding()
-    }
-)
+    getUser().then(data => {
+        if (data) {
+            userId.value = data.userId
+            username.value = data.username
+            getOrCreateProfileData()
+        }
+
+    })
     
+
 
 });
 
