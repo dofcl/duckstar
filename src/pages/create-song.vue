@@ -123,33 +123,40 @@
     </div>
     <hr class="mt-8">
     <div class="recording-controls mx-auto pa-4 text-center">
-
+        <el-button @click="createLyrics" type="large">Create Lyrics</el-button>
         <el-button @click="isRecording ? stopRecording() : startRecording()"
             :class="['record-button', { 'recording': isRecording }]" size="large" type="primary">
             {{ isRecording ? 'Stop Saving' : 'Save' }}
         </el-button>
     </div>
 
-    <el-button @click="createLyrics">Create Lyrics</el-button>
+
 
     <br>
     <el-dialog title="Producer" v-model="showProducerDialog" width="80%" class="produced-dialog"
         :before-close="handleCloseProducer">
-        <div class="mx-auto text-left">
-            <p>Great start!</p>
+        <div class="grid grid-cols-2 gap-4">
+            <video id="producer-vid1" class="video-producer mx-auto"
+                src="https://duckstar-public.s3.eu-central-1.amazonaws.com/videos/producers/tom/create-song/tom-create-v1.mp4"
+                autoplay @click="playProducer" playsinline></video>
+            <div class="mx-auto text-left">
+                <p>Great start!</p>
+                <p>Let me refine it a bit and provide an example vocal track to help you kick things off.</p>
+                <p>What style of lyrics are you looking for? </p>
+                <el-select placeholder="Lyrics" v-model="lyrics">
+                    <el-option v-for="item in lyricStyles" :key="item.value" :label="item.label" :value="item.value" />
+                </el-select>
 
-            <p>Let me add some post polish and give you and example vocal track to help you get started.</p>
-            <p>Do what style lyrics do you want? I can do pop, rap or hip-hop.</p>
-            <el-select placeholder="Lyrics" v-model="lyrics">
-                <el-option v-for="item in lyricStyles" :key="item.value" :label="item.label" :value="item.value" />
-
-            </el-select>
-            <hr>
+            </div>
+            </div>
+            <div class="mx-auto text-center ma-2">
+                <hr class="ma-4">
             <span slot="footer" class="dialog-footer mt-8">
                 <el-button @click="showProducerDialog = false">Not yet</el-button>
                 <el-button type="primary" @click="handleConfirmProducer">Do your thing!</el-button>
             </span>
         </div>
+
     </el-dialog>
 
 </template>
@@ -182,7 +189,7 @@ const isPlaying = ref(false)
 const isDragging = ref(false)
 const touchStartPos = ref({ x: 0, y: 0 })
 const dragClone = ref(null)
-const showProducerDialog = ref(true)
+const showProducerDialog = ref(false)
 const produced = ref(false)
 const lyrics = ref('')
 const lyricStyles = ref([
@@ -1369,6 +1376,10 @@ function handleConfirmProducer() {
 
 }
 
+function playProducer(){
+    document.getElementById('producer-vid1').play()
+}
+
 
 // Initial Audio Loading
 onMounted(async () => {
@@ -1980,5 +1991,14 @@ span.text-white.slider {
     top: -22px;
     font-size: 12px;
     color: #ddd;
+}
+
+.video-producer {
+    height: 160px;
+    width: 160px;
+    border-radius: 100%;
+    border: 4px solid #ddd;
+    margin: auto;
+    text-align: center;
 }
 </style>
