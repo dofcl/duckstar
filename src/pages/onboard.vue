@@ -105,6 +105,11 @@ import { onMounted, ref } from 'vue';
 import CountryFlag from 'vue-country-flag-next'
 import { getData } from 'country-list'
 import { useRouter } from 'vue-router';
+import { useProfile } from '@/composables/useProfile'
+const { profile, loading, error, updateProfile } = useProfile()
+import { getCurrentUser } from 'aws-amplify/auth'
+
+const { userId, username } = await getCurrentUser()
 const router = useRouter();
 const bgAudio = document.getElementById('bg-audio') as HTMLAudioElement;
 const myPersona = ref<string | null>(null)
@@ -172,8 +177,24 @@ const initAudio = () => {
     }
 }
 
+const completeOnboarding = async () => {
+      if (!profile.value?.id) return
+
+      try {
+        const response = await updateProfile(profile.value.id, {
+          onboarded: true,
+          updatedAt: new Date().toISOString()
+        })
+        
+        console.log('Onboarding completed:', response.data)
+      } catch (err) {
+        console.error('Failed to update onboarding status:', err)
+      }
+    }
 onMounted(() => {
     initAudio();
+    completeOnboarding();
+    
 });
 
 </script>
