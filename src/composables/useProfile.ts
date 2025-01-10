@@ -1,165 +1,118 @@
-import { ref, computed, type ComputedRef } from 'vue'
-import { generateClient } from 'aws-amplify/api'
-import type { Schema } from '../../amplify/data/resource'
+import { ref, computed } from 'vue';
+import { generateClient } from 'aws-amplify/api';
+import type { Schema } from '../../amplify/data/resource';
+import { 
+    type Profile, 
+    DEFAULT_PROFILE,
+    type CreateProfileInput,
+    createProfileWithDefaults
+} from '../types/schema';
 
-const client = generateClient<Schema>()
+const client = generateClient<Schema>();
 
-type Profile = {
-    id?: string
-    userId: string
-    username: string
-    email: string | null
-    onboarded: boolean
-    firstName?: string | null
-    lastName?: string | null
-    displayName?: string | null
-    avatar?: string | null
-    bio?: string | null
-    country?: string | null
-    language?: string | null
-    lastActive?: string
-    credits: number
-    songsCreated: number
-    lipSyncBattlesAttempted: number
-    lipSyncBattlesWon: number
-    lipSyncBattlesLost: number
-    producerId?: string | null
-    aiCompanions?: string | null
-    status: string
-    createdAt?: string
-    updatedAt?: string
-}
+// Define proper Amplify response types
+type AmplifyData = {
+    userId: string;
+    username: string;
+    producerId: any; // Handle the function type from Amplify
+    [key: string]: any; // Allow other properties
+};
 
+type AmplifyResponse<T = AmplifyData> = {
+    data: T | null;
+    errors?: Array<{ message: string }>;
+};
 
-type ProfileResponse = {
-    data: Profile
-    errors?: { message: string }[]
-}
-
-type ProfileListResponse = {
-    data: Profile[]
-    errors?: { message: string }[]
-    nextToken?: string
-}
-
-type ProfileFilter = {
-    filter?: Record<string, unknown>
-    limit?: number
-    nextToken?: string
+function transformAmplifyResponse(data: AmplifyData): Profile {
+    return {
+        ...DEFAULT_PROFILE,
+        ...data,
+        producerId: typeof data.producerId === 'function' ? '' : data.producerId,
+        // Ensure all required Profile properties are present
+        aiCompanions: Array.isArray(data.aiCompanions) ? data.aiCompanions : [],
+        songs: Array.isArray(data.songs) ? data.songs : [],
+        tracks: Array.isArray(data.tracks) ? data.tracks : []
+    } as Profile;
 }
 
 export function useProfile() {
-    const loading = ref(false)
-    const error = ref<string | null>(null)
-    const profile = ref<Profile | null>(null)
-
-    const defaultProfile = {
-        status: 'ACTIVE',
-        credits: 100,
-        onboarded: false,
-        songsCreated: 0,
-        lipSyncBattlesAttempted: 0,
-        lipSyncBattlesWon: 0,
-        lipSyncBattlesLost: 0
-    }
+    const loading = ref(false);
+    const error = ref<string | null>(null);
+    const profile = ref<Profile | null>(null);
 
     async function getProfile(userId: string): Promise<Profile | null> {
-        if (!userId) throw new Error('User ID is required')
-        loading.value = true
+        if (!userId) throw new Error('User ID is required');
+        loading.value = true;
 
         try {
             const response = await client.models.Profile.list({
                 filter: { userId: { eq: userId } }
-            }) as ProfileListResponse
+            }) as unknown as AmplifyResponse<AmplifyData[]>;
 
-            return response.data[0] || null
+            if (!response.data?.length) return null;
+
+            return transformAmplifyResponse(response.data[0]);
         } catch (err) {
-            error.value = err instanceof Error ? err.message : 'Failed to fetch profile'
-            throw err
+            error.value = err instanceof Error ? err.message : 'Failed to fetch profile';
+            throw err;
         } finally {
-            loading.value = false
+            loading.value = false;
         }
     }
 
-    async function getOrCreateProfile(userData: Pick<Profile, 'userId' | 'username'> & Partial<Profile>): Promise<Profile> {
-        const existingProfile = await getProfile(userData.userId)
-        if (existingProfile) return existingProfile
+    async function getOrCreateProfile(input: CreateProfileInput): Promise<Profile> {
+        const existingProfile = await getProfile(input.userId);
+        if (existingProfile) return existingProfile;
 
-        const newProfile = {
-            ...defaultProfile,
-            ...userData,
-            id: userData.userId,
-            lastActive: new Date().toISOString()
+        const newProfile = createProfileWithDefaults(input);
+
+        try {
+            const response = await client.models.Profile.create(newProfile) as unknown as AmplifyResponse<AmplifyData>;
+            if (!response.data) {
+                throw new Error('Failed to create profile');
+            }
+
+            const createdProfile = transformAmplifyResponse(response.data);
+            profile.value = createdProfile;
+            return createdProfile;
+        } catch (err) {
+            console.error('Failed to create profile:', err);
+            throw err instanceof Error ? err : new Error('Failed to create profile');
         }
-
-        const response = await client.models.Profile.create(newProfile) as ProfileResponse
-        profile.value = response.data
-        return response.data
     }
 
-    async function updateProfile(id: string, data: Partial<Omit<Profile, 'id' | 'userId' | 'createdAt'>>): Promise<Profile> {
-        if (!id) throw new Error('Profile ID is required')
+    async function updateProfileFields(
+        id: string, 
+        fields: Partial<Omit<Profile, 'id' | 'createdAt' | 'updatedAt'>>
+    ): Promise<Profile> {
+        if (!id) throw new Error('Profile ID is required');
+        if (!fields || Object.keys(fields).length === 0) {
+            throw new Error('No fields provided for update');
+        }
 
         const updateData = {
             id,
-            ...data,
+            ...fields,
             updatedAt: new Date().toISOString(),
-            lastActive: data.lastActive || new Date().toISOString()
-        }
+            lastActive: new Date().toISOString(),
+        };
 
-        const response = await client.models.Profile.update(updateData) as ProfileResponse
-        return response.data
-    }
-
-    
-    async function updateProfileFields(id: string, fields: Partial<Profile>) {
-        if (!id) throw new Error('Profile ID is required')
-    
         try {
-            // First validate we have fields to update
-            if (!fields || Object.keys(fields).length === 0) {
-                throw new Error('No fields provided for update');
+            const response = await client.models.Profile.update(updateData) as unknown as AmplifyResponse<AmplifyData>;
+            if (!response.data) {
+                throw new Error('Update failed');
             }
-    
-            // Make sure the field exists in Profile type
-            console.log(fields)
-    
-    
-            const updateData = {
-                id,
-                ...fields,
-                updatedAt: new Date().toISOString(),
-                lastActive: new Date().toISOString()
-            };
-    
-            const response = await client.models.Profile.update(updateData) as ProfileResponse;
-            return response.data;
-        } catch (error) {
-            console.error('Update failed:', error);
-            throw error;
-        }
-    }
 
-    async function listProfiles(filter?: ProfileFilter): Promise<ProfileListResponse> {
-        loading.value = true
+            const updatedProfile = transformAmplifyResponse(response.data);
 
-        try {
-            return await client.models.Profile.list(filter) as ProfileListResponse
-        } finally {
-            loading.value = false
-        }
-    }
+            if (profile.value?.id === id) {
+                profile.value = updatedProfile;
+            }
 
-    async function deleteProfile(id: string): Promise<Profile> {
-        if (!id) throw new Error('Profile ID is required')
-        loading.value = true
-
-        try {
-            const response = await client.models.Profile.delete({ id }) as ProfileResponse
-            profile.value = null
-            return response.data
-        } finally {
-            loading.value = false
+            return updatedProfile;
+        } catch (err) {
+            console.error('Update failed:', err);
+            throw err instanceof Error ? err : new Error('Update failed');
         }
     }
 
@@ -167,10 +120,8 @@ export function useProfile() {
         profile: computed(() => profile.value),
         loading: computed(() => loading.value),
         error: computed(() => error.value),
+        getProfile,
         getOrCreateProfile,
-        updateProfile,
         updateProfileFields,
-        listProfiles,
-        deleteProfile
-    }
+    };
 }

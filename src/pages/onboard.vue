@@ -106,6 +106,14 @@ import CountryFlag from 'vue-country-flag-next'
 import { getData } from 'country-list'
 import { useRouter } from 'vue-router';
 import { useProfile } from '@/composables/useProfile'
+import { useAiCompanions } from '../composables/useAiCompanions';
+const { createAiCompanion } = useAiCompanions();
+
+interface AiCompanionData {
+    persona: string;
+    aiCompanions: { persona: string }[];
+}
+
 const { getOrCreateProfile, updateProfileFields } = useProfile()
 import { getCurrentUser } from 'aws-amplify/auth'
 const router = useRouter();
@@ -157,20 +165,27 @@ function change() {
 }
 
 const next = async () => {
-    
-  if (stage.value === 0 && myPersona.value && userId.value) {
-    try {
-        console.log('Updating profile with persona:', myPersona.value);
-      // Update with the actual selected persona path
-      await updateProfileFields(userId.value, { 
-        aiCompanions: myPersona.value
-      });
-    } catch (error) {
-      console.error('Error updating profile:', error);
-      // Handle error in UI - maybe show an error message
+    if (stage.value === 0 && myPersona.value && userId.value) {
+        try {
+            console.log('Creating AI companion with persona:', myPersona.value);
+            const aiCompanion = await createAiCompanion({
+                ownerId: userId.value,
+                name: name.value, // Replace with actual name
+                imageURL: myPersona.value, // Replace with actual image URL
+                bio: bio.value, // Replace with actual bio
+                country: selectedCountry.value, // Replace with actual country
+            });
+
+            console.log('Updating profile with AI companion:', aiCompanion);
+            await updateProfileFields(userId.value, {
+                aiCompanions: [aiCompanion]
+            });
+        } catch (error) {
+            console.error('Error creating AI companion or updating profile:', error);
+            // Handle error in UI - maybe show an error message
+        }
     }
-  }
-  stage.value += 1
+    stage.value += 1;
 }
 
 function back() {
@@ -246,7 +261,7 @@ onMounted(() => {
         }
 
     })
-    
+
 
 
 });
