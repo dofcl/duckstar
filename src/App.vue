@@ -1,6 +1,22 @@
 <script setup lang="ts">
+import { ref } from 'vue'
 import { Authenticator } from "@aws-amplify/ui-vue";
 import "@aws-amplify/ui-vue/styles.css";
+import BottomMenu from '@/components/MainMenu.vue'
+import { RouterView } from 'vue-router'
+import { useRouter } from 'vue-router'
+const router = useRouter()
+const muted = ref(false)
+
+function muteAudio() {
+  const audio = document.getElementById('bg-audio') as HTMLAudioElement
+  muted.value = !muted.value
+  if (muted.value) {
+    audio.volume = 0
+  } else {
+    audio.volume = 0.5
+  }
+}
 </script>
 
 <template>
@@ -20,24 +36,59 @@ import "@aws-amplify/ui-vue/styles.css";
     <template v-slot="{ user, signOut }">
       <div class="common-layout">
         <el-container>
-          <el-header style="text-align: right; font-size: 12px">
+          <el-header style="text-align: right; font-size: 12px" height="30px">
+            <div class="header-logo">
+              <img src="@/assets/duck-star-logo-simple.png" alt="DuckStar logo" class="logo" />
+              </div>
+
+            <div class="header-title">
+              <span class="coiny" @click="router.push('/')">DuckStar</span>
+            </div>
             <div class="toolbar text-white">
-              <span class="text-truncate">{{ user.username }}</span>
-              <el-dropdown>
-                <el-icon style="margin-right: 8px; margin-top: 1px">
-                  <setting class="text-white" />
-                </el-icon>
-                <template #dropdown>
-                  <el-dropdown-menu>
-                    <el-dropdown-item @click="signOut">Sign Out</el-dropdown-item>
-                  </el-dropdown-menu>
-                </template>
-              </el-dropdown>
+              <span class="text-truncate" @click="router.push('/settings')">{{ user.username }}</span>
+              <el-button type="text" @click="muteAudio">
+                <div class="icon-wrapper" :class="{'muted': muted}">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+  <!-- Speaker cone -->
+  <path d="M11 5L6 9H2v6h4l5 4V5z" 
+        fill="currentColor" 
+        stroke="currentColor" 
+        stroke-width="1.5"
+        stroke-linejoin="round"/>
+  
+  <!-- X mark (crossed lines) -->
+  <line  v-if="muted" x1="23" y1="9" x2="17" y2="15"
+        stroke="currentColor"
+        stroke-width="1.5"
+        stroke-linecap="round"/>
+  <line  v-if="muted" x1="17" y1="9" x2="23" y2="15"
+        stroke="currentColor"
+        stroke-width="1.5"
+        stroke-linecap="round"/>
+
+         <!-- Sound waves -->
+  <path  v-if="!muted" d="M14 7.5C16 9.5 16 14.5 14 16.5"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="1.5"
+        stroke-linecap="round"
+        stroke-linejoin="round"/>
+  
+  <path v-if="!muted" d="M17 4.5C20.5 8 20.5 16 17 19.5"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="1.5"
+        stroke-linecap="round"
+        stroke-linejoin="round"/>
+</svg>
+  </div>  
+              </el-button>
               
             </div>
           </el-header>
           <el-main class="ma-0 pa-0">
-            <RouterView />
+            <RouterView />          
+            <bottom-menu />
           </el-main>
         </el-container>
       </div>
@@ -93,9 +144,9 @@ import "@aws-amplify/ui-vue/styles.css";
 .main-wrapper {
   background-color: #222;
   margin: 10px;
-  padding: 20px;
+  padding: 10px;
   padding-bottom: 40px;
-  border-radius: 50px;
+  border-radius: 5px;
   max-width: 600px;
   margin: auto;
 }
@@ -109,4 +160,35 @@ button.amplify-button.amplify-field-group__control.amplify-button--primary.ampli
     border-radius: 0 0 20px 20px;
 }
 
+.icon-wrapper {
+    width: 24px;
+    height: 24px;
+    color: #fff;
+    margin: -6px -8px 6px 8px;
+    padding: 0px;
+}
+
+.icon-wrapper.muted {
+  width: 24px;
+  height: 24px;
+  color: red;
+}
+.header-logo img {
+    float: left;
+    margin: -5px 11px -4px -18px;
+    height: 45px;
+    width: 45px;
+    border-radius: 50%;
+    border: 1px solid #fff;
+}
+
+.header-title{
+  float: left;
+    margin: 1px 0 0 0;
+    font-size: 22px;
+}
+
+.toolbar {
+    margin: 9px -10px 0 0;
+}
 </style>

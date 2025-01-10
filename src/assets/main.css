@@ -26,6 +26,14 @@ h1,
   --el-color-primary-dark-2: #c8b34a;
 }
 
+html.dark {
+  --el-color-primary: #f9db4a;
+  --el-color-primary-light-2: #c8b34a;
+  --el-color-primary-light-3: #e0c74a;
+  --el-color-primary-light-5: #ab9838;
+  --el-color-primary-dark-2: #c8b34a;
+}
+
 .el-button--primary {
   --el-button-text-color: #000;
   --el-button-bg-color: var(--el-color-primary);
@@ -115,7 +123,8 @@ h1,
   text-overflow: ellipsis;
 }
 
-.el-icon svg, .el-icon {
+.el-icon svg,
+.el-icon {
   height: 1.5em;
   width: 1.5em;
 }
@@ -129,6 +138,7 @@ h1,
   overflow: auto;
   padding: 0 !important;
 }
+
 .persona-image {
   width: 150px;
   height: 150px;
@@ -153,4 +163,11 @@ h1,
 
 .el-dialog.produced-dialog {
   max-width: 554px;
+}
+
+.el-header {
+  height: 50px;
+  border-bottom: 2px solid var(--el-color-primary);
+  margin: 2px -10px -3px -10px;
+  padding: 0px 30px 0px 30px;
 }

@@ -12,10 +12,12 @@ interface BaseModel {
 export interface AiCompanionData extends BaseModel {
     aiOwnerId: string;
     aiOwner?: Profile | null;
-    name: Nullable<string>;   // Allowing Nullable<string> instead of string
-    imageURL: Nullable<string>;
+    seedId: string;
+    name: Nullable<string>; 
+    imageURL: Nullable<string>; 
     bio: Nullable<string>;
     country: Nullable<string>;
+    price:Nullable<number>;
 }
 
 interface Producers extends BaseModel {
@@ -25,6 +27,7 @@ interface Producers extends BaseModel {
     imageURL: string;
     bio: string;
     country: string;
+    price:Nullable<number>;
 }
 
 interface LipSyncBattlesEntries extends BaseModel {

@@ -166,10 +166,10 @@ const next = async () => {
             console.log('Creating AI companion with persona:', myPersona.value);
             const aiCompanion = await createCompanion({
                 aiOwnerId: userId.value,
-                name: name.value, // Replace with actual name
-                imageURL: myPersona.value, // Replace with actual image URL
-                bio: bio.value, // Replace with actual bio
-                country: selectedCountry.value, // Replace with actual country
+                name: name.value, 
+                imageURL: myPersona.value, 
+                bio: bio.value, 
+                country: selectedCountry.value, 
             });
 
             console.log('Added AI companion:', aiCompanion);
