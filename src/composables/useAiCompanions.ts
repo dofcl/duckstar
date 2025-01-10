@@ -16,7 +16,7 @@ export function useAiCompanions() {
 
         try {
             const filter = { aiOwnerId: { eq: ownerId } };
-            const result = await client.models.AiCompanionData.list({ filter });
+            const result = await client.models.AiCompanionData.list({ filter }) as { data: AiCompanionData[] };
 
             companions.value = result?.data.map(companion => ({
                 ...companion,
