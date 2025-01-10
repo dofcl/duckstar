@@ -1,7 +1,7 @@
 <template>
     <div>
         <el-select v-model="selectedGenres" multiple collapse-tags collapse-tags-tooltip :max-collapse-tags="3"
-            placeholder="Select your favorite music genres" class="genre-select" @change="handleGenreChange">
+            placeholder="Select your favorite music genres" class="genre-select" @change="handleGenreChange" size="large">
             <el-option v-for="genre in genres" :key="genre.value" :label="genre.label" :value="genre.value" class="text-black"/>
         </el-select>
     </div>
@@ -9,10 +9,14 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
+import { useProfile } from '@/composables/useProfile'
+const { updateProfileFields } = useProfile()
 
 const emit = defineEmits(['genres-selected'])
 
 const selectedGenres = ref([])
+
+const props = defineProps<{ userId: string }>()
 
 const genres = [
     { label: 'African', value: 'african' },
@@ -48,8 +52,15 @@ const genres = [
 
 
 
-const handleGenreChange = (value: any) => {
+const handleGenreChange = async (value: any) => {
     console.log('Selected genres:', value)
+    console.log('User ID:', props.userId)
+  
+        await updateProfileFields(props.userId, {
+            musicGenre: value
+        });
+
+
     emit('genres-selected', value)
 }
 </script>

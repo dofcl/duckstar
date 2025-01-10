@@ -1,4 +1,3 @@
-<!-- BottomMenu.vue -->
 <template>
     <div class="bottom-menu" :class="{ 'menu-hidden': !isVisible }">
       <el-menu
@@ -21,13 +20,10 @@
           <span>My Songs</span>
         </el-menu-item>
         
-
-           
         <el-menu-item index="/billboard-charts">
           <el-icon><Expand /></el-icon>
           <span>Billboard</span>
         </el-menu-item>
-        
         
         <el-menu-item index="/settings">
           <el-icon><Setting/></el-icon>
@@ -37,19 +33,18 @@
     </div>
   </template>
   
-  <script setup>
+  <script setup lang="ts">
   import { ref, onMounted, onUnmounted } from 'vue'
   import { useRouter } from 'vue-router'
-const router = useRouter()  
-  const activeIndex = ref('/hom')
+
+  const router = useRouter()
+  const activeIndex = ref('/')
   const isVisible = ref(true)
   let lastScrollPosition = 0
   
-  const handleSelect = (index) => {
+  const handleSelect = (index: string) => {
     activeIndex.value = index
-    console.log(index)
     router.push(index)
-    // Add your navigation logic here
   }
   
   const handleScroll = () => {
@@ -79,16 +74,16 @@ const router = useRouter()
   <style scoped>
   ul.el-menu.el-menu--horizontal {
     background: #222;
-}
-.el-menu--horizontal>.el-menu-item {
+  }
+  .el-menu--horizontal>.el-menu-item {
     color: #fff;
-
-}
-
-.el-menu--horizontal>.el-menu-item.active{
+  }
+  
+  .el-menu--horizontal>.el-menu-item.active {
     color: var(--el-color-primary);
     background: #222;
-}
+  }
+  
   .bottom-menu {
     position: fixed;
     bottom: 0;
@@ -118,7 +113,7 @@ const router = useRouter()
     height: 60px;
     line-height: normal;
     padding: 8px 0;
-    color:#fff;
+    color: #fff;
   }
   
   :deep(.el-icon) {

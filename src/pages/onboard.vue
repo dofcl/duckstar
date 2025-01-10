@@ -1,12 +1,16 @@
 <template>
     <div>
+        <div v-if="popStars.length > 0 && myProfile?.onboarded">
+            test
+        </div>
+
         <div v-if="stage == 0" class="text-center">
 
 
-            <h1 class="text-white ma-0 pa-0">Create your AI companion</h1>
+            <h1 class="text-white ma-0 pa-0">Create your AI Pop star</h1>
             <p class="text-white mx-auto text-center mt-0">Use their voice, their face, or both—it's your choice!</p>
-            <p class="text-white mx-auto text-center mt-0">As you gain experience, your AI companion evolves, improving
-                its skills and competing autonomously against real and AI singers.</p>
+            <p class="text-white mx-auto text-center mt-0">As you gain experience, your AI pop star evolves, improving
+                its skills and competing autonomously against real and other AI singers.</p>
 
             <div v-if="!myPersona">
                 <p class="text-white mx-auto text-center">
@@ -29,8 +33,8 @@
             </div>
         </div>
         <div v-else-if="stage == 1" class="text-center">
-            <h1 class="text-white ma-0 pa-0">What's favourite genre?</h1>
-            <MusicGenre />
+            <h1 class="text-white ma-0 pa-0">What are your favourite music genres?</h1>
+            <MusicGenre :userId="userId || ''" />
             <el-button @click="back()" class="ma-2 mt-0">Back</el-button> <el-button @click="next()" type="primary"
                 class="ma-2 mt-0">Next</el-button>
         </div>
@@ -107,10 +111,10 @@ import { getData } from 'country-list'
 import { useRouter } from 'vue-router';
 import { useProfile } from '@/composables/useProfile'
 import { useAiCompanions } from '../composables/useAiCompanions'; // Import the composable
-import type { AiCompanionData } from '../types/schema';
+import type { Profile, AiCompanionData } from '../types/schema';
 
 const { getOrCreateProfile, updateProfileFields } = useProfile()
-const { createCompanion, isLoading, error } = useAiCompanions();
+const { createCompanion, fetchCompanions, isLoading, error } = useAiCompanions();
 import { getCurrentUser } from 'aws-amplify/auth'
 const router = useRouter();
 const myPersona = ref<string | null>(null)
@@ -120,6 +124,8 @@ const name = ref('')
 const bio = ref('')
 const selectedCountry = ref<string>('')
 const userId = ref<string | null>(null)
+const popStars = ref<AiCompanionData[]>([])
+const myProfile = ref<Profile | null>(null)
 
 interface UserProfileInput {
     userId: string
@@ -159,24 +165,32 @@ function change() {
     myPersona.value = null
 
 }
+const getAiSeed = (filePath: string): string => {
+    const fileName = filePath.split('/').pop() || '';
+    const baseName = fileName.replace(/\.[^/.]+$/, ''); // Remove the file extension
+    const match = baseName.match(/^(\d+|[a-zA-Z]+)$/); // Match either digits or letters
+    return match ? match[1] : '';
+};
 
 const next = async () => {
     if (stage.value === 0 && myPersona.value && userId.value) {
         try {
+
             console.log('Creating AI companion with persona:', myPersona.value);
             const aiCompanion = await createCompanion({
                 aiOwnerId: userId.value,
-                name: name.value, 
-                imageURL: myPersona.value, 
-                bio: bio.value, 
-                country: selectedCountry.value, 
+                name: name.value,
+                imageURL: myPersona.value,
+                bio: bio.value,
+                country: selectedCountry.value,
+                seedId: getAiSeed(myPersona.value),
+                price: null
             });
 
             console.log('Added AI companion:', aiCompanion);
 
         } catch (error) {
             console.error('Error creating AI companion or updating profile:', error);
-            // Handle error in UI - maybe show an error message
         }
     }
 
@@ -237,10 +251,29 @@ const getOrCreateProfileData = async () => {
             userId: userId.value,
             username: username.value
         }
-        const profile = await getOrCreateProfile(userData);
-        return profile;
+        myProfile.value = await getOrCreateProfile(userData);
+        return myProfile.value
     } catch (err) {
         console.error('Error creating profile:', err);
+        throw err; // Propagate error for handling
+    }
+}
+
+const getAiPopStars = async () => {
+    if (!userId.value) {
+        console.error('Missing user data');
+        return;
+    }
+
+    try {
+        const aiPopStars = await fetchCompanions(userId.value);
+        popStars.value = aiPopStars;
+        if (aiPopStars.length > 0) {
+            stage.value = 1
+        }
+        return aiPopStars;
+    } catch (err) {
+        console.error('Error fetching AI Pop Stars:', err);
         throw err; // Propagate error for handling
     }
 }
@@ -248,7 +281,6 @@ const getOrCreateProfileData = async () => {
 async function getUser() {
     try {
         const { userId, username } = await getCurrentUser()
-        console.log('User ID:', userId)
         return { userId, username }
     } catch (err) {
         console.error('Not signed in')
@@ -262,6 +294,7 @@ onMounted(() => {
             userId.value = data.userId
             username.value = data.username
             getOrCreateProfileData()
+            getAiPopStars()
         }
 
     })
