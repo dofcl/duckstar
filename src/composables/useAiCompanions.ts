@@ -10,6 +10,15 @@ export function useAiCompanions() {
     const isLoading = ref<boolean>(false);
     const error = ref<string | null>(null);
 
+    type AmplifyData = {
+        [key: string]: any; // Allow other properties
+    };
+
+    type AmplifyResponse<T = AmplifyData> = {
+        data: T | null;
+        errors?: Array<{ message: string }>;
+    };
+
     const fetchCompanions = async (ownerId: string): Promise<AiCompanionData[]> => {
         isLoading.value = true;
         error.value = null;
@@ -82,6 +91,40 @@ export function useAiCompanions() {
         }
     };
 
+    const updateAiPopStarFields = async (
+        id: string, 
+        fields: Partial<Omit<AiCompanionData, 'id' | 'createdAt' | 'updatedAt'>>
+    ): Promise<AiCompanionData> => {
+        if (!fields || Object.keys(fields).length === 0) {
+            throw new Error('No fields provided for update');
+        }
+
+        const updateData = {
+            id,
+            ...fields,
+            updatedAt: new Date().toISOString(),
+        };
+
+        try {
+            const response = await client.models.AiCompanionData.update(updateData) as AmplifyResponse<AiCompanionData>;
+            if (!response.data) {
+                throw new Error('Update failed');
+            }
+
+            const updatedCompanion = response.data;
+
+            const index = companions.value.findIndex(companion => companion.id === id);
+            if (index !== -1) {
+                companions.value[index] = updatedCompanion;
+            }
+
+            return updatedCompanion;
+        } catch (err) {
+            console.error('Update failed:', err);
+            throw err instanceof Error ? err : new Error('Update failed');
+        }
+    };
+
     const deleteCompanion = async (id: string): Promise<void> => {
         try {
             await client.models.AiCompanionData.delete({ id });
@@ -99,6 +142,7 @@ export function useAiCompanions() {
         fetchCompanions,
         createCompanion,
         updateCompanion,
+        updateAiPopStarFields,
         deleteCompanion
     };
 }

@@ -151,7 +151,7 @@ export interface Profile extends BaseModel {
     bio?: string;
     country?: string;
     language?: string;
-    musicGenre?: string;
+    musicGenre?: string | null;  // Allow null for musicGenre if not set
     lastActive: string;
     rank?: number | null;  // Allow null for rank if not set
 

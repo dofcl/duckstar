@@ -1,87 +1,76 @@
 <template>
     <div>
-        <div v-if="popStars.length > 0 && myProfile?.onboarded">
-            test
+        <div v-if="loading">
+            <DuckLoader/>
         </div>
+        <div v-else>
+            <div v-if="stage == 0" class="text-center">
 
-        <div v-if="stage == 0" class="text-center">
 
-
-            <h1 class="text-white ma-0 pa-0">Create your AI Pop star</h1>
-            <p class="text-white mx-auto text-center mt-0">Use their voice, their face, or both—it's your choice!</p>
-            <p class="text-white mx-auto text-center mt-0">As you gain experience, your AI pop star evolves, improving
-                its skills and competing autonomously against real and other AI singers.</p>
-
-            <div v-if="!myPersona">
-                <p class="text-white mx-auto text-center">
-                    Click to select<br>
-                    <el-icon class="large-icon mt-1">
-                        <bottom />
-                    </el-icon>
+                <h1 class="text-white ma-0 pa-0">Create your AI Pop star</h1>
+                <p class="text-white mx-auto text-center mt-0">Use their voice, their face, or both—it's your choice!
                 </p>
-                <Personas @persona-selected="handleSelectedPersona" />
-                <p class="text-white">Or</p>
-                <el-button @click="createOwnModal = true" class="ma-2">Create your own</el-button>
+                <p class="text-white mx-auto text-center mt-0">As you gain experience, your AI pop star evolves,
+                    improving
+                    its skills and competing autonomously against real and other AI singers.</p>
+
+                <div v-if="!myPersona">
+                    <p class="text-white mx-auto text-center">
+                        Click to select<br>
+                        <el-icon class="large-icon mt-1">
+                            <bottom />
+                        </el-icon>
+                    </p>
+                    <Personas @persona-selected="handleSelectedPersona" />
+                    <p class="text-white">Or</p>
+                    <el-button @click="createOwnModal = true" class="ma-2">Create your own</el-button>
+                </div>
+
+                <div class="mx-auto text-center mt-6">
+                    <img v-if="myPersona" :src="myPersona" alt="myPersona" class="persona-image rd-full" /><br>
+                    <p class="mt-2">
+                        <el-button v-if="myPersona" @click="change" class="ma-2">Change</el-button>
+                        <el-button v-if="myPersona" @click="next()" type="primary" class="ma-2">Next</el-button>
+                    </p>
+                </div>
+            </div>
+            <div v-else-if="stage == 1" class="text-center">
+                <h1 class="text-white ma-0 pa-0">What are your favourite music genres?</h1>
+                <MusicGenre :userId="userId || ''" :musicGenre="myProfile?.musicGenre || ''" />
+                <el-button @click="back()" class="ma-2 mt-0">Back</el-button> <el-button @click="next()" type="primary"
+                    class="ma-2 mt-0">Next</el-button>
+            </div>
+            <div v-else-if="stage == 2" class="text-center">
+                <h1 class="text-white ma-0 pa-0">AI Pop Stat Details.</h1>
+                <EditAiPopStar :userId="userId || ''" />
+
+                <div class="mt-4">
+                    <el-button @click="back()" class="ma-2">Back</el-button> <el-button @click="next()" type="primary"
+                        class="ma-2">Next</el-button>
+                </div>
             </div>
 
-            <div class="mx-auto text-center mt-6">
+            <div v-else-if="stage == 3" class="text-center">
+                <h1 class="text-white ma-0 pa-0 mb-4">Review AI Companion</h1>
+
                 <img v-if="myPersona" :src="myPersona" alt="myPersona" class="persona-image rd-full" /><br>
-                <p class="mt-2">
-                    <el-button v-if="myPersona" @click="change" class="ma-2">Change</el-button>
-                    <el-button v-if="myPersona" @click="next()" type="primary" class="ma-2">Next</el-button>
-                </p>
-            </div>
-        </div>
-        <div v-else-if="stage == 1" class="text-center">
-            <h1 class="text-white ma-0 pa-0">What are your favourite music genres?</h1>
-            <MusicGenre :userId="userId || ''" />
-            <el-button @click="back()" class="ma-2 mt-0">Back</el-button> <el-button @click="next()" type="primary"
-                class="ma-2 mt-0">Next</el-button>
-        </div>
-        <div v-else-if="stage == 2" class="text-center">
-            <h1 class="text-white ma-0 pa-0">AI Companion details.</h1>
-            <p class="text-white text-left mb-0 pb-0">Name:</p>
-            <el-input v-model="name" placeholder="Name" class="ma-1"></el-input>
-            <p class="text-white text-left mb-0 pb-0">Public Bio:</p>
-            <el-input v-model="bio" placeholder="Bio" class="ma-1"></el-input>
-            <p class="text-white text-left mb-0 pb-1">Country:</p>
-            <el-autocomplete v-model="selectedCountry" :fetch-suggestions="querySearch"
-                placeholder="Select your country" class=" ml-2 mx-auto" @select="handleSelect">
-                <template #default="{ item }">
-                    <CountryFlag :country="item.code.toLowerCase()" class="mr-2 ma-0 pa-0" />
-                    <span class="ml-2 c-name">{{ item.name }}</span>
-                </template>
-            </el-autocomplete>
-            <div v-if="selectedCountry" class="mt-4 mb-8">
-                <CountryFlag :country="selectedCountry?.toLowerCase()" class="text-4xl" />
-            </div>
-            <div class="mt-4">
-                <el-button @click="back()" class="ma-2">Back</el-button> <el-button @click="next()" type="primary"
-                    class="ma-2">Next</el-button>
-            </div>
-        </div>
+                <div v-if="selectedCountry" class="mt-1 mb-2">
+                    <CountryFlag :country="selectedCountry?.toLowerCase()" class="text-4xl" />
+                </div>
 
-        <div v-else-if="stage == 3" class="text-center">
-            <h1 class="text-white ma-0 pa-0 mb-4">Review AI Companion</h1>
-
-            <img v-if="myPersona" :src="myPersona" alt="myPersona" class="persona-image rd-full" /><br>
-            <div v-if="selectedCountry" class="mt-1 mb-2">
-                <CountryFlag :country="selectedCountry?.toLowerCase()" class="text-4xl" />
+                <h3 class="text-white coiny ma-0 pa-0">{{ name }}</h3>
+                <p class="text-white ma-0 pa-0 mb-6">{{ bio }}</p>
+                <el-button @click="back" class="ma-2" type="text" text>Edit</el-button><br>
+                <hr>
+                <el-button @click="createSong" class="ma-2">Create a Song</el-button>
+                <el-button @click="lipSyncBattle" type="primary">Lip Sync Battle</el-button>
+                <br>
+                <br>
             </div>
-
-            <h3 class="text-white coiny ma-0 pa-0">{{ name }}</h3>
-            <p class="text-white ma-0 pa-0 mb-6">{{ bio }}</p>
-            <el-button @click="back" class="ma-2" type="text" text>Edit</el-button><br>
-            <hr>
-            <el-button @click="createSong" class="ma-2">Create a Song</el-button>
-            <el-button @click="lipSyncBattle" type="primary">Lip Sync Battle</el-button>
+            <br>
             <br>
             <br>
         </div>
-        <br>
-        <br>
-        <br>
-
     </div>
 
     <el-dialog v-model="createOwnModal" title="Create Your Own AI Singer" width="80%" class="create-own-modal"
@@ -105,12 +94,13 @@
 <script setup lang="ts">
 import MusicGenre from '@/components/MusicGenre.vue';
 import Personas from '@/components/Personas.vue';
+import EditAiPopStar from '@/components/EditAiPopStar.vue';
+import DuckLoader from '@/components/DuckLoader.vue';
 import { onMounted, ref } from 'vue';
 import CountryFlag from 'vue-country-flag-next'
-import { getData } from 'country-list'
 import { useRouter } from 'vue-router';
 import { useProfile } from '@/composables/useProfile'
-import { useAiCompanions } from '../composables/useAiCompanions'; // Import the composable
+import { useAiCompanions } from '../composables/useAiCompanions';
 import type { Profile, AiCompanionData } from '../types/schema';
 
 const { getOrCreateProfile, updateProfileFields } = useProfile()
@@ -126,6 +116,7 @@ const selectedCountry = ref<string>('')
 const userId = ref<string | null>(null)
 const popStars = ref<AiCompanionData[]>([])
 const myProfile = ref<Profile | null>(null)
+const loading = ref<boolean>(true)
 
 interface UserProfileInput {
     userId: string
@@ -133,19 +124,6 @@ interface UserProfileInput {
 }
 
 const username = ref<string | null>(null)
-const countries = getData().map((country: { code: string; name: string }) => ({
-    code: country.code,
-    name: country.name
-}))
-
-const querySearch = (queryString: string, cb: (results: { code: string; name: string }[]) => void) => {
-    const results = countries.filter((country: { code: string; name: string }) => country.name.toLowerCase().includes(queryString.toLowerCase()))
-    cb(results)
-}
-
-const handleSelect = (item: Record<string, any>) => {
-    selectedCountry.value = item.code
-}
 
 function handleSelectedPersona(persona: string | null) {
     myPersona.value = persona
@@ -289,12 +267,13 @@ async function getUser() {
 }
 onMounted(() => {
     initAudio();
-    getUser().then(data => {
+    getUser().then(async data => {
         if (data) {
             userId.value = data.userId
             username.value = data.username
-            getOrCreateProfileData()
-            getAiPopStars()
+            await getOrCreateProfileData()
+            await getAiPopStars()
+            loading.value = false
         }
 
     })

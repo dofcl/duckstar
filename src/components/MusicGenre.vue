@@ -8,15 +8,19 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useProfile } from '@/composables/useProfile'
 const { updateProfileFields } = useProfile()
 
 const emit = defineEmits(['genres-selected'])
 
-const selectedGenres = ref([])
+const selectedGenres = ref<string[]>([])
 
-const props = defineProps<{ userId: string }>()
+interface Profile {
+    musicGenre: string[]
+}
+
+const props = defineProps<{ userId: string, musicGenre: string }>()
 
 const genres = [
     { label: 'African', value: 'african' },
@@ -52,17 +56,20 @@ const genres = [
 
 
 
-const handleGenreChange = async (value: any) => {
-    console.log('Selected genres:', value)
-    console.log('User ID:', props.userId)
-  
+const handleGenreChange = async (value: any) => {  
         await updateProfileFields(props.userId, {
-            musicGenre: value
+            musicGenre: JSON.stringify(value)
         });
 
+        emit('genres-selected', value)
+    }
+    
+    onMounted(() => {
+        if(props.musicGenre){
+            selectedGenres.value = JSON.parse(props.musicGenre)
+        }
+    })
 
-    emit('genres-selected', value)
-}
 </script>
 
 <style scoped>
