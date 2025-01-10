@@ -49,10 +49,10 @@ const schema = a.schema({
       lipSyncBattlesWon: a.integer().default(0),
       lipSyncBattlesLost: a.integer().default(0),
       winRate: a.float().default(0),
-      producerId: a.hasOne('Producers', 'id'),
-      aiCompanions: a.hasMany('AiCompanionData', 'ownerId'),
-      songs: a.hasMany('Songs', 'ownerId'),
-      tracks: a.hasMany('Tracks', 'ownerId'),
+      //producerId: a.hasOne('Producers', 'id'),
+      //aiCompanions: a.hasMany('AiCompanionData', 'ownerId'),
+      //songs: a.hasMany('Songs', 'ownerId'),
+      //tracks: a.hasMany('Tracks', 'ownerId'),
       status: a.string().default('ACTIVE'),
     })
     .authorization(allow => [
@@ -61,7 +61,7 @@ const schema = a.schema({
 
   AiCompanionData: a
     .model({
-      ownerId: a.hasOne('Profile', 'id'),
+      //ownerId: a.hasOne('Profile', 'id'),
       name: a.string(),
       imageURL: a.string(),
       bio: a.string(),
@@ -91,7 +91,7 @@ const schema = a.schema({
 
   Songs: a
     .model({
-      ownerId: a.hasOne('Profile', 'id'),
+      //ownerId: a.hasOne('Profile', 'id'),
       recordLabelId: a.string(),
       title: a.string(),
       imageURL: a.string(),
@@ -103,14 +103,14 @@ const schema = a.schema({
       mainVocalsOwnerId: a.string(),
       secondaryVocalsOwnerId: a.string(),
       audioUrl: a.string(),
-      mainMusicTrack: a.hasOne('Tracks', 'id'),
-      remixedFrom: a.hasOne('Songs', 'id'),
+      //mainMusicTrack: a.hasOne('Tracks', 'id'),
+      //remixedFrom: a.hasOne('Songs', 'id'),
       createdAt: a.datetime(),
       updatedAt: a.datetime(),
       playCount: a.integer().default(0),
       likes: a.integer().default(0),
       shares: a.integer().default(0),
-      comments: a.hasMany('Comments', 'songId'),
+      //comments: a.hasMany('Comments', 'songId'),
       royalties: a.integer().default(0),
       status: a.string().default('ACTIVE'),
     })
@@ -121,7 +121,7 @@ const schema = a.schema({
 
   Tracks: a
     .model({
-      ownerId: a.hasOne('Profile', 'id'),
+      //ownerId: a.hasOne('Profile', 'id'),
       recordLabeld: a.string(),
       title: a.string(),
       description: a.string(),
@@ -140,11 +140,11 @@ const schema = a.schema({
 
   LipSyncBattlesParent: a
     .model({
-      player1Id: a.hasOne('LipSyncBattlesEntries', 'playerId'),
-      player2Id: a.hasOne('LipSyncBattlesEntries', 'playerId'),
-      song: a.hasOne('Songs', 'id'),
-      winner: a.hasOne('Profile', 'id'),
-      comments: a.hasMany('Comments', 'lipSyncBattle'),
+      //player1Id: a.hasOne('LipSyncBattlesEntries', 'playerId'),
+      //player2Id: a.hasOne('LipSyncBattlesEntries', 'playerId'),
+      //song: a.hasOne('Songs', 'id'),
+      //winner: a.hasOne('Profile', 'id'),
+      //comments: a.hasMany('Comments', 'lipSyncBattle'),
       battleType: a.string(),
       player1BattleId: a.string(),
       player2BattleId: a.string(),
@@ -165,7 +165,7 @@ const schema = a.schema({
   LipSyncBattlesEntries: a
     .model({
       playerId: a.string(),
-      lipSyncBattlesParentId: a.hasOne('LipSyncBattlesParent', 'id'),
+      //lipSyncBattlesParentId: a.hasOne('LipSyncBattlesParent', 'id'),
       songId: a.string(),
       imageUrl: a.string(),
       audioUrl: a.string(),
@@ -189,10 +189,10 @@ const schema = a.schema({
   Comments: a
     .model({
       // Required fields
-      songId: a.hasOne('Song', 'id'),
-      lipSyncBattle: a.hasOne('LipSyncBattlesParent', 'id'),
+      //userId: a.hasOne('Profile', 'id'),songId: a.hasOne('Song', 'id'),
+      //lipSyncBattle: a.hasOne('LipSyncBattlesParent', 'id'),
       isVoteComment: a.boolean().default(false),
-      userId: a.hasOne('Profile', 'id'),
+      //userId: a.hasOne('Profile', 'id'),userId: a.hasOne('Profile', 'id'),
       commentText: a.string(),
       createdAt: a.datetime(),
       updatedAt: a.datetime(),
@@ -206,8 +206,8 @@ const schema = a.schema({
   Followers: a
     .model({
       // Required fields
-      followerId: a.hasOne('Profile', 'id').required(),
-      followingId: a.hasOne('Profile', 'id').required(),
+      //userId: a.hasOne('Profile', 'id'),followerId: a.hasOne('Profile', 'id').required(),
+      //userId: a.hasOne('Profile', 'id'),followingId: a.hasOne('Profile', 'id').required(),
 
       // Additional metadata
       followerUsername: a.string(),
@@ -232,7 +232,7 @@ const schema = a.schema({
 
   TokenCreditLogs: a
     .model({
-      userId: a.hasOne('Profile', 'id'),
+      //userId: a.hasOne('Profile', 'id'),
       direction: a.string(), //'added' or 'deducted'
       paymentMethod: a.string(), //'stripe' or 'credits' if added
       deductionDescription: a.string(),
@@ -246,6 +246,7 @@ const schema = a.schema({
 
   ComputeTasks: a
     .model({
+      //userId: a.hasOne('Profile', 'id'),
       taskId: a.string(),
       taskDescription: a.string(),
       createdAt: a.datetime(),
