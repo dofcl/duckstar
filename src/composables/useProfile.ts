@@ -84,7 +84,6 @@ export function useProfile() {
         id: string, 
         fields: Partial<Omit<Profile, 'id' | 'createdAt' | 'updatedAt'>>
     ): Promise<Profile> {
-        if (!id) throw new Error('Profile ID is required');
         if (!fields || Object.keys(fields).length === 0) {
             throw new Error('No fields provided for update');
         }
@@ -97,12 +96,12 @@ export function useProfile() {
         };
 
         try {
-            const response = await client.models.Profile.update(updateData) as unknown as AmplifyResponse<AmplifyData>;
+            const response = await client.models.Profile.update(updateData) as AmplifyResponse<Profile>;
             if (!response.data) {
                 throw new Error('Update failed');
             }
 
-            const updatedProfile = transformAmplifyResponse(response.data);
+            const updatedProfile = response.data;
 
             if (profile.value?.id === id) {
                 profile.value = updatedProfile;

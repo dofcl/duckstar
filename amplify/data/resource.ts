@@ -40,8 +40,6 @@ const schema = a.schema({
     computeTasks: a.hasMany('ComputeTasks', 'taskOwnerId'),
     tokenCreditLogs: a.hasMany('TokenCreditLogs', 'creditOwnerId'),
     producer: a.belongsTo('Producers', 'producerId'),
-    followers: a.hasMany('Followers', 'followingId'),
-    following: a.hasMany('Followers', 'followerId'),
     lipSyncBattlesAsPlayer1: a.hasMany('LipSyncBattlesParent', 'player1Id'),  
     lipSyncBattlesAsPlayer2: a.hasMany('LipSyncBattlesParent', 'player2Id'),  
     lipSyncBattleEntries: a.hasMany('LipSyncBattlesEntries', 'playerOwnerId'),
@@ -211,13 +209,7 @@ const schema = a.schema({
       // Foreign keys
       followerId: a.string().required(), // ID of the user who is following
       followingId: a.string().required(), // ID of the user being followed
-      
-      // Relationships
-      follower: a.belongsTo('Profile', 'followerId'),
-      following: a.belongsTo('Profile', 'followingId'),
-      
-      // Denormalized fields for quick access
-      followerUsername: a.string(),
+    
       followerDisplayName: a.string(),
       followerAvatar: a.string(),
       
