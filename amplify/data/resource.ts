@@ -1,67 +1,52 @@
 import { type ClientSchema, a, defineData } from "@aws-amplify/backend";
 
-/*== STEP 1 ===============================================================
-The section below creates a Todo database table with a "content" field. Try
-adding a new "isDone" field as a boolean. The authorization rule below
-specifies that any user authenticated via an API key can "create", "read",
-"update", and "delete" any "Todo" records.
-=========================================================================*/
-
 const schema = a.schema({
   Profile: a
     .model({
-      // Required fields
       userId: a.string().required(),
-      username: a.string().required(),//public
+      username: a.string().required(),
       email: a.string(),
       onboarded: a.boolean(),
-
-      // Optional personal information
       firstName: a.string(),
       lastName: a.string(),
       displayName: a.string(),
       avatar: a.string(),
       bio: a.string(),
-
       country: a.string(),
       language: a.string(),
       musicGenre: a.string(),
-
-      // Timestamps
       lastActive: a.datetime(),
       createdAt: a.datetime(),
       updatedAt: a.datetime(),
-
-      // Leaderboard relevant stats
       totalScore: a.integer().default(0),
       weeklyScore: a.integer().default(0),
       monthlyScore: a.integer().default(0),
       rank: a.integer(),
       tier: a.string().default('BRONZE'),
-
       followersCount: a.integer().default(0),
       followingCount: a.integer().default(0),
-
-
       credits: a.integer().default(100),
       songsCreated: a.integer().default(0),
       lipSyncBattlesAttempted: a.integer().default(0),
       lipSyncBattlesWon: a.integer().default(0),
       lipSyncBattlesLost: a.integer().default(0),
       winRate: a.float().default(0),
-      //producerId: a.hasOne('Producers', 'id'),
-      //aiCompanions: a.hasMany('AiCompanionData', 'ownerId'),
-      //songs: a.hasMany('Songs', 'ownerId'),
-      //tracks: a.hasMany('Tracks', 'ownerId'),
+      producerId: a.id(),
+      aiCompanions: a.hasMany('AiCompanionData', 'aiOwnerId'),
+      songs: a.hasMany('Songs', 'songOwnerId'),
+      tracks: a.hasMany('Tracks', 'trackOwnerId'),
+      comments: a.hasMany('Comments', 'commentOwnerId'),
       status: a.string().default('ACTIVE'),
+      computeTasks: a.hasMany('ComputeTasks', 'taskOwnerId'),
+      tokenCreditLogs: a.hasMany('TokenCreditLogs', 'creditOwnerId'),
     })
-    .authorization(allow => [
+    .authorization((allow) => [
       allow.owner()
     ]),
 
   AiCompanionData: a
     .model({
-      //ownerId: a.hasOne('Profile', 'id'),
+      aiOwnerId: a.string().required(),
       name: a.string(),
       imageURL: a.string(),
       bio: a.string(),
@@ -76,6 +61,7 @@ const schema = a.schema({
 
   Producers: a
     .model({
+      profiles: a.hasMany('Profile', 'producerId'),
       name: a.string(),
       ttsId: a.string(),
       imageURL: a.string(),
@@ -91,71 +77,62 @@ const schema = a.schema({
 
   Songs: a
     .model({
-      //ownerId: a.hasOne('Profile', 'id'),
-      recordLabelId: a.string(),
+      songOwnerId: a.string().required(),
+      lipSyncBattles: a.hasMany('LipSyncBattlesParent', 'songId'),
+      lipSyncBattleEntries: a.hasMany('LipSyncBattlesEntries', 'songId'),
       title: a.string(),
       imageURL: a.string(),
       description: a.string(),
       lyrics: a.string(),
-      lyricsOwnerId: a.string(),
-      mainMusicOwnerId: a.string(),//use id  of mina music track
-      secondaryMusicOwnerId: a.string(),//comma separated list of user ids of contriubting tracks
-      mainVocalsOwnerId: a.string(),
-      secondaryVocalsOwnerId: a.string(),
       audioUrl: a.string(),
-      //mainMusicTrack: a.hasOne('Tracks', 'id'),
-      //remixedFrom: a.hasOne('Songs', 'id'),
       createdAt: a.datetime(),
       updatedAt: a.datetime(),
       playCount: a.integer().default(0),
       likes: a.integer().default(0),
       shares: a.integer().default(0),
-      //comments: a.hasMany('Comments', 'songId'),
+      comments: a.hasMany('Comments', 'songId'),
       royalties: a.integer().default(0),
       status: a.string().default('ACTIVE'),
     })
     .authorization((allow) => [
-      allow.guest().to(["read"]),
-      allow.owner()
+      allow.guest().to(['read']),
+      allow.owner(),
     ]),
 
   Tracks: a
     .model({
-      //ownerId: a.hasOne('Profile', 'id'),
-      recordLabeld: a.string(),
+      trackOwnerId: a.string().required(),
+      songs: a.hasMany('Songs', 'songOwnerId'),
+      recordLabel: a.string(),
       title: a.string(),
       description: a.string(),
-      instruments: a.string(), //commmm a separated list of instruments
+      instruments: a.string(),
       audioUrl: a.string(),
       createdAt: a.datetime(),
       updatedAt: a.datetime(),
       songCount: a.integer().default(0),
-      status: a.string().default('ACTIVE'),
       royalties: a.integer().default(0),
+      status: a.string().default('ACTIVE'),
     })
     .authorization((allow) => [
-      allow.authenticated().to(["read"]),
-      allow.owner()
+      allow.authenticated().to(['read']),
+      allow.owner(),
     ]),
 
   LipSyncBattlesParent: a
     .model({
-      //player1Id: a.hasOne('LipSyncBattlesEntries', 'playerId'),
-      //player2Id: a.hasOne('LipSyncBattlesEntries', 'playerId'),
-      //song: a.hasOne('Songs', 'id'),
-      //winner: a.hasOne('Profile', 'id'),
-      //comments: a.hasMany('Comments', 'lipSyncBattle'),
+      player1Id: a.string().required(),
+      player2Id: a.string().required(),
+      songId: a.string().required(),
+      winnerId: a.string(),
+      comments: a.hasMany('Comments', 'lipSyncBattleId'),
       battleType: a.string(),
-      player1BattleId: a.string(),
-      player2BattleId: a.string(),
-      songId: a.string(),
       createdAt: a.datetime(),
       updatedAt: a.datetime(),
       status: a.string().default('ACTIVE'),
       likes: a.integer().default(0),
       shares: a.integer().default(0),
       royalties: a.integer().default(0),
-      winnerId: a.string(),
     })
     .authorization((allow) => [
       allow.guest().to(["read"]),
@@ -164,8 +141,8 @@ const schema = a.schema({
 
   LipSyncBattlesEntries: a
     .model({
-      playerId: a.string(),
-      //lipSyncBattlesParentId: a.hasOne('LipSyncBattlesParent', 'id'),
+      playerOwnerId: a.string(),
+      lipSyncBattlesParent: a.hasMany('LipSyncBattlesParent', 'player1Id'),
       songId: a.string(),
       imageUrl: a.string(),
       audioUrl: a.string(),
@@ -179,8 +156,9 @@ const schema = a.schema({
       judge3Score: a.integer().default(0),
       totalJudgeScore: a.integer().default(0),
       communityScoreAvg: a.integer().default(0),
-      result: a.string() //WIN, LOSE, DRAW
-    }).authorization((allow) => [
+      result: a.string(),
+    })
+    .authorization((allow) => [
       allow.guest().to(["read"]),
       allow.authenticated().to(["read"]),
       allow.owner()
@@ -188,16 +166,16 @@ const schema = a.schema({
 
   Comments: a
     .model({
-      // Required fields
-      //userId: a.hasOne('Profile', 'id'),songId: a.hasOne('Song', 'id'),
-      //lipSyncBattle: a.hasOne('LipSyncBattlesParent', 'id'),
+      commentOwnerId: a.string().required(),
+      songId: a.string().required(),
+      lipSyncBattleId: a.string(),
       isVoteComment: a.boolean().default(false),
-      //userId: a.hasOne('Profile', 'id'),userId: a.hasOne('Profile', 'id'),
       commentText: a.string(),
       createdAt: a.datetime(),
       updatedAt: a.datetime(),
       status: a.string().default('ACTIVE'),
-    }).authorization((allow) => [
+    })
+    .authorization((allow) => [
       allow.guest().to(["read"]),
       allow.authenticated().to(["read", "create"]),
       allow.owner()
@@ -205,48 +183,37 @@ const schema = a.schema({
 
   Followers: a
     .model({
-      // Required fields
-      //userId: a.hasOne('Profile', 'id'),followerId: a.hasOne('Profile', 'id').required(),
-      //userId: a.hasOne('Profile', 'id'),followingId: a.hasOne('Profile', 'id').required(),
-
-      // Additional metadata
-      followerUsername: a.string(),
-      followerDisplayName: a.string(),
-      followerAvatar: a.string(),
-
-      followingUsername: a.string(),
+      followerId: a.string().required(),
+      followingId: a.string().required(),
       followingDisplayName: a.string(),
       followingAvatar: a.string(),
-
-      // Timestamps
       createdAt: a.datetime(),
       updatedAt: a.datetime(),
-
-      // Optional status field (for soft deletes or blocking)
-      status: a.string().default('ACTIVE')
-    }).authorization((allow) => [
+      status: a.string().default('ACTIVE'),
+    })
+    .authorization((allow) => [
       allow.guest().to(["read"]),
       allow.owner()
     ]),
 
-
   TokenCreditLogs: a
     .model({
-      //userId: a.hasOne('Profile', 'id'),
-      direction: a.string(), //'added' or 'deducted'
-      paymentMethod: a.string(), //'stripe' or 'credits' if added
+      creditOwnerId: a.string().required(),
+      direction: a.string(),
+      paymentMethod: a.string(),
       deductionDescription: a.string(),
       amount: a.integer(),
       createdAt: a.datetime(),
       updatedAt: a.datetime(),
       status: a.string().default('ACTIVE'),
-    }).authorization((allow) => [
+    })
+    .authorization((allow) => [
       allow.owner()
     ]),
 
   ComputeTasks: a
     .model({
-      //userId: a.hasOne('Profile', 'id'),
+      taskOwnerId: a.string().required(),
       taskId: a.string(),
       taskDescription: a.string(),
       createdAt: a.datetime(),
@@ -256,10 +223,10 @@ const schema = a.schema({
       finished: a.boolean().default(false),
       failed: a.boolean().default(false),
       failedReason: a.string(),
-    }).authorization((allow) => [
+    })
+    .authorization((allow) => [
       allow.owner()
     ]),
-
 
 });
 
@@ -271,33 +238,3 @@ export const data = defineData({
     defaultAuthorizationMode: "userPool",
   },
 });
-
-
-/*== STEP 2 ===============================================================
-Go to your frontend source code. From your client-side code, generate a
-Data client to make CRUDL requests to your table. (THIS SNIPPET WILL ONLY
-WORK IN THE FRONTEND CODE FILE.)
-
-Using JavaScript or Next.js React Server Components, Middleware, Server
-Actions or Pages Router? Review how to generate Data clients for those use
-cases: https://docs.amplify.aws/gen2/build-a-backend/data/connect-to-API/
-=========================================================================*/
-
-/*
-"use client"
-import { generateClient } from "aws-amplify/data";
-import type { Schema } from "@/amplify/data/resource";
-
-const client = generateClient<Schema>() // use this Data client for CRUDL requests
-*/
-
-/*== STEP 3 ===============================================================
-Fetch records from the database and use them in your frontend component.
-(THIS SNIPPET WILL ONLY WORK IN THE FRONTEND CODE FILE.)
-=========================================================================*/
-
-/* For example, in a React component, you can use this snippet in your
-  function's RETURN statement */
-// const { data: todos } = await client.models.Todo.list()
-
-// return <ul>{todos.map(todo => <li key={todo.id}>{todo.content}</li>)}</ul>

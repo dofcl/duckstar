@@ -45,9 +45,8 @@ export function useProfile() {
         loading.value = true;
 
         try {
-            const response = await client.models.Profile.list({
-                filter: { userId: { eq: userId } }
-            }) as unknown as AmplifyResponse<AmplifyData[]>;
+            const filter = { userId: { eq: userId } };
+            const response = await client.models.Profile.list({ filter }) as unknown as AmplifyResponse<AmplifyData[]>;
 
             if (!response.data?.length) return null;
 

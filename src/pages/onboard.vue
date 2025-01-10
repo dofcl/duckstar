@@ -106,15 +106,11 @@ import CountryFlag from 'vue-country-flag-next'
 import { getData } from 'country-list'
 import { useRouter } from 'vue-router';
 import { useProfile } from '@/composables/useProfile'
-import { useAiCompanions } from '../composables/useAiCompanions';
-const { createAiCompanion } = useAiCompanions();
-
-interface AiCompanionData {
-    persona: string;
-    aiCompanions: { persona: string }[];
-}
+import { useAiCompanions } from '../composables/useAiCompanions'; // Import the composable
+import type { AiCompanionData } from '../types/schema';
 
 const { getOrCreateProfile, updateProfileFields } = useProfile()
+const { createCompanion, isLoading, error } = useAiCompanions();
 import { getCurrentUser } from 'aws-amplify/auth'
 const router = useRouter();
 const myPersona = ref<string | null>(null)
@@ -168,8 +164,8 @@ const next = async () => {
     if (stage.value === 0 && myPersona.value && userId.value) {
         try {
             console.log('Creating AI companion with persona:', myPersona.value);
-            const aiCompanion = await createAiCompanion({
-                ownerId: userId.value,
+            const aiCompanion = await createCompanion({
+                aiOwnerId: userId.value,
                 name: name.value, // Replace with actual name
                 imageURL: myPersona.value, // Replace with actual image URL
                 bio: bio.value, // Replace with actual bio

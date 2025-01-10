@@ -1,127 +1,104 @@
-import { ref, computed } from 'vue';
+import { ref } from 'vue';
 import { generateClient } from 'aws-amplify/api';
 import type { Schema } from '../../amplify/data/resource';
+import type { AiCompanionData } from '../types/schema';
 
 const client = generateClient<Schema>();
 
-// Define proper Amplify response types
-type AmplifyData = {
-    [key: string]: any; // Allow other properties
-};
-
-type AmplifyResponse<T = AmplifyData> = {
-    data: T | null;
-    errors?: Array<{ message: string }>;
-};
-
-interface AiCompanion {
-    id?: string;
-    ownerId: string;
-    name: string;
-    imageURL: string;
-    bio: string;
-    country: string;
-    createdAt?: string;
-    updatedAt?: string;
-}
-
-function transformAmplifyResponse(data: AmplifyData): AiCompanion {
-    return {
-        ...data,
-        createdAt: data.createdAt || new Date().toISOString(),
-        updatedAt: data.updatedAt || new Date().toISOString(),
-    } as AiCompanion;
-}
-
 export function useAiCompanions() {
-    const loading = ref(false);
+    const companions = ref<AiCompanionData[]>([]);
+    const isLoading = ref<boolean>(false);
     const error = ref<string | null>(null);
-    const aiCompanions = ref<AiCompanion[]>([]);
 
-    async function getAiCompanions(ownerId: string): Promise<AiCompanion[]> {
-        if (!ownerId) throw new Error('Owner ID is required');
-        loading.value = true;
+    const fetchCompanions = async (ownerId: string): Promise<AiCompanionData[]> => {
+        isLoading.value = true;
+        error.value = null;
 
         try {
-            const response = await client.models.AiCompanionData.list({
-                filter: { owner: { eq: ownerId } }
-            }) as unknown as AmplifyResponse<AmplifyData[]>;
+            const filter = { aiOwnerId: { eq: ownerId } };
+            const result = await client.models.AiCompanionData.list({ filter });
 
-            if (!response.data?.length) return [];
-
-            return response.data.map(transformAmplifyResponse);
-        } catch (err) {
+            companions.value = result?.data.map(companion => ({
+                ...companion,
+                createdAt: companion.createdAt ?? '',
+                updatedAt: companion.updatedAt ?? ''
+            })) ?? []; // Use nullish coalescing to set a default empty array
+            return companions.value;
+        } catch (err: unknown) {
+            // Type narrowing for error handling
             error.value = err instanceof Error ? err.message : 'Failed to fetch AI companions';
-            throw err;
+            companions.value = [];
+            throw err; // rethrow error
         } finally {
-            loading.value = false;
+            isLoading.value = false;
         }
-    }
+    };
 
-    async function createAiCompanion(input: Omit<AiCompanion, 'id' | 'createdAt' | 'updatedAt'>): Promise<AiCompanion> {
-        const now = new Date().toISOString();
-        const newAiCompanion = {
-            ...input,
-            createdAt: now,
-            updatedAt: now,
-        };
-
+    const createCompanion = async (input: Omit<AiCompanionData, 'id' | 'createdAt' | 'updatedAt'>): Promise<AiCompanionData> => {
         try {
-            const response = await client.models.AiCompanionData.create(newAiCompanion) as unknown as AmplifyResponse<AmplifyData>;
-            if (!response.data) {
-                throw new Error('Failed to create AI companion');
+            const result = await client.models.AiCompanionData.create({
+                ...input,
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString()
+            });
+
+            const newCompanion = result?.data as AiCompanionData | undefined; // Type cast with undefined fallback
+            if (newCompanion) {
+                companions.value.push(newCompanion);
+                return newCompanion;
             }
 
-            const createdAiCompanion = transformAmplifyResponse(response.data);
-            aiCompanions.value.push(createdAiCompanion);
-            return createdAiCompanion;
-        } catch (err) {
-            console.error('Failed to create AI companion:', err);
-            throw err instanceof Error ? err : new Error('Failed to create AI companion');
+            throw new Error('Failed to create AI companion');
+        } catch (err: unknown) {
+            error.value = err instanceof Error ? err.message : 'Failed to create AI companion';
+            throw err;
         }
-    }
+    };
 
-    async function updateAiCompanionFields(
+    const updateCompanion = async (
         id: string, 
-        fields: Partial<Omit<AiCompanion, 'id' | 'createdAt' | 'updatedAt'>>
-    ): Promise<AiCompanion> {
-        if (!id) throw new Error('AI Companion ID is required');
-        if (!fields || Object.keys(fields).length === 0) {
-            throw new Error('No fields provided for update');
-        }
-
-        const updateData = {
-            id,
-            ...fields,
-            updatedAt: new Date().toISOString(),
-        };
-
+        updates: Partial<Omit<AiCompanionData, 'id' | 'createdAt' | 'updatedAt'>>
+    ): Promise<AiCompanionData> => {
         try {
-            const response = await client.models.AiCompanionData.update(updateData) as unknown as AmplifyResponse<AmplifyData>;
-            if (!response.data) {
-                throw new Error('Update failed');
+            const result = await client.models.AiCompanionData.update({
+                id,
+                ...updates,
+                updatedAt: new Date().toISOString()
+            });
+
+            const updatedCompanion = result?.data as AiCompanionData | undefined;
+            if (updatedCompanion) {
+                const index = companions.value.findIndex(c => c.id === id);
+                if (index !== -1) {
+                    companions.value[index] = updatedCompanion;
+                }
+                return updatedCompanion;
             }
 
-            const updatedAiCompanion = transformAmplifyResponse(response.data);
-
-            const index = aiCompanions.value.findIndex(companion => companion.id === id);
-            if (index !== -1) {
-                aiCompanions.value[index] = updatedAiCompanion;
-            }
-
-            return updatedAiCompanion;
-        } catch (err) {
-            console.error('Update failed:', err);
-            throw err instanceof Error ? err : new Error('Update failed');
+            throw new Error('Failed to update AI companion');
+        } catch (err: unknown) {
+            error.value = err instanceof Error ? err.message : 'Failed to update AI companion';
+            throw err;
         }
-    }
+    };
+
+    const deleteCompanion = async (id: string): Promise<void> => {
+        try {
+            await client.models.AiCompanionData.delete({ id });
+            companions.value = companions.value.filter(c => c.id !== id);
+        } catch (err: unknown) {
+            error.value = err instanceof Error ? err.message : 'Failed to delete AI companion';
+            throw err;
+        }
+    };
 
     return {
-        aiCompanions: computed(() => aiCompanions.value),
-        loading: computed(() => loading.value),
-        error: computed(() => error.value),
-        getAiCompanions,
-        createAiCompanion,
-        updateAiCompanionFields,
+        companions,
+        isLoading,
+        error,
+        fetchCompanions,
+        createCompanion,
+        updateCompanion,
+        deleteCompanion
     };
 }
