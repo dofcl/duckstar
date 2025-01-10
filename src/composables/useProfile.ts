@@ -87,26 +87,26 @@ export function useProfile() {
         if (!fields || Object.keys(fields).length === 0) {
             throw new Error('No fields provided for update');
         }
-
+    
         const updateData = {
             id,
             ...fields,
             updatedAt: new Date().toISOString(),
             lastActive: new Date().toISOString(),
         };
-
+    
         try {
             const response = await client.models.Profile.update(updateData) as AmplifyResponse<Profile>;
             if (!response.data) {
                 throw new Error('Update failed');
             }
-
+    
             const updatedProfile = response.data;
-
+    
             if (profile.value?.id === id) {
                 profile.value = updatedProfile;
             }
-
+    
             return updatedProfile;
         } catch (err) {
             console.error('Update failed:', err);

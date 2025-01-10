@@ -172,15 +172,23 @@ const next = async () => {
                 country: selectedCountry.value, // Replace with actual country
             });
 
-            console.log('Updating profile with AI companion:', aiCompanion);
-            await updateProfileFields(userId.value, {
-                aiCompanions: [aiCompanion]
-            });
+            console.log('Added AI companion:', aiCompanion);
+
         } catch (error) {
             console.error('Error creating AI companion or updating profile:', error);
             // Handle error in UI - maybe show an error message
         }
     }
+
+    console.log('Next stage user :', userId.value);
+    if (userId.value) {
+        await updateProfileFields(userId.value, {
+            bio: "test3"
+        });
+    } else {
+        console.error('User ID is null');
+    }
+
     stage.value += 1;
 }
 
