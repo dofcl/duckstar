@@ -3,10 +3,7 @@ import { a, defineData, type ClientSchema } from '@aws-amplify/backend';
 const schema = a.schema({
   Profile: a
     .model({
-      userId: a.string().authorization(allow => [
-        allow.owner().to(['create', 'read']),
-        allow.guest().to(['read'])
-      ]).required(),
+      userId: a.string().required(),
       avatar: a.string(),
       bio: a.string(),
       country: a.string(),
@@ -61,10 +58,7 @@ const schema = a.schema({
 
   Producers: a
     .model({
-      producerId: a.string().authorization(allow => [
-        allow.owner().to(['create', 'read']),
-        allow.guest().to(['read'])
-      ]).required(),
+      producerId: a.string().required(),
       name: a.string().authorization(allow => [
         allow.owner(),
         allow.guest().to(['read'])
@@ -82,10 +76,7 @@ const schema = a.schema({
 
   UserFollowers: a
     .model({
-      followerId: a.string().authorization(allow => [
-        allow.owner().to(['create', 'read']),
-        allow.guest().to(['read'])
-      ]).required(),
+      followerId: a.string().required(),
       followingId: a.string().authorization(allow => [
         allow.owner(),
         allow.guest().to(['read'])
@@ -104,10 +95,7 @@ const schema = a.schema({
 
   AIFollowers: a
     .model({
-      followerId: a.string().authorization(allow => [
-        allow.owner().to(['create', 'read']),
-        allow.guest().to(['read'])
-      ]).required(),
+      followerId: a.string().required(),
       aiCompanionId: a.string().authorization(allow => [
         allow.owner(),
         allow.guest().to(['read'])
@@ -167,10 +155,7 @@ const schema = a.schema({
 
   Songs: a
     .model({
-      songOwnerId: a.string().authorization(allow => [
-        allow.owner().to(['create', 'read']),
-        allow.guest().to(['read'])
-      ]).required(),
+      songOwnerId: a.string().required(),
       aICollabId: a.string(),
       audioUrl: a.string(),
       createdAt: a.datetime(),
@@ -265,10 +250,7 @@ const schema = a.schema({
 
   AiCompanionData: a
     .model({
-      aiOwnerId: a.string().authorization(allow => [
-        allow.owner().to(['create', 'read']),
-        allow.guest().to(['read'])
-      ]).required(),
+      aiOwnerId: a.string().required(),
       bio: a.string(),
       country: a.string(),
       createdAt: a.datetime(),
@@ -299,10 +281,7 @@ const schema = a.schema({
 
   Comments: a
     .model({
-      commentOwnerId: a.string().authorization(allow => [
-        allow.owner().to(['create', 'read']),
-        allow.guest().to(['read'])
-      ]).required(),
+      commentOwnerId: a.string().required(),
       commentText: a.string(),
       commenterAvatar: a.string(),
       commenterDisplayName: a.string(),
@@ -330,14 +309,8 @@ const schema = a.schema({
 
   LipSyncBattlesParent: a
     .model({
-      player1Id: a.string().authorization(allow => [
-        allow.owner().to(['create', 'read']),
-        allow.guest().to(['read'])
-      ]).required(),
-      player2Id: a.string().authorization(allow => [
-        allow.owner().to(['create', 'read']),
-        allow.guest().to(['read'])
-      ]).required(),
+      player1Id: a.string().required(),
+      player2Id: a.string().required(),
       battleType: a.string(),
       completedAt: a.datetime(),
       createdAt: a.datetime(),
@@ -366,10 +339,7 @@ const schema = a.schema({
 
   LipSyncBattlesEntries: a
     .model({
-      playerOwnerId: a.string().authorization(allow => [
-        allow.owner().to(['create', 'read']),
-        allow.guest().to(['read'])
-      ]).required(),
+      playerOwnerId: a.string().required(),
       audioUrl: a.string(),
       battleId: a.string().authorization(allow => [
         allow.owner(),
@@ -402,10 +372,7 @@ const schema = a.schema({
 
   SongLikes: a
     .model({
-      userId: a.string().authorization(allow => [
-        allow.owner().to(['create', 'read']),
-        allow.guest().to(['read'])
-      ]).required(),
+      userId: a.string().required(),
       songId: a.string().authorization(allow => [
         allow.owner(),
         allow.guest().to(['read'])
@@ -425,10 +392,7 @@ const schema = a.schema({
 
   BattleLikes: a
     .model({
-      userId: a.string().authorization(allow => [
-        allow.owner().to(['create', 'read']),
-        allow.guest().to(['read'])
-      ]).required(),
+      userId: a.string().required(),
       battleId: a.string().authorization(allow => [
         allow.owner(),
         allow.guest().to(['read'])
@@ -448,10 +412,7 @@ const schema = a.schema({
 
   CommentLikes: a
     .model({
-      userId: a.string().authorization(allow => [
-        allow.owner().to(['create', 'read']),
-        allow.guest().to(['read'])
-      ]).required(),
+      userId: a.string().required(),
       commentId: a.string().authorization(allow => [
         allow.owner(),
         allow.guest().to(['read'])
@@ -477,7 +438,7 @@ const schema = a.schema({
     .authorization((allow) => allow.owner()),
 
   generateSong: a.generation({
-    aiModel: a.ai.model('Llama 3.2 3B Instruct'), //Claude 3.5 Sonnet
+    aiModel: a.ai.model('Claude 3.5 Sonnet'), //Claude 3.5 Sonnet
     systemPrompt: 'You are a music producer who writes songs',
   })
     .arguments({

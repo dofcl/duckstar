@@ -1,8 +1,7 @@
 <template>
     <div class="ma-0 pa-0">
-        <el-select v-model="selectedGenres" :multiple="allowMultiple" collapse-tags collapse-tags-tooltip :max-collapse-tags="3"
-            :placeholder="placeholder" class="genre-select" @change="handleGenreChange"
-            size="large">
+        <el-select v-model="selectedGenres" :multiple="allowMultiple" collapse-tags collapse-tags-tooltip
+            :max-collapse-tags="3" :placeholder="placeholder" class="genre-select" size="large">
             <el-option v-for="genre in genres" :key="genre.value" :label="genre.label" :value="genre.value"
                 class="text-black" />
         </el-select>
@@ -10,15 +9,15 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import { useProfile } from '@/composables/useProfile'
 const { updateProfileField } = useProfile()
 const emit = defineEmits(['genres-selected'])
 
 const selectedGenres = ref<string[]>([])
 
-const placeholder= ref('Select your favorite music genres')
-const allowMultiple =ref(true)
+const placeholder = ref('Select your favorite music genres')
+const allowMultiple = ref(true)
 
 interface Profile {
     musicGenre: string[]
@@ -64,11 +63,16 @@ const handleGenreChange = async (value: any) => {
     emit('genres-selected', value)
     if (props.saveInComponent) {
         await updateProfileField(props.userId, 'musicGenre', JSON.stringify(value));
-    }else {
+    } else {
         placeholder.value = "Select a genre"
         allowMultiple.value = false
     }
 }
+// Watch for changes to selectedGenre
+watch(selectedGenres, (newGenre) => {
+    console.log('save', newGenre)
+    handleGenreChange(newGenre);
+});
 
 onMounted(() => {
     if (props.musicGenre) {

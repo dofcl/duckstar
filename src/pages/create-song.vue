@@ -1,13 +1,11 @@
-<template>
+<template> 
     <div v-if="gotLyrics && lyrics">
         <LyricsEditPlay :title="songTitle" :lyricsText="lyrics" @update:lyricsText="updateLyrics" />
     </div>
 
     <div v-else>
         <h1 class="mb-0 pb-0">Create Song</h1>
-
         <div eclass="mx-auto max-w-md mt-0 pt-0">
-
             <div>
                 <p>Song Title</p>
                 <el-input v-model="songTitle" placeholder="Name your song" size="large" class="mt-0 pt-0" />
@@ -41,6 +39,7 @@
                 <p class="mt-0 pt-0 text-center">Got writers block or need some inspiration?<br> Don't worry I've got
                     your back.</p>
 
+                <div v-if="failed" class="text-orange my-4">Something went wrong :-( Let's try again. </div>
                 <div class="mx-auto text-center">
                     <el-button type="info" @click="aiGenAll">Create me a song</el-button>
                 </div>
@@ -121,6 +120,7 @@ const inspireModal = ref(false);
 const modalTitle = ref("I'll help you get started");
 const gotLyrics = ref(false);
 const lyrics = ref()
+const failed = ref(false)
 
 const collab = ref(false)
 const task = ref('lyrics')
@@ -171,18 +171,29 @@ const aiGenAll = async () => {
 
 
     console.log('Creating lyrics:', description);
-    await createLyrics(description).then((data) => {
+    await createLyrics(description + ". This song should be a maximum of 100 words").then((data) => {
         console.log('Lyrics created', data);
         if (!songTitle.value) {
             songTitle.value = data?.name ?? ''
         }
         console.log('song title', songTitle)
+
         modalTitle.value = songTitle.value
         lyrics.value = data?.lyrics
-        gotLyrics.value = true;
         console.log('lyrics', lyrics?.value)
         loading.value = false;
-        inspireModal.value = false
+
+        if (lyrics?.value) {
+            inspireModal.value = false;
+            gotLyrics.value = true;
+            console.log('success', inspireModal.value);
+        
+            failed.value = false;
+        } else {
+            console.log('failed');
+            failed.value = true;
+            inspireModal.value = true;
+        }
     });
 }
 
