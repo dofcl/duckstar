@@ -27,6 +27,7 @@ const { createLyrics } = useSongs();
 const router = useRouter();
 
 const songTitle = ref('');
+const songDescription = ref('Creating Music and writing songs');
 const userId = ref('');
 
 const saveSongdraft = () => {
@@ -45,8 +46,9 @@ const goToCreateLyrics = async () => {
 
 const handleGenre = async (genres: string[]) => {
     console.log('Selected genres', genres);
+    const description = `A ${genres.join(', ')} about ${songDescription.value}`;
 
-    createLyrics(genres).then((data) => {
+    await createLyrics(description).then((data) => {
         console.log('Lyrics created', data);
     });
 

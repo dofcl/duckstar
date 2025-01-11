@@ -1,4 +1,4 @@
-import { type ClientSchema, a, defineData } from "@aws-amplify/backend";
+import { a, defineData, type ClientSchema } from '@aws-amplify/backend';
 
 const schema = a.schema({
   Profile: a
@@ -471,28 +471,10 @@ const schema = a.schema({
 
   // Ai
   chat: a.conversation({
-    aiModel: a.ai.model('Claude 3.5 Sonnet'),
+    aiModel: a.ai.model('Claude 3 Haiku'),
     systemPrompt: 'You are a music producer named Tom',
   })
     .authorization((allow) => allow.owner()),
-
-
-  generateRecipe: a.generation({
-    aiModel: a.ai.model('Claude 3.5 Sonnet'),
-    systemPrompt: 'You are a helpful assistant that generates recipes.',
-  })
-    .arguments({
-      description: a.string(),
-    })
-    .returns(
-      a.customType({
-        name: a.string(),
-        ingredients: a.string().array(),
-        instructions: a.string(),
-      })
-    )
-    .authorization((allow) => allow.authenticated()),
-
 
   generateSong: a.generation({
     aiModel: a.ai.model('Claude 3.5 Sonnet'),

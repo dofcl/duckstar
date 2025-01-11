@@ -216,38 +216,12 @@ export function useSongs() {
         }
     }
 
-    async function createLyrics() {
-
-        const { data: conversation } = await client.conversations.chat.create();
-
-        // Assistant messages come back as websocket events
-        // over a subscription
-        conversation.onStreamEvent({
-            next: (event) => {
-                console.log(event);
-            },
-            error: (error) => {
-                console.log(error);
-            }
-        });
-
-        // When sending user messages you only need to send
-        // the latest message, the conversation history
-        // is stored in DynamoDB and retrieved in Lambda
-        conversation.sendMessage({
-            content: [{ text: "hello" }],
-        })
-
-        const { data } = await client.generations.generateRecipe({
-            description: 'A gluten free chocolate cake'
-        });
-        console.log('Generated recipe:', data);
+    async function createLyrics(description: string) {
         try {
             console.log('Generating lyrics...');
             const { data } = await client.generations.generateSong({
-                description: 'Song about cake'
+                description: description
             });
-            console.log('Generated lyrics:', data);
             return data;
         } catch (error) {
             console.error('Error generating lyrics:', error);
