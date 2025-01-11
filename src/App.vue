@@ -117,7 +117,7 @@ function muteAudio() {
 [data-amplify-authenticator] {
   --amplify-components-authenticator-router-box-shadow: 0 0 16px var(--amplify-colors-overlay-10);
   --amplify-components-authenticator-router-border-width: 0;
-  --amplify-components-authenticator-form-padding: 0 20px !important;
+  --amplify-components-authenticator-form-padding: 20px 20px !important;
   --amplify-components-button-primary-background-color: var(--amplify-colors-neutral-100);
   --amplify-components-fieldcontrol-focus-box-shadow: 0 0 0 2px var(--amplify-colors-purple-60);
   --amplify-components-tabs-item-active-border-color: var(--amplify-colors-neutral-100);
@@ -154,7 +154,7 @@ button.amplify-button.amplify-field-group__control.amplify-button--primary.ampli
 }
 
 [data-amplify-authenticator] [data-amplify-router] {
-  border-radius: 0 0 20px 20px;
+  border-radius: 4px
 }
 
 .icon-wrapper {

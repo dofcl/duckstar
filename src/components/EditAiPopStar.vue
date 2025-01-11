@@ -141,14 +141,13 @@
   <script setup lang="ts">
   import { ref, onMounted, computed } from 'vue'
   import { useAiCompanions } from '../composables/useAiCompanions'
-  import type { AiCompanionData } from '../types/schema'
   import CountryFlag from 'vue-country-flag-next'
   import { getData } from 'country-list'
-  
-  const { fetchCompanions, updateCompanion } = useAiCompanions()
-  
+  import DuckLoader from '@/components/DuckLoader.vue'
+    
+  const { fetchCompanions, updateCompanionField } = useAiCompanions()
   const props = defineProps<{ userId: string }>()
-  const myAiPopStars = ref<AiCompanionData[] | null>(null)
+  const myAiPopStars = ref<AiCompanionData[]>([])
   const selectedAiPopStarId = ref('')
   const countrySearch = ref('')
   const loading = ref(true)
@@ -176,25 +175,37 @@
     cb(results)
   }
   
-  const handleCountrySelect = (item: Record<string, any>) => {
+  const handleCountrySelect = async (item: Record<string, any>) => {
     currentPopStar.value.country = item.code
-    updateCompanion(selectedAiPopStarId.value, { country: item.code })
+    countrySearch.value = item.name
+    await updateCompanionField(selectedAiPopStarId.value, 'country', currentPopStar.value.country);
   }
   
-  const saveName = () => {
-    updateCompanion(selectedAiPopStarId.value, { name: currentPopStar.value.name })
+  const saveName = async () => {
+    await updateCompanionField(selectedAiPopStarId.value, 'name', currentPopStar.value.name);
+
   }
   
-  const saveBio = () => {
-    updateCompanion(selectedAiPopStarId.value, { bio: currentPopStar.value.bio })
+  const saveBio = async () => {
+    await updateCompanionField(selectedAiPopStarId.value, 'bio', currentPopStar.value.bio);
   }
   
   const formatNumber = (num: number) => {
     return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
   }
 
+  interface AiCompanionData {
+    id: string;
+    name: string;
+    bio: string;
+    country: string;
+    imageURL: string;
+    songCount?: number;
+    followersCount?: number;
+    aiOwnerId?: string;
+  }
+
   const handleAiPopStarChange = (row: AiCompanionData) => {
-    
       const selected = myAiPopStars.value?.find((item) => item.id === row.id)
       changeSelectedPopStar(selected)
   }
@@ -212,9 +223,10 @@
       countrySearch.value = selected.country || ''
     }
   }
-  
+
   onMounted(async () => {
-    const companions = await fetchCompanions(props.userId)
+
+    const companions = await fetchCompanions() as AiCompanionData[]
     myAiPopStars.value = companions
     
     if (companions.length === 1) {
@@ -265,6 +277,7 @@
   .bio-truncate {
     display: -webkit-box;
     -webkit-line-clamp: 3;
+    line-clamp: 3;
     -webkit-box-orient: vertical;
     overflow: hidden;
   } 

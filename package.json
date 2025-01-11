@@ -13,7 +13,9 @@
   "dependencies": {
     "@aws-amplify/ui-vue": "^4.2.26",
     "@element-plus/icons-vue": "^2.3.1",
-    "aws-amplify": "^6.6.6",
+    "aws-amplify": "6.12",
+    "aws-cdk": "^2.175.1",
+    "aws-cdk-lib": "^2.175.1",
     "country-list": "^2.3.0",
     "crypto-js": "^4.2.0",
     "element-plus": "^2.9.2",
@@ -22,15 +24,13 @@
     "vue-router": "^4.5.0"
   },
   "devDependencies": {
-    "@aws-amplify/backend": "^1.5.0",
+    "@aws-amplify/backend": "^1.13.0",
     "@aws-amplify/backend-cli": "^1.2.9",
     "@tsconfig/node20": "^20.1.4",
     "@types/country-list": "^2.1.4",
     "@types/node": "^20.12.5",
     "@vitejs/plugin-vue": "^5.0.4",
     "@vue/tsconfig": "^0.5.1",
-    "aws-cdk": "^2.137.0",
-    "aws-cdk-lib": "^2.137.0",
     "constructs": "^10.3.0",
     "esbuild": "^0.20.2",
     "jsdom": "^25.0.1",

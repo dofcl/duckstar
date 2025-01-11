@@ -1,15 +1,12 @@
 import { type ClientSchema, a, defineData } from "@aws-amplify/backend";
-// @ts-ignore
+
 const schema = a.schema({
-
-
   Profile: a
     .model({
-      // Required fields
-      userId: a.string().required(),
-      username: a.string().required(),
-
-      // Basic info
+      userId: a.string().authorization(allow => [
+        allow.owner().to(['create', 'read']),
+        allow.guest().to(['read'])
+      ]).required(),
       avatar: a.string(),
       bio: a.string(),
       country: a.string(),
@@ -25,11 +22,9 @@ const schema = a.schema({
       producerId: a.id(),
       status: a.string().default('ACTIVE'),
       updatedAt: a.datetime(),
-
-      // Stats and scores
       credits: a.integer().default(100),
       creditLogs: a.hasMany('TokenCreditLogs', 'creditOwnerId'),
-      computeTasks: a.hasMany('ComputeTasks', 'taskOwnerId'), 
+      computeTasks: a.hasMany('ComputeTasks', 'taskOwnerId'),
       followersCount: a.integer().default(0),
       followingCount: a.integer().default(0),
       monthlyScore: a.integer().default(0),
@@ -39,36 +34,24 @@ const schema = a.schema({
       totalScore: a.integer().default(0),
       weeklyScore: a.integer().default(0),
       winRate: a.float().default(0),
-
-      // Battle stats
       lipSyncBattlesAttempted: a.integer().default(0),
       lipSyncBattlesLost: a.integer().default(0),
-
-      // Relationships - Content
       aiCompanions: a.hasMany('AiCompanionData', 'aiOwnerId'),
       comments: a.hasMany('Comments', 'commentOwnerId'),
       producer: a.belongsTo('Producers', 'producerId'),
       songCollaborations: a.hasMany('Songs', 'aICollabId'),
       songs: a.hasMany('Songs', 'songOwnerId'),
       tracks: a.hasMany('Tracks', 'trackOwnerId'),
-
-      // Relationships - Social
       followedByUsers: a.hasMany('UserFollowers', 'followingId'),
       followingAIs: a.hasMany('AIFollowers', 'followerId'),
       followingUsers: a.hasMany('UserFollowers', 'followerId'),
-
-      // Relationships - Engagement
       likedBattles: a.hasMany('BattleLikes', 'userId'),
       likedComments: a.hasMany('CommentLikes', 'userId'),
       likedSongs: a.hasMany('SongLikes', 'userId'),
-
-      // Relationships - Battles
       lipSyncBattleEntries: a.hasMany('LipSyncBattlesEntries', 'playerOwnerId'),
       lipSyncBattlesAsPlayer1: a.hasMany('LipSyncBattlesParent', 'player1Id'),
       lipSyncBattlesAsPlayer2: a.hasMany('LipSyncBattlesParent', 'player2Id'),
       lipSyncBattlesWon: a.hasMany('LipSyncBattlesParent', 'winnerId'),
-
-      // Relationships - Notifications
       notificationsReceived: a.hasMany('UserNotifications', 'userId'),
     })
     .authorization((allow) => [
@@ -76,19 +59,41 @@ const schema = a.schema({
       allow.guest().to(['read'])
     ]),
 
+  Producers: a
+    .model({
+      producerId: a.string().authorization(allow => [
+        allow.owner().to(['create', 'read']),
+        allow.guest().to(['read'])
+      ]).required(),
+      name: a.string().authorization(allow => [
+        allow.owner(),
+        allow.guest().to(['read'])
+      ]).required(),
+      bio: a.string(),
+      createdAt: a.datetime(),
+      updatedAt: a.datetime(),
+      profiles: a.hasMany('Profile', 'producerId'),
+      songs: a.hasMany('Songs', 'songProducerId'),
+    })
+    .authorization((allow) => [
+      allow.guest().to(["read"]),
+      allow.owner()
+    ]),
+
   UserFollowers: a
     .model({
-      // Required fields
-      followerId: a.string().required(),
-      followingId: a.string().required(),
-
-      // Denormalized fields
+      followerId: a.string().authorization(allow => [
+        allow.owner().to(['create', 'read']),
+        allow.guest().to(['read'])
+      ]).required(),
+      followingId: a.string().authorization(allow => [
+        allow.owner(),
+        allow.guest().to(['read'])
+      ]).required(),
       createdAt: a.datetime(),
       followerAvatar: a.string(),
       followerDisplayName: a.string(),
       status: a.string().default('ACTIVE'),
-
-      // Relationships
       follower: a.belongsTo('Profile', 'followerId'),
       following: a.belongsTo('Profile', 'followingId'),
     })
@@ -99,17 +104,18 @@ const schema = a.schema({
 
   AIFollowers: a
     .model({
-      // Required fields
-      followerId: a.string().required(),
-      aiCompanionId: a.string().required(),
-
-      // Denormalized fields
+      followerId: a.string().authorization(allow => [
+        allow.owner().to(['create', 'read']),
+        allow.guest().to(['read'])
+      ]).required(),
+      aiCompanionId: a.string().authorization(allow => [
+        allow.owner(),
+        allow.guest().to(['read'])
+      ]).required(),
       createdAt: a.datetime(),
       followerAvatar: a.string(),
       followerDisplayName: a.string(),
       status: a.string().default('ACTIVE'),
-
-      // Relationships
       follower: a.belongsTo('Profile', 'followerId'),
       aiCompanion: a.belongsTo('AiCompanionData', 'aiCompanionId'),
     })
@@ -120,18 +126,21 @@ const schema = a.schema({
 
   UserNotifications: a
     .model({
-      // Required fields
-      userId: a.string().required(),
-      type: a.string().required(),
-      sourceId: a.string().required(),
-      sourceType: a.string().required(),
-
-      // Status fields
+      userId: a.string().authorization(allow => [
+        allow.owner().to(['create', 'read'])
+      ]).required(),
+      type: a.string().authorization(allow => [
+        allow.owner()
+      ]).required(),
+      sourceId: a.string().authorization(allow => [
+        allow.owner()
+      ]).required(),
+      sourceType: a.string().authorization(allow => [
+        allow.owner()
+      ]).required(),
       createdAt: a.datetime(),
       isRead: a.boolean().default(false),
       status: a.string().default('ACTIVE'),
-
-      // Relationships
       user: a.belongsTo('Profile', 'userId')
     })
     .authorization((allow) => [
@@ -140,28 +149,28 @@ const schema = a.schema({
 
   TokenCreditLogs: a
     .model({
-      // Required fields
+      creditOwnerId: a.string().authorization(allow => [
+        allow.owner().to(['create', 'read'])
+      ]).required(),
       amount: a.integer(),
-      creditOwnerId: a.string().required(),
       createdAt: a.datetime(),
       deductionDescription: a.string(),
       direction: a.string(),
       paymentMethod: a.string(),
       status: a.string().default('ACTIVE'),
       updatedAt: a.datetime(),
-
-      // Relationships
       creditOwner: a.belongsTo('Profile', 'creditOwnerId'),
     })
     .authorization((allow) => [
       allow.owner()
     ]),
+
   Songs: a
     .model({
-      // Required fields
-      songOwnerId: a.string().required(),
-
-      // Basic info
+      songOwnerId: a.string().authorization(allow => [
+        allow.owner().to(['create', 'read']),
+        allow.guest().to(['read'])
+      ]).required(),
       aICollabId: a.string(),
       audioUrl: a.string(),
       createdAt: a.datetime(),
@@ -176,8 +185,6 @@ const schema = a.schema({
       title: a.string(),
       trackId: a.string(),
       updatedAt: a.datetime(),
-
-      // Stats and metrics
       likesCount: a.integer().default(0),
       playCount: a.integer().default(0),
       royalties: a.integer().default(0),
@@ -185,14 +192,10 @@ const schema = a.schema({
       totalDuration: a.integer(),
       trendingScore: a.float().default(0),
       viewsLast24h: a.integer().default(0),
-
-      // Relationships - Ownership
       aiCollab: a.belongsTo('Profile', 'aICollabId'),
       songOwner: a.belongsTo('Profile', 'songOwnerId'),
       songProducer: a.belongsTo('Producers', 'songProducerId'),
       track: a.belongsTo('Tracks', 'trackId'),
-
-      // Relationships - Content
       comments: a.hasMany('Comments', 'songId'),
       likes: a.hasMany('SongLikes', 'songId'),
       lipSyncBattleEntries: a.hasMany('LipSyncBattlesEntries', 'songId'),
@@ -205,10 +208,10 @@ const schema = a.schema({
 
   Tracks: a
     .model({
-      // Required fields
-      trackOwnerId: a.string().required(),
-
-      // Basic info
+      trackOwnerId: a.string().authorization(allow => [
+        allow.owner().to(['create', 'read']),
+        allow.authenticated().to(['read'])
+      ]).required(),
       audioUrl: a.string(),
       createdAt: a.datetime(),
       description: a.string(),
@@ -217,12 +220,8 @@ const schema = a.schema({
       status: a.string().default('ACTIVE'),
       title: a.string(),
       updatedAt: a.datetime(),
-
-      // Stats
       royalties: a.integer().default(0),
       songCount: a.integer().default(0),
-
-      // Relationships
       profile: a.belongsTo('Profile', 'trackOwnerId'),
       songs: a.hasMany('Songs', 'trackId'),
     })
@@ -231,36 +230,11 @@ const schema = a.schema({
       allow.owner(),
     ]),
 
-  Producers: a
-    .model({
-      // Basic info
-      bio: a.string(),
-      country: a.string(),
-      createdAt: a.datetime(),
-      imageURL: a.string(),
-      name: a.string(),
-      price: a.integer(),
-      ttsId: a.string(),
-      updatedAt: a.datetime(),
-
-      // Stats
-      songCount: a.integer().default(0),
-
-      // Relationships
-      profiles: a.hasMany('Profile', 'producerId'),
-      songs: a.hasMany('Songs', 'songProducerId'),
-    })
-    .authorization((allow) => [
-      allow.authenticated().to(["read"]),
-      allow.owner()
-    ]),
-
   ComputeTasks: a
     .model({
-      // Required fields
-      taskOwnerId: a.string().required(),
-
-      // Task info
+      taskOwnerId: a.string().authorization(allow => [
+        allow.owner().to(['create', 'read'])
+      ]).required(),
       createdAt: a.datetime(),
       failed: a.boolean().default(false),
       failedReason: a.string(),
@@ -270,16 +244,18 @@ const schema = a.schema({
       taskDescription: a.string(),
       taskId: a.string(),
       updatedAt: a.datetime(),
-
-      // Relationships
       profile: a.belongsTo('Profile', 'taskOwnerId'),
     })
     .authorization((allow) => [
       allow.owner()
     ]),
+
   AiCompanionData: a
     .model({
-      aiOwnerId: a.string().required(),
+      aiOwnerId: a.string().authorization(allow => [
+        allow.owner().to(['create', 'read']),
+        allow.guest().to(['read'])
+      ]).required(),
       bio: a.string(),
       country: a.string(),
       createdAt: a.datetime(),
@@ -293,7 +269,10 @@ const schema = a.schema({
       name: a.string(),
       price: a.integer(),
       profile: a.belongsTo('Profile', 'aiOwnerId'),
-      seedId: a.string().required(),
+      seedId: a.string().authorization(allow => [
+        allow.owner(),
+        allow.guest().to(['read'])
+      ]).required(),
       songCount: a.integer().default(0),
       status: a.string().default('ACTIVE'),
       totalInteractions: a.integer().default(0),
@@ -307,8 +286,10 @@ const schema = a.schema({
 
   Comments: a
     .model({
-      // Required fields
-      commentOwnerId: a.string().required(),
+      commentOwnerId: a.string().authorization(allow => [
+        allow.owner().to(['create', 'read']),
+        allow.guest().to(['read'])
+      ]).required(),
       commentText: a.string(),
       commenterAvatar: a.string(),
       commenterDisplayName: a.string(),
@@ -322,8 +303,6 @@ const schema = a.schema({
       songId: a.string(),
       status: a.string().default('ACTIVE'),
       voteScore: a.integer(),
-
-      // Relationships
       likes: a.hasMany('CommentLikes', 'commentId'),
       lipSyncBattle: a.belongsTo('LipSyncBattlesParent', 'lipSyncBattleId'),
       parentComment: a.belongsTo('Comments', 'parentCommentId'),
@@ -333,27 +312,32 @@ const schema = a.schema({
     })
     .authorization((allow) => [
       allow.guest().to(["read"]),
-
       allow.owner()
     ]),
 
   LipSyncBattlesParent: a
     .model({
-      // Required fields
+      player1Id: a.string().authorization(allow => [
+        allow.owner().to(['create', 'read']),
+        allow.guest().to(['read'])
+      ]).required(),
+      player2Id: a.string().authorization(allow => [
+        allow.owner().to(['create', 'read']),
+        allow.guest().to(['read'])
+      ]).required(),
       battleType: a.string(),
       completedAt: a.datetime(),
       createdAt: a.datetime(),
       likesCount: a.integer().default(0),
-      player1Id: a.string().required(),
-      player2Id: a.string().required(),
       royalties: a.integer().default(0),
       shares: a.integer().default(0),
-      songId: a.string().required(),
+      songId: a.string().authorization(allow => [
+        allow.owner(),
+        allow.guest().to(['read'])
+      ]).required(),
       status: a.string().default('ACTIVE'),
       updatedAt: a.datetime(),
       winnerId: a.string(),
-
-      // Relationships
       battleLikes: a.hasMany('BattleLikes', 'battleId'),
       comments: a.hasMany('Comments', 'lipSyncBattleId'),
       entries: a.hasMany('LipSyncBattlesEntries', 'battleId'),
@@ -364,100 +348,114 @@ const schema = a.schema({
     })
     .authorization((allow) => [
       allow.guest().to(["read"]),
-
       allow.owner()
     ]),
 
   LipSyncBattlesEntries: a
     .model({
-      // Required fields
+      playerOwnerId: a.string().authorization(allow => [
+        allow.owner().to(['create', 'read']),
+        allow.guest().to(['read'])
+      ]).required(),
       audioUrl: a.string(),
-      battleId: a.string().required(),
+      battleId: a.string().authorization(allow => [
+        allow.owner(),
+        allow.guest().to(['read'])
+      ]).required(),
       communityScoreAvg: a.integer().default(0),
       createdAt: a.datetime(),
       imageUrl: a.string(),
       judge1Score: a.integer().default(0),
       judge2Score: a.integer().default(0),
       judge3Score: a.integer().default(0),
-      playerOwnerId: a.string().required(),
       result: a.string(),
       royalties: a.integer().default(0),
-      songId: a.string().required(),
+      songId: a.string().authorization(allow => [
+        allow.owner(),
+        allow.guest().to(['read'])
+      ]).required(),
       status: a.string().default('ACTIVE'),
       totalJudgeScore: a.integer().default(0),
       updatedAt: a.datetime(),
       videoUrl: a.string(),
-
-      // Relationships
       lipSyncBattlesParent: a.belongsTo('LipSyncBattlesParent', 'battleId'),
       player: a.belongsTo('Profile', 'playerOwnerId'),
       song: a.belongsTo('Songs', 'songId'),
     })
     .authorization((allow) => [
       allow.guest().to(["read"]),
-
       allow.owner()
     ]),
 
   SongLikes: a
     .model({
-      userId: a.string().required(),
-      songId: a.string().required(),
+      userId: a.string().authorization(allow => [
+        allow.owner().to(['create', 'read']),
+        allow.guest().to(['read'])
+      ]).required(),
+      songId: a.string().authorization(allow => [
+        allow.owner(),
+        allow.guest().to(['read'])
+      ]).required(),
       aiCompanionId: a.string(),
       createdAt: a.datetime(),
       isAILike: a.boolean().default(false),
       status: a.string().default('ACTIVE'),
-      // Relationships
       user: a.belongsTo('Profile', 'userId'),
       aiCompanion: a.belongsTo('AiCompanionData', 'aiCompanionId'),
       song: a.belongsTo('Songs', 'songId'),
     })
     .authorization((allow) => [
       allow.guest().to(["read"]),
-
       allow.owner()
     ]),
 
   BattleLikes: a
     .model({
-      userId: a.string().required(),
-      battleId: a.string().required(),
+      userId: a.string().authorization(allow => [
+        allow.owner().to(['create', 'read']),
+        allow.guest().to(['read'])
+      ]).required(),
+      battleId: a.string().authorization(allow => [
+        allow.owner(),
+        allow.guest().to(['read'])
+      ]).required(),
       aiCompanionId: a.string(),
       createdAt: a.datetime(),
       isAILike: a.boolean().default(false),
       status: a.string().default('ACTIVE'),
-      // Relationships
       user: a.belongsTo('Profile', 'userId'),
       aiCompanion: a.belongsTo('AiCompanionData', 'aiCompanionId'),
       battle: a.belongsTo('LipSyncBattlesParent', 'battleId'),
     })
     .authorization((allow) => [
       allow.guest().to(["read"]),
-
       allow.owner()
     ]),
 
   CommentLikes: a
     .model({
-      userId: a.string().required(),
-      commentId: a.string().required(),
+      userId: a.string().authorization(allow => [
+        allow.owner().to(['create', 'read']),
+        allow.guest().to(['read'])
+      ]).required(),
+      commentId: a.string().authorization(allow => [
+        allow.owner(),
+        allow.guest().to(['read'])
+      ]).required(),
       aiCompanionId: a.string(),
       createdAt: a.datetime(),
       isAILike: a.boolean().default(false),
       status: a.string().default('ACTIVE'),
-      // Relationships
       user: a.belongsTo('Profile', 'userId'),
       aiCompanion: a.belongsTo('AiCompanionData', 'aiCompanionId'),
       comment: a.belongsTo('Comments', 'commentId'),
     })
     .authorization((allow) => [
       allow.guest().to(["read"]),
-
       allow.owner()
     ]),
-
 });
-
 
 export type Schema = ClientSchema<typeof schema>;
 

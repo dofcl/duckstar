@@ -1,18 +1,15 @@
 <template>
     <div>
         <div v-if="loading">
-            <DuckLoader/>
+            <DuckLoader />
         </div>
         <div v-else>
             <div v-if="stage == 0" class="text-center">
-
-
                 <h1 class="text-white ma-0 pa-0">Create your AI Pop star</h1>
                 <p class="text-white mx-auto text-center mt-0">Use their voice, their face, or both—it's your choice!
                 </p>
                 <p class="text-white mx-auto text-center mt-0">As you gain experience, your AI pop star evolves,
-                    improving
-                    its skills and competing autonomously against real and other AI singers.</p>
+                    improving its skills and competing autonomously against real and other AI singers.</p>
 
                 <div v-if="!myPersona">
                     <p class="text-white mx-auto text-center">
@@ -37,16 +34,16 @@
             <div v-else-if="stage == 1" class="text-center">
                 <h1 class="text-white ma-0 pa-0">What are your favourite music genres?</h1>
                 <MusicGenre :userId="userId || ''" :musicGenre="myProfile?.musicGenre || ''" />
-                <el-button @click="back()" class="ma-2 mt-0">Back</el-button> <el-button @click="next()" type="primary"
-                    class="ma-2 mt-0">Next</el-button>
+                <el-button v-if="!(popStars?.length > 0)" @click="back()" class="ma-2 mt-0">Back</el-button>
+                <el-button @click="next()" type="primary" class="ma-2 mt-0">Next</el-button>
             </div>
             <div v-else-if="stage == 2" class="text-center">
                 <h1 class="text-white ma-0 pa-0 mb-2">My AI Pop Stars</h1>
                 <EditAiPopStar :userId="userId || ''" />
 
                 <div class="mt-4">
-                    <el-button @click="back()" class="ma-2">Back</el-button> <el-button @click="next()" type="primary"
-                        class="ma-2">Next</el-button>
+                    <el-button @click="back()" class="ma-2">Back</el-button>
+                    <el-button @click="next()" type="primary" class="ma-2">Next</el-button>
                 </div>
             </div>
 
@@ -58,8 +55,8 @@
                     <CountryFlag :country="selectedCountry?.toLowerCase()" class="text-4xl" />
                 </div>
 
-                <h3 class="text-white coiny ma-0 pa-0 text-left">{{ name||'' }}</h3>
-                <p class="text-white ma-0 pa-0 mb-6">{{ bio||'' }}</p>
+                <h3 class="text-white coiny ma-0 pa-0 text-left">{{ name || '' }}</h3>
+                <p class="text-white ma-0 pa-0 mb-6">{{ bio || '' }}</p>
                 <el-button @click="back" class="ma-2" type="text" text>Edit</el-button><br>
                 <hr>
                 <el-button @click="createSong" class="ma-2" type="primary" size="large">Create a Song</el-button>
@@ -77,8 +74,7 @@
         :before-close="handleClose">
         <p class="text-red">You need to win at least 1 LipSync battle to create your own AI Singer</p>
         <p class="text-gray-300">Describe your AI singer in a few words, their look their personality and favourite
-            music
-            genres.</p>
+            music genres.</p>
         <el-input></el-input>
 
         <template #footer>
@@ -97,42 +93,51 @@ import Personas from '@/components/Personas.vue';
 import EditAiPopStar from '@/components/EditAiPopStar.vue';
 import DuckLoader from '@/components/DuckLoader.vue';
 import { onMounted, ref } from 'vue';
-import CountryFlag from 'vue-country-flag-next'
+import CountryFlag from 'vue-country-flag-next';
 import { useRouter } from 'vue-router';
-import { useProfile } from '@/composables/useProfile'
+import { useProfile } from '@/composables/useProfile';
 import { useAiCompanions } from '../composables/useAiCompanions';
-import type { Profile, AiCompanionData } from '../types/schema';
-
-const { getOrCreateProfile, updateProfileFields } = useProfile()
-const { createCompanion, fetchCompanions, isLoading, error } = useAiCompanions();
-import { getCurrentUser } from 'aws-amplify/auth'
+const { getOrCreateProfile } = useProfile();
+const { createCompanion, fetchCompanions } = useAiCompanions();
+import { getCurrentUser } from 'aws-amplify/auth';
+import { UserPoolIdentityProvider } from 'aws-cdk-lib/aws-cognito';
 const router = useRouter();
-const myPersona = ref<string | null>(null)
-const stage = ref<number>(0)
-const createOwnModal = ref(false)
-const name = ref('')
-const bio = ref('')
-const selectedCountry = ref<string>('')
-const userId = ref<string | null>(null)
-const popStars = ref<AiCompanionData[]>([])
-const myProfile = ref<Profile | null>(null)
-const loading = ref<boolean>(false)
-
-interface UserProfileInput {
-    userId: string
-    username: string
+const myPersona = ref<string | null>(null);
+const stage = ref<number>(0);
+const createOwnModal = ref(false);
+const bio = ref('');
+const name = ref('');
+const selectedCountry = ref();
+const userId = ref<string | null>(null);
+interface AiPopStar {
+    aiOwnerId: string;
+    followers: number | null;
+    owner: string | null;
 }
 
-const username = ref<string | null>(null)
+const popStars = ref<AiPopStar[]>([]);
+interface UserProfile {
+    userId: string;
+    musicGenre?: string | null;
+    creditLogs?: any; // Allow any type for creditLogs to avoid type incompatibility
+    owner?: string;
+    [key: string]: any; // Allow additional properties
+}
+
+const myProfile = ref();
+const loading = ref<boolean>(true);
+
+interface UserProfileInput {
+    userId: string;
+}
 
 function handleSelectedPersona(persona: string | null) {
-    myPersona.value = persona
-
+    myPersona.value = persona;
 }
 
 function handleClose(done: any) {
-    createOwnModal.value = false
-    done()
+    createOwnModal.value = false;
+    done();
 }
 
 function createYourOwn() {
@@ -140,9 +145,9 @@ function createYourOwn() {
 }
 
 function change() {
-    myPersona.value = null
-
+    myPersona.value = null;
 }
+
 const getAiSeed = (filePath: string): string => {
     const fileName = filePath.split('/').pop() || '';
     const baseName = fileName.replace(/\.[^/.]+$/, ''); // Remove the file extension
@@ -151,53 +156,32 @@ const getAiSeed = (filePath: string): string => {
 };
 
 const next = async () => {
+
     if (stage.value === 0 && myPersona.value && userId.value) {
         try {
-
-            console.log('Creating AI companion with persona:', myPersona.value);
             const aiCompanion = await createCompanion({
                 aiOwnerId: userId.value,
-                name: name.value,
-                imageURL: myPersona.value,
-                bio: bio.value,
-                country: selectedCountry.value,
                 seedId: getAiSeed(myPersona.value),
-                price: undefined,
-                followersCount: 0,
-                songCount: 0,
-                followingCount: 0
+                imageURL: myPersona.value
             });
-
             console.log('Added AI companion:', aiCompanion);
-
         } catch (error) {
             console.error('Error creating AI companion or updating profile:', error);
         }
     }
 
-    console.log('Next stage user :', userId.value);
-    if (userId.value) {
-        await updateProfileFields(userId.value, {
-            bio: "test3"
-        });
-    } else {
-        console.error('User ID is null');
-    }
-
     stage.value += 1;
-}
+};
 
 function back() {
-    stage.value -= 1
-    console.log("trigger welcome TTS")
-
+    stage.value -= 1;
+    console.log("trigger welcome TTS");
 }
 
 function createSong() {
     console.log('Create a song');
     router.push('/create-song');
 }
-
 
 function lipSyncBattle() {
     router.push('/lip-sync-battle');
@@ -218,27 +202,24 @@ const initAudio = () => {
             console.error("Error playing audio:", err);
         }
     }
-}
-
+};
 
 const getOrCreateProfileData = async () => {
-    if (!userId.value || !username.value) {
+    if (!userId.value) {
         console.error('Missing user data');
         return;
     }
 
     try {
-        const userData: UserProfileInput = {
-            userId: userId.value,
-            username: username.value
-        }
-        myProfile.value = await getOrCreateProfile(userData);
-        return myProfile.value
+        let id = userId.value;
+        myProfile.value = await getOrCreateProfile(id,userId.value);
+
+        return myProfile.value;
     } catch (err) {
         console.error('Error creating profile:', err);
         throw err; // Propagate error for handling
     }
-}
+};
 
 const getAiPopStars = async () => {
     if (!userId.value) {
@@ -247,45 +228,44 @@ const getAiPopStars = async () => {
     }
 
     try {
-        const aiPopStars = await fetchCompanions(userId.value);
+        const aiPopStars = (await fetchCompanions()).map((popStar: any) => ({
+            ...popStar,
+            followers: typeof popStar.followers === 'function' ? null : popStar.followers
+        }));
         popStars.value = aiPopStars;
         if (aiPopStars.length > 0) {
-            stage.value = 1
+            stage.value = 1;
         }
         return aiPopStars;
     } catch (err) {
         console.error('Error fetching AI Pop Stars:', err);
         throw err; // Propagate error for handling
     }
-}
+};
 
 async function getUser() {
     try {
-        const { userId, username } = await getCurrentUser()
-        return { userId, username }
+        const { userId, username } = await getCurrentUser();
+        return { userId, username };
     } catch (err) {
-        console.error('Not signed in')
-        return null
+        console.error('Not signed in');
+        return null;
     }
 }
+
 onMounted(() => {
     initAudio();
     getUser().then(async data => {
         if (data) {
-            userId.value = data.userId
-            username.value = data.username
-            await getOrCreateProfileData()
-            await getAiPopStars()
-            loading.value = false
+            userId.value = data.userId;
+            await getOrCreateProfileData();
+            await getAiPopStars();
+            loading.value = false;
         }
-
-    })
-
-
-
+    });
 });
-
 </script>
+
 <style>
 .persona-image {
     width: 150px;

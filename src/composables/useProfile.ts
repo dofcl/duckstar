@@ -1,129 +1,206 @@
-import { ref, computed } from 'vue';
-import { generateClient } from 'aws-amplify/api';
+import { ref } from 'vue';
+import { generateClient } from 'aws-amplify/data';
 import type { Schema } from '../../amplify/data/resource';
-import { 
-    type Profile, 
-    DEFAULT_PROFILE,
-    type CreateProfileInput,
-    createProfileWithDefaults
-} from '../types/schema';
 
 const client = generateClient<Schema>();
+type ProfileType = Schema['Profile']['type'];
+type UpdateableProfileFields = Partial<Omit<ProfileType, 'id' | 'userId' | 'createdAt' | 'updatedAt'>>;
 
-// Define proper Amplify response types
-type AmplifyData = {
+interface CreateProfileInput {
+    id: string;  // Added id as it's required
     userId: string;
-    username: string;
-    producerId: any; // Handle the function type from Amplify
-    [key: string]: any; // Allow other properties
-};
-
-type AmplifyResponse<T = AmplifyData> = {
-    data: T | null;
-    errors?: Array<{ message: string }>;
-};
-
-function transformAmplifyResponse(data: AmplifyData): Profile {
-    return {
-        ...DEFAULT_PROFILE,
-        ...data,
-        producerId: typeof data.producerId === 'function' ? '' : data.producerId,
-        // Ensure all required Profile properties are present
-        aiCompanions: Array.isArray(data.aiCompanions) ? data.aiCompanions : [],
-        songs: Array.isArray(data.songs) ? data.songs : [],
-        tracks: Array.isArray(data.tracks) ? data.tracks : []
-    } as Profile;
+    username?: string;
+    // Optional fields with defaults from schema
+    status?: string; // defaults to 'ACTIVE'
+    tier?: string; // defaults to 'BRONZE'
+    credits?: number; // defaults to 100
+    followersCount?: number; // defaults to 0
+    followingCount?: number; // defaults to 0
+    monthlyScore?: number; // defaults to 0
+    songsCreated?: number; // defaults to 0
+    totalScore?: number; // defaults to 0
+    weeklyScore?: number; // defaults to 0
+    winRate?: number; // defaults to 0
+    lipSyncBattlesAttempted?: number; // defaults to 0
+    lipSyncBattlesLost?: number; // defaults to 0
+    // Optional fields without defaults
+    avatar?: string;
+    bio?: string;
+    country?: string;
+    displayName?: string;
+    email?: string;
+    firstName?: string;
+    language?: string;
+    lastName?: string;
+    musicGenre?: string;
+    onboarded?: boolean;
+    producerId?: string;
+    rank?: number;
 }
 
+// @ts-expect-error TS7056
 export function useProfile() {
-    const loading = ref(false);
+    const profiles = ref<Array<ProfileType>>([]);
     const error = ref<string | null>(null);
-    const profile = ref<Profile | null>(null);
+    const loading = ref(false);
 
-    async function getProfile(userId: string): Promise<Profile | null> {
-        if (!userId) throw new Error('User ID is required');
-        loading.value = true;
-
+    async function fetchProfiles(userId: string) {
         try {
-            const filter = { userId: { eq: userId } };
+            loading.value = true;
+            error.value = null;
+            // @ts-expect-error TS2590
+            const { data: items, errors } = await client.models.Profile.list({
+                filter: {
+                    userId: {
+                        eq: userId
+                    }
+                }
+            });
 
-            // ignore the union to complicated error
-            // @ts-ignore 
-            const response = await client.models.Profile.list({ filter });
-            const typedResponse = response as unknown as AmplifyResponse<AmplifyData[]>;
+            if (errors) {
+                const errorMessage = errors.map(e => e.message).join(', ');
+                console.error('Failed to fetch profiles:', errorMessage);
+                error.value = 'Failed to fetch profiles: ' + errorMessage;
+                return [];
+            }
 
-            if (!response.data?.length) return null;
-
-            return transformAmplifyResponse(response.data[0]);
+            profiles.value = items;
+            return items;
         } catch (err) {
-            error.value = err instanceof Error ? err.message : 'Failed to fetch profile';
-            throw err;
+            const message = err instanceof Error ? err.message : 'Unknown error';
+            console.error('Error fetching profiles:', message);
+            error.value = 'Error fetching profiles: ' + message;
+            return [];
         } finally {
             loading.value = false;
         }
     }
 
-    async function getOrCreateProfile(input: CreateProfileInput): Promise<Profile> {
-        const existingProfile = await getProfile(input.userId);
-        if (existingProfile) return existingProfile;
-
-        const newProfile = createProfileWithDefaults(input);
-
+    async function getProfile(id: string) {
+        console.log('getProfile', id);
         try {
-            const response = await client.models.Profile.create(newProfile) as unknown as AmplifyResponse<AmplifyData>;
-            if (!response.data) {
-                throw new Error('Failed to create profile');
+            error.value = null;
+            const { data, errors } = await client.models.Profile.get({ id }); // Changed to use id
+
+            if (errors) {
+                const errorMessage = errors.map(e => e.message).join(', ');
+                console.error('Failed to get profile:', errorMessage);
+                error.value = 'Failed to get profile: ' + errorMessage;
+                return null;
             }
 
-            const createdProfile = transformAmplifyResponse(response.data);
-            profile.value = createdProfile;
-            return createdProfile;
+            return data;
         } catch (err) {
-            console.error('Failed to create profile:', err);
-            throw err instanceof Error ? err : new Error('Failed to create profile');
+            const message = err instanceof Error ? err.message : 'Unknown error';
+            console.error('Error getting profile:', message);
+            error.value = 'Error getting profile: ' + message;
+            return null;
         }
     }
 
-    async function updateProfileFields(
-        id: string, 
-        fields: Partial<Omit<Profile, 'id' | 'createdAt' | 'updatedAt'>>
-    ): Promise<Profile> {
-        if (!fields || Object.keys(fields).length === 0) {
-            throw new Error('No fields provided for update');
-        }
-    
-        const updateData = {
-            id,
-            ...fields,
-            updatedAt: new Date().toISOString(),
-            lastActive: new Date().toISOString(),
-        };
-    
+    async function createProfile(
+        id: string,
+        userId: string,
+        initialData: Partial<Omit<CreateProfileInput, 'id' | 'userId'>> = {}
+    ) {
         try {
-            const response = await client.models.Profile.update(updateData) as AmplifyResponse<Profile>;
-            if (!response.data) {
-                throw new Error('Update failed');
+            error.value = null;
+
+            const createInput: CreateProfileInput = {
+                id,
+                userId,
+                ...initialData
+            };
+
+            const { data, errors } = await client.models.Profile.create(createInput);
+
+            if (errors) {
+                const errorMessage = errors.map(e => e.message).join(', ');
+                console.error('Failed to create profile:', errorMessage);
+                error.value = 'Failed to create profile: ' + errorMessage;
+                return null;
             }
-    
-            const updatedProfile = response.data;
-    
-            if (profile.value?.id === id) {
-                profile.value = updatedProfile;
-            }
-    
-            return updatedProfile;
+
+            await fetchProfiles(userId); // Refresh the list
+            return data;
         } catch (err) {
-            console.error('Update failed:', err);
-            throw err instanceof Error ? err : new Error('Update failed');
+            const message = err instanceof Error ? err.message : 'Unknown error';
+            console.error('Error creating profile:', message);
+            error.value = 'Error creating profile: ' + message;
+            return null;
+        }
+    }
+
+    async function getOrCreateProfile(
+        id: string,
+        userId: string,
+        initialData: Partial<Omit<CreateProfileInput, 'id' | 'userId'>> = {}
+    ) {
+        try {
+            error.value = null;
+            loading.value = true;
+
+            // First try to get the profile
+            let profile = await getProfile(id);  // Changed to use id
+            console.log('got profile', profile);
+
+            // If profile doesn't exist, create it with initial data
+            if (!profile) {
+                console.log('create profile', profile);
+                profile = await createProfile(id, userId, initialData);
+            }
+
+            return profile;
+        } catch (err) {
+            const message = err instanceof Error ? err.message : 'Unknown error';
+            console.error('Error in getOrCreate profile:', message);
+            error.value = 'Error in getOrCreate profile: ' + message;
+            return null;
+        } finally {
+            loading.value = false;
+        }
+    }
+
+    async function updateProfileField<K extends keyof UpdateableProfileFields>(
+        id: string,  // Changed to use id
+        field: K,
+        value: UpdateableProfileFields[K]
+    ) {
+        try {
+            error.value = null;
+            loading.value = true;           
+            
+            // @ts-expect-error TS2590: Expression produces a union type that is too complex to represent.
+            const { data, errors } = await client.models.Profile.update({
+                id,
+                [field]: value
+            });
+
+            if (errors) {
+                const errorMessage = errors.map(e => e.message).join(', ');
+                console.error('Failed to update profile:', errorMessage);
+                error.value = 'Failed to update profile: ' + errorMessage;
+                return null;
+            }
+            return data;
+        } catch (err) {
+            const message = err instanceof Error ? err.message : 'Unknown error';
+            console.error('Error updating profile:', message);
+            error.value = 'Error updating profile: ' + message;
+            return null;
+        } finally {
+            loading.value = false;
         }
     }
 
     return {
-        profile: computed(() => profile.value),
-        loading: computed(() => loading.value),
-        error: computed(() => error.value),
+        profiles,
+        fetchProfiles,
         getProfile,
+        createProfile,
         getOrCreateProfile,
-        updateProfileFields,
+        updateProfileField,
+        error,
+        loading
     };
 }

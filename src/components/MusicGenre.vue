@@ -10,7 +10,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useProfile } from '@/composables/useProfile'
-const { updateProfileFields } = useProfile()
+const { updateProfileField } = useProfile()
 
 const emit = defineEmits(['genres-selected'])
 
@@ -57,10 +57,7 @@ const genres = [
 
 
 const handleGenreChange = async (value: any) => {  
-        await updateProfileFields(props.userId, {
-            musicGenre: JSON.stringify(value)
-        });
-
+    await updateProfileField(props.userId, 'musicGenre', JSON.stringify(value));
         emit('genres-selected', value)
     }
     
