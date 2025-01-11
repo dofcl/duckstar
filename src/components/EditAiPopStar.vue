@@ -139,7 +139,7 @@
   </template>
   
   <script setup lang="ts">
-  import { ref, onMounted, computed } from 'vue'
+  import { ref, onMounted } from 'vue'
   import { useAiCompanions } from '../composables/useAiCompanions'
   import CountryFlag from 'vue-country-flag-next'
   import { getData } from 'country-list'
@@ -147,7 +147,7 @@
     
   const { fetchCompanions, updateCompanionField } = useAiCompanions()
   const props = defineProps<{ userId: string }>()
-  const myAiPopStars = ref<AiCompanionData[]>([])
+  const myAiPopStars = ref<AiCompanionDataItem[]>([])
   const selectedAiPopStarId = ref('')
   const countrySearch = ref('')
   const loading = ref(true)
@@ -194,7 +194,7 @@
     return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
   }
 
-  interface AiCompanionData {
+  interface AiCompanionDataItem {
     id: string;
     name: string;
     bio: string;
@@ -220,18 +220,21 @@
         country: selected.country || '',
         imageUrl: selected.imageURL || ''
       }
-      countrySearch.value = selected.country || ''
+      countrySearch.value = selected.country || '';
+      localStorage.setItem('lastPopStarUsed', JSON.stringify(currentPopStar.value))
     }
   }
 
   onMounted(async () => {
 
-    const companions = await fetchCompanions() as AiCompanionData[]
-    myAiPopStars.value = companions
-    
-    if (companions.length === 1) {
-      selectedAiPopStarId.value = companions[0].id
-      changeSelectedPopStar(companions[0])
+    const companions = await fetchCompanions()
+    if (companions) {
+      myAiPopStars.value = companions;
+      
+      if (companions.length === 1) {
+        selectedAiPopStarId.value = companions[0].id
+        changeSelectedPopStar(companions[0])
+      }
     }
     loading.value = false
   })

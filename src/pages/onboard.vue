@@ -168,6 +168,17 @@ const next = async () => {
         } catch (error) {
             console.error('Error creating AI companion or updating profile:', error);
         }
+    } else if (stage.value === 3) {
+        let currentPopStar: AiPopStar | undefined = popStars.value.find((popStar: AiPopStar) => popStar.aiOwnerId === userId.value);
+        if (!currentPopStar) {
+            const lastPopStarUsed = localStorage.getItem('lastPopStarUsed');
+            if (lastPopStarUsed) {
+                currentPopStar = JSON.parse(lastPopStarUsed) as AiPopStar;
+                name.value = currentPopStar.owner || '';
+                bio.value = currentPopStar.owner || '';
+                selectedCountry.value = currentPopStar.owner || '';
+            }
+        }
     }
 
     stage.value += 1;
@@ -212,7 +223,7 @@ const getOrCreateProfileData = async () => {
 
     try {
         let id = userId.value;
-        myProfile.value = await getOrCreateProfile(id,userId.value);
+        myProfile.value = await getOrCreateProfile(id, userId.value);
 
         return myProfile.value;
     } catch (err) {
@@ -228,7 +239,12 @@ const getAiPopStars = async () => {
     }
 
     try {
-        const aiPopStars = (await fetchCompanions()).map((popStar: any) => ({
+        const companions = await fetchCompanions();
+        if (!companions) {
+            console.error('No companions found');
+            return;
+        }
+        const aiPopStars = companions.map((popStar: any) => ({
             ...popStar,
             followers: typeof popStar.followers === 'function' ? null : popStar.followers
         }));

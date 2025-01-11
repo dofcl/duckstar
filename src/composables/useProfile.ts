@@ -6,6 +6,19 @@ const client = generateClient<Schema>();
 type ProfileType = Schema['Profile']['type'];
 type UpdateableProfileFields = Partial<Omit<ProfileType, 'id' | 'userId' | 'createdAt' | 'updatedAt'>>;
 
+interface ProfileUpdateResponse {
+    data?: {
+      id: string;
+      [key: string]: any; // Adjust as necessary to reflect the actual response
+    };
+    errors?: string[];
+}
+
+interface ProfileResponse {
+    data?: ProfileType;
+    errors?: { message: string }[];
+}
+
 interface CreateProfileInput {
     id: string;  // Added id as it's required
     userId: string;
@@ -48,7 +61,7 @@ export function useProfile() {
             loading.value = true;
             error.value = null;
 
-            const { data: items, errors } = await client.models.Profile.list({
+            const response: { data: ProfileType[], errors?: string[] } = await client.models.Profile.list({
                 filter: {
                     userId: {
                         eq: userId
@@ -56,8 +69,10 @@ export function useProfile() {
                 }
             });
 
+            const { data: items, errors } = response;
+
             if (errors) {
-                const errorMessage = errors.map(e => e.message).join(', ');
+                const errorMessage = errors.join(', ');
                 console.error('Failed to fetch profiles:', errorMessage);
                 error.value = 'Failed to fetch profiles: ' + errorMessage;
                 return [];
@@ -79,7 +94,7 @@ export function useProfile() {
         console.log('getProfile', id);
         try {
             error.value = null;
-            const { data, errors } = await client.models.Profile.get({ id }); // Changed to use id
+            const { data, errors } = await client.models.Profile.get({ id }) as ProfileResponse;
 
             if (errors) {
                 const errorMessage = errors.map(e => e.message).join(', ');
@@ -111,7 +126,7 @@ export function useProfile() {
                 ...initialData
             };
 
-            const { data, errors } = await client.models.Profile.create(createInput);
+            const { data, errors }: ProfileUpdateResponse = await client.models.Profile.update(createInput);
 
             if (errors) {
                 const errorMessage = errors.map(e => e.message).join(', ');
@@ -169,10 +184,8 @@ export function useProfile() {
             error.value = null;
             loading.value = true;
 
-            const { data, errors } = await client.models.Profile.update({
-                id,
-                [field]: value
-            });
+            const payload = { id, [field]: value };
+            const { data, errors } = await client.models.Profile.update(payload);
 
             if (errors) {
                 const errorMessage = errors.map(e => e.message).join(', ');

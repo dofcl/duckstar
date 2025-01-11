@@ -12,19 +12,25 @@
     "src/**/__tests__/*"
   ],
   "compilerOptions": {
+    "noImplicitAny": false,
     "isolatedModules": true,
     "composite": true,
     "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.app.tsbuildinfo",
     "types": [
       "element-plus/global",
-      "unplugin-vue-router/client"
+      "unplugin-vue-router/client",
+      "node",               // Add this if using Node.js types
+      "vite/client"        // Add this for Vite types
     ],
-    "moduleResolution": "Bundler",
+    "moduleResolution": "bundler",  // lowercase 'bundler' is correct
+    "allowImportingTsExtensions": true, // Add this for .ts imports
+    "verbatimModuleSyntax": true,      // Add this for better module syntax
     "baseUrl": ".",
     "paths": {
-      "@/*": [
-        "./src/*"
-      ]
-    }
+      "@/*": ["./src/*"]
+    },
+    "strict": true,                    // Recommended to add
+    "skipLibCheck": true,             // Can help with third-party library issues
+    "esModuleInterop": true           // Helps with import compatibility
   }
 }

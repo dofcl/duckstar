@@ -6,6 +6,19 @@ const client = generateClient<Schema>();
 type CompanionType = Schema['AiCompanionData']['type'];
 type UpdateableCompanionFields = Partial<Omit<CompanionType, 'id' | 'createdAt' | 'updatedAt'>>;
 
+interface AiCompanionDataItem {
+    id: string;
+    name: string;
+    aiOwnerId: string;
+    seedId: string;
+    imageURL: string;
+}
+
+interface AiCompanionDataResponse {
+    data?: AiCompanionDataItem[];
+    errors?: string[];
+}
+
 interface CreateCompanionInput {
     aiOwnerId: string;
     seedId: string;
@@ -21,7 +34,10 @@ export function useAiCompanions() {
         try {
             loading.value = true;
             error.value = null;
-            const { data: items, errors } = await client.models.AiCompanionData.list();
+            type SimplifiedResponse = Partial<AiCompanionDataResponse>;
+            const { data: items, errors }: SimplifiedResponse = await client.models.AiCompanionData.list();
+
+
 
             if (errors) {
                 const errorMessage = errors.map(e => e.message).join(', ');
@@ -30,7 +46,7 @@ export function useAiCompanions() {
                 return [];
             }
 
-            companions.value = items;
+            companions.value = items?.filter(item => item.name !== null) as AiCompanionDataItem[];
             return items;
         } catch (err) {
             const message = err instanceof Error ? err.message : 'Unknown error';
