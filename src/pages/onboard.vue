@@ -57,7 +57,7 @@
 
                 <h3 class="text-white coiny ma-0 pa-0 text-left">{{ name || '' }}</h3>
                 <p class="text-white ma-0 pa-0 mb-6">{{ bio || '' }}</p>
-                <el-button @click="back" class="ma-2" type="text" text>Edit</el-button><br>
+                <el-button @click="back" class="mb-2"text>Edit</el-button><br>
                 <hr>
                 <el-button @click="createSong" class="ma-2" type="primary" size="large">Create a Song</el-button>
                 <el-button @click="lipSyncBattle" type="primary" size="large">Lip Sync Battle</el-button>
@@ -155,8 +155,7 @@ const getAiSeed = (filePath: string): string => {
     return match ? match[1] : '';
 };
 
-const next = async () => {
-
+const next = async () => {    
     if (stage.value === 0 && myPersona.value && userId.value) {
         try {
             const aiCompanion = await createCompanion({
@@ -168,16 +167,20 @@ const next = async () => {
         } catch (error) {
             console.error('Error creating AI companion or updating profile:', error);
         }
-    } else if (stage.value === 3) {
-        let currentPopStar: AiPopStar | undefined = popStars.value.find((popStar: AiPopStar) => popStar.aiOwnerId === userId.value);
-        if (!currentPopStar) {
-            const lastPopStarUsed = localStorage.getItem('lastPopStarUsed');
-            if (lastPopStarUsed) {
-                currentPopStar = JSON.parse(lastPopStarUsed) as AiPopStar;
-                name.value = currentPopStar.owner || '';
-                bio.value = currentPopStar.owner || '';
-                selectedCountry.value = currentPopStar.owner || '';
-            }
+    } else if (stage.value === 2) {
+        console.log('get AI Pop Star');
+        console.log('popStars', popStars.value.length);
+        const lastPopStarUsed = localStorage.getItem('lastPopStarUsed');
+        
+        if (lastPopStarUsed) {
+            console.log('lastPopStarUsed', lastPopStarUsed);
+            let currentPopStar = JSON.parse(lastPopStarUsed);
+            console.log('currentPopStar', currentPopStar);
+            name.value = currentPopStar.name || '';
+            bio.value = currentPopStar.bio || '';
+            selectedCountry.value = currentPopStar.country || '';
+            myPersona.value = currentPopStar.imageUrl || '';
+
         }
     }
 

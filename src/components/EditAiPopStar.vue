@@ -179,15 +179,18 @@
     currentPopStar.value.country = item.code
     countrySearch.value = item.name
     await updateCompanionField(selectedAiPopStarId.value, 'country', currentPopStar.value.country);
+    localStorage.setItem('lastPopStarUsed', JSON.stringify(currentPopStar.value))
   }
   
   const saveName = async () => {
     await updateCompanionField(selectedAiPopStarId.value, 'name', currentPopStar.value.name);
+    localStorage.setItem('lastPopStarUsed', JSON.stringify(currentPopStar.value))
 
   }
   
   const saveBio = async () => {
     await updateCompanionField(selectedAiPopStarId.value, 'bio', currentPopStar.value.bio);
+    localStorage.setItem('lastPopStarUsed', JSON.stringify(currentPopStar.value))
   }
   
   const formatNumber = (num: number) => {
