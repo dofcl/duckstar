@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, defineEmits } from 'vue'
+import { ref, onMounted } from 'vue'
 
 const displayedImages = ref<string[]>([])
 const loading = ref<boolean>(true)
@@ -75,9 +75,9 @@ onMounted(async () => {
 <template>
   <div>
     <el-carousel :interval="4000" type="card" height="150px" :autoplay="true" :initial-index="0" arrow="always"
-        :pause-on-hover="true" :loop="true" :motion-blur="true" :card-scale="0.8">
+        :pause-on-hover="true" :loop="true" :motion-blur="true" :card-scale="0.8" class="pb-5">
         <el-carousel-item v-for="(image, index) in displayedImages" :key="index" class="carousel-item" @click="selectPersona(index)">
-            <img :src="image" :alt="`Image ${index + 1}`" class="carousel-image rd-full">
+          <el-image :src="image" :alt="`Image ${index + 1}`" class="carousel-image rd-full" loading="lazy"/>
         </el-carousel-item>
     </el-carousel>
   </div>
@@ -113,5 +113,17 @@ onMounted(async () => {
 }
 .el-carousel__mask {
     background: transparent;
+}
+
+button.el-carousel__arrow.el-carousel__arrow--right {
+    margin-top: 66px;
+    right: 4px;
+    border-color: var(--el-color-primary);
+}
+
+button.el-carousel__arrow.el-carousel__arrow--left {
+    margin-top: 66px;
+    left: 4px;
+    border-color: var(--el-color-primary);
 }
 </style>

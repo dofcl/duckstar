@@ -46,7 +46,11 @@ export function useProfile() {
 
         try {
             const filter = { userId: { eq: userId } };
-            const response = await client.models.Profile.list({ filter }) as unknown as AmplifyResponse<AmplifyData[]>;
+
+            // ignore the union to complicated error
+            // @ts-ignore 
+            const response = await client.models.Profile.list({ filter });
+            const typedResponse = response as unknown as AmplifyResponse<AmplifyData[]>;
 
             if (!response.data?.length) return null;
 

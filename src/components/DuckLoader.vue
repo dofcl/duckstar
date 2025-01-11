@@ -3,7 +3,7 @@
         <div class="loader__inner">
             <div class="loader__inner__text mx-auto text-center">
                 <img src="@/assets/loader.png" alt="DuckStar Logo" class="spinner" />
-                <h2 class="ma-0 pa-0">Loading...</h2>
+                <h4 class="ma-0 pa-0">Loading...</h4>
             </div>
         </div>
     </div>

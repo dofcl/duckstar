@@ -41,7 +41,7 @@
                     class="ma-2 mt-0">Next</el-button>
             </div>
             <div v-else-if="stage == 2" class="text-center">
-                <h1 class="text-white ma-0 pa-0">AI Pop Stat Details.</h1>
+                <h1 class="text-white ma-0 pa-0 mb-2">My AI Pop Stars</h1>
                 <EditAiPopStar :userId="userId || ''" />
 
                 <div class="mt-4">
@@ -51,19 +51,19 @@
             </div>
 
             <div v-else-if="stage == 3" class="text-center">
-                <h1 class="text-white ma-0 pa-0 mb-4">Review AI Companion</h1>
+                <h1 class="text-white ma-0 pa-0 mb-4">My AI Pop Star</h1>
 
                 <img v-if="myPersona" :src="myPersona" alt="myPersona" class="persona-image rd-full" /><br>
                 <div v-if="selectedCountry" class="mt-1 mb-2">
                     <CountryFlag :country="selectedCountry?.toLowerCase()" class="text-4xl" />
                 </div>
 
-                <h3 class="text-white coiny ma-0 pa-0">{{ name }}</h3>
-                <p class="text-white ma-0 pa-0 mb-6">{{ bio }}</p>
+                <h3 class="text-white coiny ma-0 pa-0 text-left">{{ name||'' }}</h3>
+                <p class="text-white ma-0 pa-0 mb-6">{{ bio||'' }}</p>
                 <el-button @click="back" class="ma-2" type="text" text>Edit</el-button><br>
                 <hr>
-                <el-button @click="createSong" class="ma-2">Create a Song</el-button>
-                <el-button @click="lipSyncBattle" type="primary">Lip Sync Battle</el-button>
+                <el-button @click="createSong" class="ma-2" type="primary" size="large">Create a Song</el-button>
+                <el-button @click="lipSyncBattle" type="primary" size="large">Lip Sync Battle</el-button>
                 <br>
                 <br>
             </div>
@@ -116,7 +116,7 @@ const selectedCountry = ref<string>('')
 const userId = ref<string | null>(null)
 const popStars = ref<AiCompanionData[]>([])
 const myProfile = ref<Profile | null>(null)
-const loading = ref<boolean>(true)
+const loading = ref<boolean>(false)
 
 interface UserProfileInput {
     userId: string
@@ -162,7 +162,10 @@ const next = async () => {
                 bio: bio.value,
                 country: selectedCountry.value,
                 seedId: getAiSeed(myPersona.value),
-                price: null
+                price: undefined,
+                followersCount: 0,
+                songCount: 0,
+                followingCount: 0
             });
 
             console.log('Added AI companion:', aiCompanion);

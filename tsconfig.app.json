@@ -6,7 +6,8 @@
     "src/**/*.vue",
     "amplify/**/*",
     "src/**/*.tsx",
-    "./typed-router.d.ts"
+    "./typed-router.d.ts",
+    " shims-vue.d.ts"
   ],
   "exclude": [
     "src/**/__tests__/*"

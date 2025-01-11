@@ -10,14 +10,18 @@ interface BaseModel {
 }
 
 export interface AiCompanionData extends BaseModel {
-    aiOwnerId: string;
-    aiOwner?: Profile | null;
     seedId: string;
-    name: Nullable<string>; 
-    imageURL: Nullable<string>; 
-    bio: Nullable<string>;
-    country: Nullable<string>;
-    price:Nullable<number>;
+    aiOwnerId: string;
+    name?: string;
+    imageURL?: string;
+    bio?: string;
+    price?: number;
+    country?: string;
+    createdAt: string;
+    updatedAt: string;
+    songCount: number;
+    followersCount: number;
+    followingCount: number;
 }
 
 interface Producers extends BaseModel {
