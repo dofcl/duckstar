@@ -38,7 +38,6 @@ interface CreateProfileInput {
     rank?: number;
 }
 
-// @ts-expect-error TS7056
 export function useProfile() {
     const profiles = ref<Array<ProfileType>>([]);
     const error = ref<string | null>(null);
@@ -48,7 +47,7 @@ export function useProfile() {
         try {
             loading.value = true;
             error.value = null;
-            // @ts-expect-error TS2590
+
             const { data: items, errors } = await client.models.Profile.list({
                 filter: {
                     userId: {
@@ -168,9 +167,8 @@ export function useProfile() {
     ) {
         try {
             error.value = null;
-            loading.value = true;           
-            
-            // @ts-expect-error TS2590: Expression produces a union type that is too complex to represent.
+            loading.value = true;
+
             const { data, errors } = await client.models.Profile.update({
                 id,
                 [field]: value

@@ -1,4 +1,3 @@
-// @ts-expect-error TS2590
 import { ref } from 'vue';
 import { generateClient } from 'aws-amplify/data';
 import type { Schema } from '../../amplify/data/resource';
@@ -13,7 +12,6 @@ interface CreateCompanionInput {
     imageURL: string;
 }
 
- // @ts-expect-error TS7056
 export function useAiCompanions() {
     const companions = ref<Array<CompanionType>>([]);
     const error = ref<string | null>(null);
@@ -68,7 +66,6 @@ export function useAiCompanions() {
     async function createCompanion(input: CreateCompanionInput) {
         try {
             error.value = null;
-            // @ts-expect-error TS2590
             const { data, errors } = await client.models.AiCompanionData.create(input);
 
             if (errors) {

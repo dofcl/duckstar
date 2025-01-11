@@ -5,6 +5,9 @@ import vue from '@vitejs/plugin-vue'
 import VueRouter from 'unplugin-vue-router/vite'
 
 export default defineConfig({
+  optimizeDeps: {
+    exclude: ['aws-cdk-lib'] // Exclude aws-cdk-lib from optimization
+  },
   plugins: [
     VueRouter({
       dts: true, // generates TypeScript declaration files
