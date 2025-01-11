@@ -2034,15 +2034,6 @@ circle.remove-instrument-btn {
     color: #ddd;
 }
 
-.video-producer {
-    height: 160px;
-    width: 160px;
-    border-radius: 100%;
-    border: 4px solid #ddd;
-    margin: auto;
-    text-align: center;
-}
-
 .change-lyrics {
     width: 125px;
 }

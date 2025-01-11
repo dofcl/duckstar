@@ -1,22 +1,79 @@
 <template>
-    <h1 class="mb-0 pb-0">Create Song</h1>
-
-    <div class="mx-auto max-w-md mt-0 pt-0">
-        <p>Song Title</p>
-        <el-input v-model="songTitle" placeholder="Name your song" size="large" class="mt-0 pt-0" />
-        <p class="mb-0 pb-0">Song Style</p>
-        <MusicGenre :userId="userId" :saveInComponent="false" @genres-selected="handleGenre" />
-        <div class="text-center">
-            <el-button type="info" @click="aiGenAll" size="large">Inspire Me</el-button>
-        </div>
-
-        <hr>
-        <div class="mx-auto text-center mt-4">
-            <el-button type="primary" @click="goToCreateMusic" size="large">Create Music</el-button>
-            <el-button type="primary" @click="goToCreateLyrics" size="large">Create Lyrics</el-button>
-        </div>
-
+    <div v-if="gotLyrics && lyrics">
+        <LyricsEditPlay :title="songTitle" :lyricsText="lyrics" @update:lyricsText="updateLyrics" />
     </div>
+
+    <div v-else>
+        <h1 class="mb-0 pb-0">Create Song</h1>
+
+        <div eclass="mx-auto max-w-md mt-0 pt-0">
+
+            <div>
+                <p>Song Title</p>
+                <el-input v-model="songTitle" placeholder="Name your song" size="large" class="mt-0 pt-0" />
+                <p class="mb-0 pb-0">Song Style</p>
+                <MusicGenre :userId="userId" :saveInComponent="false" @genres-selected="handleGenre"
+                    :musicGenre="genre" />
+                <div class="text-center mb-5">
+                    <el-button type="info" @click="openInspire" size="large">Inspire Me</el-button>
+                </div>
+
+                <hr>
+                <div class="mx-auto text-center mt-4">
+                    <el-button type="primary" @click="goToCreateMusic" size="large">Create Music</el-button>
+                    <el-button type="primary" @click="goToCreateLyrics" size="large">Create Lyrics</el-button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <el-dialog v-model="inspireModal" :title="modalTitle" width="80%" class="produced-dialog"
+        :before-close="handleClose">
+        <div v-if="loading">
+            <DuckLoader />
+            <el-progress :percentage="progress" :stroke-width="10" striped />
+        </div>
+        <div v-else class="grid grid-cols-1 md:grid-cols-2 gap-2 mt-0 pt-0">
+            <video id="producer-vid2" class="video-producer mx-auto mt-0 pt-0"
+                poster="https://duckstar-public.s3.eu-central-1.amazonaws.com/images/producers/tom/tom-256.png"
+                src="https://duckstar-public.s3.eu-central-1.amazonaws.com/videos/producers/tom/create-song/tom-create-v1.mp4"
+                autoplay @click="playProducer" playsinline></video>
+            <div v-if="!collab" class="mx-auto text-left mt-0 pt-0">
+                <p class="mt-0 pt-0 text-center">Got writers block or need some inspiration?<br> Don't worry I've got
+                    your back.</p>
+
+                <div class="mx-auto text-center">
+                    <el-button type="info" @click="aiGenAll">Create me a song</el-button>
+                </div>
+                <div class="mx-auto text-center ma-3">
+                    or
+                </div>
+                <div class="mx-auto text-center">
+                    <el-button type="info" @click="collab = true">Let's collab</el-button>
+                </div>
+            </div>
+            <div v-if="collab">
+                <p>What style of song do you want </p>
+                <el-select placeholder="Lyrics" v-model="selectedGenre">
+                    <el-option v-for="item in genres" :key="item.value" :label="item.label" :value="item.value" />
+                </el-select>
+                <p>What do you want the song to be about?<br>
+                    <small>(If you leave blank I'll thinkg of something)</small>
+                </p>
+                <el-input v-model="songDescription"></el-input>
+                <div class="mx-auto text-center ma-4">
+                    <el-checkbox-group v-model="checkList">
+                        <el-checkbox label="Write the Lyrics" value="lyricsTrue" />
+                        <el-checkbox label="Make the music" value="musicTrue" />
+                    </el-checkbox-group>
+                </div>
+                <div v-if="checkList.length > 0" class="mx-auto text-center ma-4">
+                    <el-button type="info" @click="aiGenAll" size="large">Create me a song</el-button>
+                </div>
+                <div v-else class="text-center text-orange">Choose Lyrics, Music or Both</div>
+            </div>
+        </div>
+        <br>
+    </el-dialog>
 
 </template>
 <script setup lang="ts">
@@ -24,22 +81,78 @@ import { onMounted, ref } from 'vue';
 import MusicGenre from '@/components/MusicGenre.vue';
 import { getCurrentUser } from 'aws-amplify/auth';
 import { useRouter } from 'vue-router';
+import DuckLoader from '@/components/DuckLoader.vue';
+import LyricsEditPlay from '@/components/LyricsEditPlay.vue';
 
 import { useSongs } from '../composables/useSongs';
+const selectedGenre = ref();
+const genres = [
+    {
+        value: 'pop',
+        label: 'Pop',
+    },
+    {
+        value: 'rock',
+        label: 'Rock',
+    },
+    {
+        value: 'punk',
+        label: 'Punk',
+    },
+    {
+        value: 'hiphop',
+        label: 'Hip Hop',
+    },
+    {
+        value: 'rap',
+        label: 'Rap',
+    }
+]
 
+const loading = ref(false);
 const { createLyrics } = useSongs();
 const router = useRouter();
-
 const songTitle = ref('');
+const checkList = ref(['musicTrue', 'lyricsTrue']);
 const songDescription = ref();
 const userId = ref('');
-const genre = ref('');
+const genre = ref<string>('');
+const inspireModal = ref(false);
+const modalTitle = ref("I'll help you get started");
+const gotLyrics = ref(false);
+const lyrics = ref()
 
+const collab = ref(false)
+const task = ref('lyrics')
+
+const handleClose = () => {
+    inspireModal.value = false;
+}
 const saveSongdraft = () => {
     console.log('Saving song draft');
 }
 
+const playProducer = () => {
+    const producerVid = document.getElementById('producer-vid2') as HTMLVideoElement;
+    producerVid.play();
+}
+
+const openInspire = () => {
+    inspireModal.value = true;
+}
+
+
 const aiGenAll = async () => {
+    if (checkList.value.includes('lyricTrue')) {
+        task.value = "lyrics"
+
+    } else {
+        task.value = "lyrics"
+    }
+    modalTitle.value = `BRB, in the studio creating ${task.value}...`;
+    loading.value = true;
+    startProgress()
+    inspireModal.value = true;
     console.log('Generating AI music');
     if (!genre.value) {
         let genresChoice = ["pop", "rock", "punk", "hiphop", "rap"]
@@ -47,15 +160,54 @@ const aiGenAll = async () => {
     }
     let description = `Write Lyrics for a ${genre.value} song`;
 
+
+    console.log('if we have user name and bio create song about them')
+
     if (songDescription.value) {
         description = `Write Lyrics for a ${genre.value} song about ${songDescription.value}`;
+    } else if (songTitle.value) {
+        description = `Write Lyrics for a ${genre.value} song about ${songTitle.value}`;
     }
+
 
     console.log('Creating lyrics:', description);
     await createLyrics(description).then((data) => {
         console.log('Lyrics created', data);
+        if (!songTitle.value) {
+            songTitle.value = data?.name ?? ''
+        }
+        console.log('song title', songTitle)
+        modalTitle.value = songTitle.value
+        lyrics.value = data?.lyrics
+        gotLyrics.value = true;
+        console.log('lyrics', lyrics?.value)
+        loading.value = false;
+        inspireModal.value = false
     });
 }
+
+const updateLyrics = (newLyrics: string) => {
+    lyrics.value = newLyrics;
+};
+const progress = ref(10);
+let intervalId: ReturnType<typeof setInterval>;
+
+const startProgress = () => {
+    progress.value = 0;
+    const duration = 40000; // 40 seconds
+    const increment = 100 / (duration / 1000); // Increment per second
+
+    intervalId = setInterval(() => {
+        if (progress.value > 100) {
+            progress.value = 100
+        }
+        if (progress.value < 100) {
+            progress.value += parseFloat(increment.toFixed(0))
+        } else {
+            clearInterval(intervalId);
+        }
+    }, 1000);
+};
 
 
 const goToCreateMusic = async () => {
@@ -68,7 +220,7 @@ const goToCreateLyrics = async () => {
     console.log('Creating lyrics');
 }
 
-const handleGenre = async (genres: string[]) => {
+const handleGenre = async (genres: string) => {
     console.log('Selected genres', genres);
     genre.value = genres;
 

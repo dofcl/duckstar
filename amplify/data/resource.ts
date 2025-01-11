@@ -477,7 +477,7 @@ const schema = a.schema({
     .authorization((allow) => allow.owner()),
 
   generateSong: a.generation({
-    aiModel: a.ai.model('Claude 3.5 Sonnet'),
+    aiModel: a.ai.model('Llama 3.2 3B Instruct'), //Claude 3.5 Sonnet
     systemPrompt: 'You are a music producer who writes songs',
   })
     .arguments({
@@ -489,8 +489,7 @@ const schema = a.schema({
         lyrics: a.string(),
       })
     )
-    .authorization((allow) => allow.authenticated()),
-
+    .authorization((allow) => allow.authenticated())
 });
 
 

@@ -38,7 +38,7 @@ export function useAiCompanions() {
         context: string
     ): T | null => {
         if (response.errors) {
-            const errorMessage = response.errors.map(e => e.message).join(', ');
+            const errorMessage = response.errors?.map(e => e.message).join(', ') || 'Unknown error';
             return handleError(new Error(errorMessage), context);
         }
         return response.data || null;
