@@ -1,4 +1,4 @@
-<template> 
+<template>
     <div v-if="gotLyrics && lyrics">
         <LyricsEditPlay :title="songTitle" :lyricsText="lyrics" @update:lyricsText="updateLyrics" />
     </div>
@@ -28,6 +28,10 @@
         :before-close="handleClose">
         <div v-if="loading">
             <DuckLoader />
+            <div v-if="failed" class="text-orange ma-4 text-center">
+                <p>Something went wrong :-( Let's try again.</p>
+                <el-button type="info" @click="aiGenAll">Try again</el-button>
+            </div>
             <el-progress :percentage="progress" :stroke-width="10" striped />
         </div>
         <div v-else class="grid grid-cols-1 md:grid-cols-2 gap-2 mt-0 pt-0">
@@ -39,7 +43,6 @@
                 <p class="mt-0 pt-0 text-center">Got writers block or need some inspiration?<br> Don't worry I've got
                     your back.</p>
 
-                <div v-if="failed" class="text-orange my-4">Something went wrong :-( Let's try again. </div>
                 <div class="mx-auto text-center">
                     <el-button type="info" @click="aiGenAll">Create me a song</el-button>
                 </div>
@@ -143,6 +146,7 @@ const openInspire = () => {
 
 
 const aiGenAll = async () => {
+    failed.value = false;
     if (checkList.value.includes('lyricTrue')) {
         task.value = "lyrics"
 
@@ -181,16 +185,28 @@ const aiGenAll = async () => {
         modalTitle.value = songTitle.value
         lyrics.value = data?.lyrics
         console.log('lyrics', lyrics?.value)
-        loading.value = false;
-
+        
+        inspireModal.value = false;
         if (lyrics?.value) {
             inspireModal.value = false;
             gotLyrics.value = true;
+            if (lyrics?.value.length > 0) {
+                // Limit to max of 1000 characters
+                lyrics.value = lyrics.value.substring(0, 1000);
+                console.log('success');
+                inspireModal.value = false;
+                failed.value = false;
+            } else {
+                console.log('failed');
+                failed.value = true;
+                inspireModal.value = true;
+            }
             console.log('success', inspireModal.value);
-        
+
             failed.value = false;
         } else {
             console.log('failed');
+            loading.value = true;
             failed.value = true;
             inspireModal.value = true;
         }

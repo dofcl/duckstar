@@ -4,16 +4,17 @@
         <div v-if="!isEditing">
             <h4 class="ml-4 pt-0 mt-2">{{ title }}</h4>
             <div class="text-left ma-4" v-html="formattedLyricsText"></div>
-            <div class="relative">
-                <el-button class="float-right btm-button" @click="toggleEdit">{{ isEditing ? 'Save' : 'Edit'
-                    }}</el-button>
-            </div>
         </div>
 
         <div v-else>
             <h4 class="text-center ma-0 pa-0">{{ title }}</h4>
-            <textarea v-model="editableLyricsText" class="text-left mx-4 my-4" rows="10" cols="50"></textarea>
+            <el-input v-model="editableLyricsText" type="textarea" autosize :maxlength="wordLimit" show-word-limit
+                class="text-left mx-4 my-4"  style="max-width: 95%;"/>
         </div>
+        <div class="text-right">
+                <el-button class="mb-2" @click="toggleEdit">{{ isEditing ? 'Save' : 'Edit'
+                    }}</el-button>
+            </div>
 
         <div class="text-center">
             <hr>
@@ -33,14 +34,21 @@ const props = defineProps<{
 const emit = defineEmits(['update:lyricsText']);
 
 const isEditing = ref(false);
+const wordLimit = 1000;
 const editableLyricsText = ref(props.lyricsText);
 
 const toggleEdit = () => {
-    if (isEditing.value) {
+    const words = props.lyricsText.trim().split(/\s+/).length;
+    if (words > 200) {
+        // Split text into words and take first 200
+        const limitedWords = props.lyricsText.trim().split(/\s+/).slice(0, 200);
+        editableLyricsText.value = limitedWords.join(' ');
+    } else {
         // Emit the updated lyrics to the parent component
         emit('update:lyricsText', editableLyricsText.value);
+        isEditing.value = !isEditing.value;
     }
-    isEditing.value = !isEditing.value;
+
 };
 
 const formattedLyricsText = computed(() => {

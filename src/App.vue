@@ -6,8 +6,9 @@ import { RouterView } from 'vue-router'
 import { useRouter } from 'vue-router'
 import MainMenu from '@/components/MainMenu.vue'
 
-const router = useRouter()
+const route = useRouter()
 const muted = ref(false)
+const settingsPage = ref(false)
 
 function muteAudio() {
   const audio = document.getElementById('bg-audio') as HTMLAudioElement
@@ -25,11 +26,7 @@ function muteAudio() {
     <authenticator>
       <template v-slot:header>
         <div style="text-align: center" class="pa-2">
-          <img
-            class="amplify-image"
-            alt="DuckStar logo"
-            src="/images/duckstar-into.jpg"
-          />
+          <img class="amplify-image" alt="DuckStar logo" src="/images/duckstar-into.jpg" />
           <h1 class="ma-0 pa-0 text-white text-xlg logo-text">DuckStar</h1>
         </div>
       </template>
@@ -38,54 +35,43 @@ function muteAudio() {
           <el-container>
             <el-header style="text-align: right; font-size: 12px" height="30px">
               <div class="header-logo">
-                <img src="@/assets/duck-star-logo-simple.png" alt="DuckStar logo" class="logo" @click="router.push('/')"/>
+                <img src="@/assets/duck-star-logo-simple.png" alt="DuckStar logo" class="logo"
+                  @click="route.push('/')" />
               </div>
               <div class="header-title">
-                <span class="coiny" @click="router.push('/')">DuckStar</span>
+                <span class="coiny" @click="route.push('/')">DuckStar</span>
               </div>
               <div class="toolbar text-white">
-                <span class="text-truncate" @click="router.push('/settings')">{{ user.username }}</span>
-                <el-button type="text" @click="muteAudio">
+                <span class="text-truncate" @click="route.push('/settings')">{{ user.username }}</span>
+                <el-button link @click="muteAudio">
                   <div class="icon-wrapper" :class="{ 'muted': muted }">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
                       <!-- Speaker cone -->
-                      <path d="M11 5L6 9H2v6h4l5 4V5z" 
-                            fill="currentColor" 
-                            stroke="currentColor" 
-                            stroke-width="1.5"
-                            stroke-linejoin="round"/>
-                      
+                      <path d="M11 5L6 9H2v6h4l5 4V5z" fill="currentColor" stroke="currentColor" stroke-width="1.5"
+                        stroke-linejoin="round" />
+
                       <!-- X mark (crossed lines) -->
-                      <line v-if="muted" x1="23" y1="9" x2="17" y2="15"
-                            stroke="currentColor"
-                            stroke-width="1.5"
-                            stroke-linecap="round"/>
-                      <line v-if="muted" x1="17" y1="9" x2="23" y2="15"
-                            stroke="currentColor"
-                            stroke-width="1.5"
-                            stroke-linecap="round"/>
+                      <line v-if="muted" x1="23" y1="9" x2="17" y2="15" stroke="currentColor" stroke-width="1.5"
+                        stroke-linecap="round" />
+                      <line v-if="muted" x1="17" y1="9" x2="23" y2="15" stroke="currentColor" stroke-width="1.5"
+                        stroke-linecap="round" />
 
                       <!-- Sound waves -->
-                      <path v-if="!muted" d="M14 7.5C16 9.5 16 14.5 14 16.5"
-                            fill="none"
-                            stroke="currentColor"
-                            stroke-width="1.5"
-                            stroke-linecap="round"
-                            stroke-linejoin="round"/>
-                      
-                      <path v-if="!muted" d="M17 4.5C20.5 8 20.5 16 17 19.5"
-                            fill="none"
-                            stroke="currentColor"
-                            stroke-width="1.5"
-                            stroke-linecap="round"
-                            stroke-linejoin="round"/>
+                      <path v-if="!muted" d="M14 7.5C16 9.5 16 14.5 14 16.5" fill="none" stroke="currentColor"
+                        stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+
+                      <path v-if="!muted" d="M17 4.5C20.5 8 20.5 16 17 19.5" fill="none" stroke="currentColor"
+                        stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
                     </svg>
-                  </div>  
+                  </div>
                 </el-button>
               </div>
             </el-header>
             <el-main class="mt-4">
-              <RouterView />          
+              <div class="signout-btn">
+                <el-button @click="signOut" class="float-right">Sign Out</el-button>
+              </div>
+              <RouterView />
               <MainMenu />
             </el-main>
           </el-container>
@@ -104,9 +90,10 @@ function muteAudio() {
   margin: 0 auto;
   aspect-ratio: 1/1;
 }
+
 .logo-text {
   font-size: 40px;
-  text-shadow: 
+  text-shadow:
     -1px -1px 0 #000,
     1px -1px 0 #000,
     -1px 1px 0 #000,
@@ -138,6 +125,7 @@ function muteAudio() {
 .login-card {
   --el-card-padding: 0;
 }
+
 .main-wrapper {
   background-color: #222;
   margin: 10px;
@@ -170,6 +158,7 @@ button.amplify-button.amplify-field-group__control.amplify-button--primary.ampli
   height: 24px;
   color: red;
 }
+
 .header-logo img {
   float: left;
   margin: -5px 11px -4px -18px;
@@ -187,5 +176,8 @@ button.amplify-button.amplify-field-group__control.amplify-button--primary.ampli
 
 .toolbar {
   margin: 9px -10px 0 0;
+}
+.signout-btn {
+  display:none
 }
 </style>

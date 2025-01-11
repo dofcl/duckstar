@@ -6,37 +6,27 @@ const client = generateClient<Schema>();
 type ProfileType = Schema['Profile']['type'];
 type UpdateableProfileFields = Partial<Omit<ProfileType, 'id' | 'userId' | 'createdAt' | 'updatedAt'>>;
 
-interface ProfileUpdateResponse {
-    data?: {
-      id: string;
-      [key: string]: any; // Adjust as necessary to reflect the actual response
-    };
-    errors?: string[];
-}
-
 interface ProfileResponse {
     data?: ProfileType;
     errors?: { message: string }[];
 }
 
 interface CreateProfileInput {
-    id: string;  // Added id as it's required
+    id: string;
     userId: string;
     username?: string;
-    // Optional fields with defaults from schema
-    status?: string; // defaults to 'ACTIVE'
-    tier?: string; // defaults to 'BRONZE'
-    credits?: number; // defaults to 100
-    followersCount?: number; // defaults to 0
-    followingCount?: number; // defaults to 0
-    monthlyScore?: number; // defaults to 0
-    songsCreated?: number; // defaults to 0
-    totalScore?: number; // defaults to 0
-    weeklyScore?: number; // defaults to 0
-    winRate?: number; // defaults to 0
-    lipSyncBattlesAttempted?: number; // defaults to 0
-    lipSyncBattlesLost?: number; // defaults to 0
-    // Optional fields without defaults
+    status?: string;
+    tier?: string;
+    credits?: number;
+    followersCount?: number;
+    followingCount?: number;
+    monthlyScore?: number;
+    songsCreated?: number;
+    totalScore?: number;
+    weeklyScore?: number;
+    winRate?: number;
+    lipSyncBattlesAttempted?: number;
+    lipSyncBattlesLost?: number;
     avatar?: string;
     bio?: string;
     country?: string;
@@ -57,11 +47,12 @@ export function useProfile() {
     const loading = ref(false);
 
     async function fetchProfiles(userId: string) {
+        console.log('fetch p', userId)
         try {
             loading.value = true;
             error.value = null;
 
-            const response: { data: ProfileType[], errors?: string[] } = await client.models.Profile.list({
+            const response = await client.models.Profile.list({
                 filter: {
                     userId: {
                         eq: userId
@@ -72,7 +63,7 @@ export function useProfile() {
             const { data: items, errors } = response;
 
             if (errors) {
-                const errorMessage = errors.join(', ');
+                const errorMessage = Array.isArray(errors) ? errors.join(', ') : errors.toString();
                 console.error('Failed to fetch profiles:', errorMessage);
                 error.value = 'Failed to fetch profiles: ' + errorMessage;
                 return [];
@@ -91,19 +82,18 @@ export function useProfile() {
     }
 
     async function getProfile(id: string) {
-        console.log('getProfile', id);
         try {
             error.value = null;
-            const { data, errors } = await client.models.Profile.get({ id }) as ProfileResponse;
+            const response = await client.models.Profile.get({ id }) as ProfileResponse;
 
-            if (errors) {
-                const errorMessage = errors.map(e => e.message).join(', ');
+            if (response.errors) {
+                const errorMessage = response.errors.map(e => e.message).join(', ');
                 console.error('Failed to get profile:', errorMessage);
                 error.value = 'Failed to get profile: ' + errorMessage;
                 return null;
             }
 
-            return data;
+            return response.data;
         } catch (err) {
             const message = err instanceof Error ? err.message : 'Unknown error';
             console.error('Error getting profile:', message);
@@ -126,17 +116,20 @@ export function useProfile() {
                 ...initialData
             };
 
-            const { data, errors }: ProfileUpdateResponse = await client.models.Profile.update(createInput);
+            // Use create instead of update for new profiles
+            const response = await client.models.Profile.create(createInput);
 
-            if (errors) {
-                const errorMessage = errors.map(e => e.message).join(', ');
+            if (response.errors) {
+                const errorMessage = Array.isArray(response.errors) 
+                    ? response.errors.join(', ') 
+                    : response.errors.toString();
                 console.error('Failed to create profile:', errorMessage);
                 error.value = 'Failed to create profile: ' + errorMessage;
                 return null;
             }
 
             await fetchProfiles(userId); // Refresh the list
-            return data;
+            return response.data;
         } catch (err) {
             const message = err instanceof Error ? err.message : 'Unknown error';
             console.error('Error creating profile:', message);
@@ -154,13 +147,10 @@ export function useProfile() {
             error.value = null;
             loading.value = true;
 
-            // First try to get the profile
-            let profile = await getProfile(id);  // Changed to use id
-            console.log('got profile', profile);
+            let profile = await getProfile(id);
 
-            // If profile doesn't exist, create it with initial data
             if (!profile) {
-                console.log('create profile', profile);
+                console.log('Creating new profile...');
                 profile = await createProfile(id, userId, initialData);
             }
 
@@ -176,7 +166,7 @@ export function useProfile() {
     }
 
     async function updateProfileField<K extends keyof UpdateableProfileFields>(
-        id: string,  // Changed to use id
+        id: string,
         field: K,
         value: UpdateableProfileFields[K]
     ) {
@@ -185,15 +175,17 @@ export function useProfile() {
             loading.value = true;
 
             const payload = { id, [field]: value };
-            const { data, errors } = await client.models.Profile.update(payload);
+            const response = await client.models.Profile.update(payload);
 
-            if (errors) {
-                const errorMessage = errors.map(e => e.message).join(', ');
+            if (response.errors) {
+                const errorMessage = Array.isArray(response.errors) 
+                    ? response.errors.join(', ') 
+                    : response.errors.toString();
                 console.error('Failed to update profile:', errorMessage);
                 error.value = 'Failed to update profile: ' + errorMessage;
                 return null;
             }
-            return data;
+            return response.data;
         } catch (err) {
             const message = err instanceof Error ? err.message : 'Unknown error';
             console.error('Error updating profile:', message);

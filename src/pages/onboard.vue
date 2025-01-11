@@ -33,7 +33,7 @@
             </div>
             <div v-else-if="stage == 1" class="text-center">
                 <h1 class="text-white ma-0 pa-0">What are your favourite music genres?</h1>
-                <MusicGenre :userId="userId || ''" :musicGenre="myProfile?.musicGenre || ''"  saveInComponent="true"/>
+                <MusicGenre :userId="userId || ''" :musicGenre="myProfile?.musicGenre || ''"  :saveInComponent="true"/>
                 <el-button v-if="!(popStars?.length > 0)" @click="back()" class="ma-2 mt-0">Back</el-button>
                 <el-button @click="next()" type="primary" class="ma-2 mt-0">Next</el-button>
             </div>
@@ -251,6 +251,7 @@ const getAiPopStars = async () => {
             followers: typeof popStar.followers === 'function' ? null : popStar.followers
         }));
         popStars.value = aiPopStars;
+        console.log('popStars',popStars.value)
         if (aiPopStars.length > 0) {
             stage.value = 1;
         }
