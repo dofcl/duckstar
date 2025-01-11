@@ -181,9 +181,7 @@ const schema = a.schema({
       lastModified: a.datetime(),
       lyrics: a.string(),
       songProducerId: a.string(),
-      status: a.string().default('ACTIVE'),
       title: a.string(),
-      trackId: a.string(),
       updatedAt: a.datetime(),
       likesCount: a.integer().default(0),
       playCount: a.integer().default(0),
@@ -195,16 +193,31 @@ const schema = a.schema({
       aiCollab: a.belongsTo('Profile', 'aICollabId'),
       songOwner: a.belongsTo('Profile', 'songOwnerId'),
       songProducer: a.belongsTo('Producers', 'songProducerId'),
-      track: a.belongsTo('Tracks', 'trackId'),
+      songTracks: a.hasMany('SongTracks', 'songId'),
       comments: a.hasMany('Comments', 'songId'),
       likes: a.hasMany('SongLikes', 'songId'),
       lipSyncBattleEntries: a.hasMany('LipSyncBattlesEntries', 'songId'),
       lipSyncBattles: a.hasMany('LipSyncBattlesParent', 'songId'),
+      status: a.string().default('DRAFT'),
     })
     .authorization((allow) => [
       allow.guest().to(['read']),
       allow.owner(),
     ]),
+
+  SongTracks: a.model({
+    songId: a.string(),
+    trackId: a.string(),
+    song: a.belongsTo('Songs', 'songId'),
+    track: a.belongsTo('Tracks', 'trackId'),
+    volume: a.integer().default(0.5),
+
+
+  }).authorization((allow) => [
+    allow.authenticated().to(['read']),
+    allow.owner(),
+  ]),
+
 
   Tracks: a
     .model({
@@ -223,7 +236,7 @@ const schema = a.schema({
       royalties: a.integer().default(0),
       songCount: a.integer().default(0),
       profile: a.belongsTo('Profile', 'trackOwnerId'),
-      songs: a.hasMany('Songs', 'trackId'),
+      songTracks: a.hasMany('SongTracks', 'trackId'),
     })
     .authorization((allow) => [
       allow.authenticated().to(['read']),
@@ -455,6 +468,41 @@ const schema = a.schema({
       allow.guest().to(["read"]),
       allow.owner()
     ]),
+
+  // Ai
+
+  generateSong: a.generation({
+    aiModel: a.ai.model('Claude 3.5 Haiku'),
+    systemPrompt: 'You are a music producer who writes songs',
+  })
+    .arguments({
+      description: a.string(),
+    })
+    .returns(
+      a.customType({
+        songTitle: a.string(),
+        songLyrics: a.string(),
+        songGenre: a.string(),
+      })
+    )
+    .authorization((allow) => allow.authenticated()),
+
+
+  generateRecipe: a.generation({
+    aiModel: a.ai.model('Claude 3.5 Haiku'),
+    systemPrompt: 'You are a helpful assistant that generates recipes.',
+  })
+    .arguments({
+      description: a.string(),
+    })
+    .returns(
+      a.customType({
+        name: a.string(),
+        ingredients: a.string().array(),
+        instructions: a.string(),
+      })
+    )
+    .authorization((allow) => allow.authenticated()),
 });
 
 export type Schema = ClientSchema<typeof schema>;

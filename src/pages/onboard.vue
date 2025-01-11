@@ -33,7 +33,7 @@
             </div>
             <div v-else-if="stage == 1" class="text-center">
                 <h1 class="text-white ma-0 pa-0">What are your favourite music genres?</h1>
-                <MusicGenre :userId="userId || ''" :musicGenre="myProfile?.musicGenre || ''" />
+                <MusicGenre :userId="userId || ''" :musicGenre="myProfile?.musicGenre || ''"  saveInComponent="true"/>
                 <el-button v-if="!(popStars?.length > 0)" @click="back()" class="ma-2 mt-0">Back</el-button>
                 <el-button @click="next()" type="primary" class="ma-2 mt-0">Next</el-button>
             </div>
@@ -57,7 +57,7 @@
 
                 <h3 class="text-white coiny ma-0 pa-0 text-left">{{ name || '' }}</h3>
                 <p class="text-white ma-0 pa-0 mb-6">{{ bio || '' }}</p>
-                <el-button @click="back" class="mb-2"text>Edit</el-button><br>
+                <el-button @click="back" class="mb-2" text>Edit</el-button><br>
                 <hr>
                 <el-button @click="createSong" class="ma-2" type="primary" size="large">Create a Song</el-button>
                 <el-button @click="lipSyncBattle" type="primary" size="large">Lip Sync Battle</el-button>
@@ -95,12 +95,11 @@ import DuckLoader from '@/components/DuckLoader.vue';
 import { onMounted, ref } from 'vue';
 import CountryFlag from 'vue-country-flag-next';
 import { useRouter } from 'vue-router';
-import { useProfile } from '@/composables/useProfile';
+import { useProfile } from '../composables/useProfile';
 import { useAiCompanions } from '../composables/useAiCompanions';
 const { getOrCreateProfile } = useProfile();
 const { createCompanion, fetchCompanions } = useAiCompanions();
 import { getCurrentUser } from 'aws-amplify/auth';
-import { UserPoolIdentityProvider } from 'aws-cdk-lib/aws-cognito';
 const router = useRouter();
 const myPersona = ref<string | null>(null);
 const stage = ref<number>(0);
@@ -155,7 +154,7 @@ const getAiSeed = (filePath: string): string => {
     return match ? match[1] : '';
 };
 
-const next = async () => {    
+const next = async () => {
     if (stage.value === 0 && myPersona.value && userId.value) {
         try {
             const aiCompanion = await createCompanion({
@@ -171,7 +170,7 @@ const next = async () => {
         console.log('get AI Pop Star');
         console.log('popStars', popStars.value.length);
         const lastPopStarUsed = localStorage.getItem('lastPopStarUsed');
-        
+
         if (lastPopStarUsed) {
             console.log('lastPopStarUsed', lastPopStarUsed);
             let currentPopStar = JSON.parse(lastPopStarUsed);

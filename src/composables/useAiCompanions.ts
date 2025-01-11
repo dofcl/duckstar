@@ -4,55 +4,62 @@ import type { Schema } from '../../amplify/data/resource';
 
 const client = generateClient<Schema>();
 type CompanionType = Schema['AiCompanionData']['type'];
+
+// Core interfaces
+interface AiCompanionDataItem extends Pick<CompanionType, 'id' | 'name' | 'aiOwnerId' | 'seedId' | 'imageURL'> {}
+
+interface ErrorResponse {
+  message: string;
+}
+
+// Simplified input type
+type CreateCompanionInput = Pick<AiCompanionDataItem, 'aiOwnerId' | 'seedId' | 'imageURL'>;
+
+// Fields that can be updated
 type UpdateableCompanionFields = Partial<Omit<CompanionType, 'id' | 'createdAt' | 'updatedAt'>>;
 
-interface AiCompanionDataItem {
-    id: string;
-    name: string;
-    aiOwnerId: string;
-    seedId: string;
-    imageURL: string;
-}
-
-interface AiCompanionDataResponse {
-    data?: AiCompanionDataItem[];
-    errors?: string[];
-}
-
-interface CreateCompanionInput {
-    aiOwnerId: string;
-    seedId: string;
-    imageURL: string;
-}
-
 export function useAiCompanions() {
-    const companions = ref<Array<CompanionType>>([]);
+    const companions = ref<CompanionType[]>([]);
     const error = ref<string | null>(null);
     const loading = ref(false);
 
+    // Helper function to handle errors consistently
+    const handleError = (err: unknown, context: string): null => {
+        const message = err instanceof Error ? err.message : 'Unknown error';
+        const errorMessage = `Error ${context}: ${message}`;
+        console.error(errorMessage);
+        error.value = errorMessage;
+        return null;
+    };
+
+    // Helper function to handle API responses
+    const handleResponse = <T>(
+        response: { data?: T; errors?: ErrorResponse[] },
+        context: string
+    ): T | null => {
+        if (response.errors) {
+            const errorMessage = response.errors.map(e => e.message).join(', ');
+            return handleError(new Error(errorMessage), context);
+        }
+        return response.data || null;
+    };
+
+    // Main functions with simplified error handling
     async function fetchCompanions() {
         try {
             loading.value = true;
             error.value = null;
-            type SimplifiedResponse = Partial<AiCompanionDataResponse>;
-            const { data: items, errors }: SimplifiedResponse = await client.models.AiCompanionData.list();
-
-
-
-            if (errors) {
-                const errorMessage = errors.map(e => e.message).join(', ');
-                console.error('Failed to fetch companions:', errorMessage);
-                error.value = 'Failed to fetch companions: ' + errorMessage;
-                return [];
+            
+            const response = await client.models.AiCompanionData.list();
+            const items = handleResponse(response, 'fetching companions');
+            
+            if (items) {
+                companions.value = items.filter(item => item.name !== null) as CompanionType[];
+                return items;
             }
-
-            companions.value = items?.filter(item => item.name !== null) as AiCompanionDataItem[];
-            return items;
-        } catch (err) {
-            const message = err instanceof Error ? err.message : 'Unknown error';
-            console.error('Error fetching companions:', message);
-            error.value = 'Error fetching companions: ' + message;
             return [];
+        } catch (err) {
+            return handleError(err, 'fetching companions');
         } finally {
             loading.value = false;
         }
@@ -61,41 +68,20 @@ export function useAiCompanions() {
     async function getCompanion(id: string) {
         try {
             error.value = null;
-            const { data, errors } = await client.models.AiCompanionData.get({ id });
-
-            if (errors) {
-                const errorMessage = errors.map(e => e.message).join(', ');
-                console.error('Failed to get companion:', errorMessage);
-                error.value = 'Failed to get companion: ' + errorMessage;
-                return null;
-            }
-
-            return data;
+            const response = await client.models.AiCompanionData.get({ id });
+            return handleResponse(response, 'getting companion');
         } catch (err) {
-            const message = err instanceof Error ? err.message : 'Unknown error';
-            console.error('Error getting companion:', message);
-            error.value = 'Error getting companion: ' + message;
-            return null;
+            return handleError(err, 'getting companion');
         }
     }
 
     async function createCompanion(input: CreateCompanionInput) {
         try {
             error.value = null;
-            const { data, errors } = await client.models.AiCompanionData.create(input);
-
-            if (errors) {
-                const errorMessage = errors.map(e => e.message).join(', ');
-                console.error('Failed to create companion:', errorMessage);
-                error.value = 'Failed to create companion: ' + errorMessage;
-                return null;
-            }
-            return data;
+            const response = await client.models.AiCompanionData.create(input);
+            return handleResponse(response, 'creating companion');
         } catch (err) {
-            const message = err instanceof Error ? err.message : 'Unknown error';
-            console.error('Error creating companion:', message);
-            error.value = 'Error creating companion: ' + message;
-            return null;
+            return handleError(err, 'creating companion');
         }
     }
 
@@ -107,24 +93,15 @@ export function useAiCompanions() {
         try {
             error.value = null;
             loading.value = true;
-
-            const { data, errors } = await client.models.AiCompanionData.update({
+            
+            const response = await client.models.AiCompanionData.update({
                 id,
                 [field]: value
             });
-
-            if (errors) {
-                const errorMessage = errors.map(e => e.message).join(', ');
-                console.error('Failed to update companion:', errorMessage);
-                error.value = 'Failed to update companion: ' + errorMessage;
-                return null;
-            }
-            return data;
+            
+            return handleResponse(response, 'updating companion');
         } catch (err) {
-            const message = err instanceof Error ? err.message : 'Unknown error';
-            console.error('Error updating companion:', message);
-            error.value = 'Error updating companion: ' + message;
-            return null;
+            return handleError(err, 'updating companion');
         } finally {
             loading.value = false;
         }
@@ -135,23 +112,14 @@ export function useAiCompanions() {
             error.value = null;
             loading.value = true;
 
-            // First try to get the companion by owner and seed ID
             const existingCompanions = await fetchCompanions();
-            const companion = existingCompanions.find(
+            const companion = existingCompanions?.find(
                 c => c.aiOwnerId === input.aiOwnerId && c.seedId === input.seedId
             );
 
-            // If companion doesn't exist, create it
-            if (!companion) {
-                return await createCompanion(input);
-            }
-
-            return companion;
+            return companion || await createCompanion(input);
         } catch (err) {
-            const message = err instanceof Error ? err.message : 'Unknown error';
-            console.error('Error in getOrCreate companion:', message);
-            error.value = 'Error in getOrCreate companion: ' + message;
-            return null;
+            return handleError(err, 'get/create companion');
         } finally {
             loading.value = false;
         }

@@ -1,8 +1,10 @@
 <template>
-    <div>
-        <el-select v-model="selectedGenres" multiple collapse-tags collapse-tags-tooltip :max-collapse-tags="3"
-            placeholder="Select your favorite music genres" class="genre-select" @change="handleGenreChange" size="large">
-            <el-option v-for="genre in genres" :key="genre.value" :label="genre.label" :value="genre.value" class="text-black"/>
+    <div class="ma-0 pa-0">
+        <el-select v-model="selectedGenres" :multiple="allowMultiple" collapse-tags collapse-tags-tooltip :max-collapse-tags="3"
+            :placeholder="placeholder" class="genre-select" @change="handleGenreChange"
+            size="large">
+            <el-option v-for="genre in genres" :key="genre.value" :label="genre.label" :value="genre.value"
+                class="text-black" />
         </el-select>
     </div>
 </template>
@@ -11,16 +13,18 @@
 import { ref, onMounted } from 'vue'
 import { useProfile } from '@/composables/useProfile'
 const { updateProfileField } = useProfile()
-
 const emit = defineEmits(['genres-selected'])
 
 const selectedGenres = ref<string[]>([])
+
+const placeholder= ref('Select your favorite music genres')
+const allowMultiple =ref(true)
 
 interface Profile {
     musicGenre: string[]
 }
 
-const props = defineProps<{ userId: string, musicGenre: string }>()
+const props = defineProps<{ userId: string, musicGenre: string, saveInComponent: boolean }>()
 
 const genres = [
     { label: 'African', value: 'african' },
@@ -56,16 +60,21 @@ const genres = [
 
 
 
-const handleGenreChange = async (value: any) => {  
-    await updateProfileField(props.userId, 'musicGenre', JSON.stringify(value));
-        emit('genres-selected', value)
+const handleGenreChange = async (value: any) => {
+    emit('genres-selected', value)
+    if (props.saveInComponent) {
+        await updateProfileField(props.userId, 'musicGenre', JSON.stringify(value));
+    }else {
+        placeholder.value = "Select a genre"
+        allowMultiple.value = false
     }
-    
-    onMounted(() => {
-        if(props.musicGenre){
-            selectedGenres.value = JSON.parse(props.musicGenre)
-        }
-    })
+}
+
+onMounted(() => {
+    if (props.musicGenre) {
+        selectedGenres.value = JSON.parse(props.musicGenre)
+    }
+})
 
 </script>
 
