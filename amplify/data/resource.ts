@@ -458,7 +458,12 @@ const schema = a.schema({
   updateComputeTaskFunction: a
     .query()
     .arguments({
-      name: a.string(),
+      taskId: a.string(),
+      status: a.string(),
+      failed: a.boolean(),
+      failedReason: a.string(),
+      finished: a.boolean(),
+      finishedAt: a.string(),
     })
     .returns(a.string())
     .handler(a.handler.function(updateComputeTaskFunction))
