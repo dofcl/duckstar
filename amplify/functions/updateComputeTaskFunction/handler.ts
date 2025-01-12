@@ -9,22 +9,39 @@ interface UpdateTaskInput {
   finishedAt?: string;
 }
 
-export const handler = async (event: any) => {  // Use any for Lambda URL event
+export const handler = async (event: {
+  version: string;
+  body: string;
+  [key: string]: any;
+}) => {
   console.log('Raw event:', JSON.stringify(event, null, 2));
   
   try {
-    // Parse the request body
-    const requestBody = JSON.parse(event.body);
+    // Parse the request body - note that it comes as a JSON string
+    const { arguments: args } = JSON.parse(event.body);
     
-    // Access the database through context instead of event
-    const result = await event.data.ComputeTasks.update(requestBody.arguments);
+    // Get required fields
+    const updateData: UpdateTaskInput = {
+      taskId: args.taskId,
+      ...(args.status !== undefined && { status: args.status }),
+      ...(args.failed !== undefined && { failed: args.failed }),
+      ...(args.failedReason !== undefined && { failedReason: args.failedReason }),
+      ...(args.finished !== undefined && { finished: args.finished }),
+      ...(args.finishedAt !== undefined && { finishedAt: args.finishedAt })
+    };
+
+    // Make the update
+    const result = await event.data.ComputeTasks.update(updateData);
 
     return {
       statusCode: 200,
       headers: {
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify(result)
+      body: JSON.stringify({
+        success: true,
+        data: result
+      })
     };
     
   } catch (err) {
@@ -35,6 +52,7 @@ export const handler = async (event: any) => {  // Use any for Lambda URL event
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
+        success: false,
         message: 'Failed to update compute task',
         error: err instanceof Error ? err.message : 'Unknown error'
       })
