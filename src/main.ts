@@ -24,6 +24,8 @@ const router = createRouter({
 
 Amplify.configure(outputs);
 
+console.log('VITE_APP_TEST_VARIABLE', import.meta.env.VITE_APP_TEST_VARIABLE);
+
 
 const app = createApp(App)
 for (const [key, component] of Object.entries(ElementPlusIconsVue)) {

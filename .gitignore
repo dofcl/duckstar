@@ -55,3 +55,6 @@ amplifytools.xcconfig
 .secret-*
 **.sample
 #amplify-do-not-edit-end
+
+#local env fro testing locally on prod backend (not sanbox), prod and sandbox are stored as amplify "secrets"
+.env
