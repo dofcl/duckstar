@@ -26,10 +26,18 @@ export const handler = async (event: LambdaFunctionUrlEvent) => {
     const taskId = body.arguments.taskId;
     console.log('Attempting to get task with ID:', taskId);
     
-    // @ts-nocheck
+  
     type ComputeTaskResponse = { id: string; /* add other fields as needed */ };
-    const response = await client.models.ComputeTasks.get({ id: taskId }) as ComputeTaskResponse;
-    console.log('Get task response:', JSON.stringify(response, null, 2));
+    type ComputeTaskData = { taskId: string; /* add other fields as needed */ };
+    const response = await client.models.ComputeTasks.get({ id: taskId }).catch(err => {
+      console.error('Error fetching task:', err);
+      return { data: null };
+    }) as { data: ComputeTaskData | null };
+    const computeTaskResponse: ComputeTaskResponse = response.data ? {
+      id: response.data.taskId,
+      // map other fields as needed
+    } : { id: '' }; // handle the case where data is null
+    console.log('Get task response:', JSON.stringify(computeTaskResponse, null, 2));
 
     return {
       statusCode: 200,
