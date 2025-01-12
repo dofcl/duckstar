@@ -1,25 +1,31 @@
 <template>
     <div>
         <h1 class="mb-0 pb-0">Create Song</h1>
-        <div eclass="mx-auto max-w-md mt-0 pt-0">
-            <div>
-                <p>Song Title</p>
-                <el-input v-model="songTitle" placeholder="Name your song" size="large" class="mt-0 pt-0" />
-                <p class="mb-0 pb-0">Song Style</p>
-                <MusicGenre :userId="userId" :saveInComponent="false" @genres-selected="handleGenre"
-                    :musicGenre="genre" />
-                <div class="text-center mb-5">
-                    <el-button type="info" @click="openInspire" size="large">Inspire Me</el-button>
-                </div>
+        <div class="mx-auto max-w-md mt-0 pt-0">
 
-                <hr>
-                <div class="mx-auto text-center mt-4">
-                    <el-button type="primary" @click="goToCreateMusic" size="large">Create Music</el-button>
-                    <el-button type="primary" @click="goToCreateLyrics" size="large">Create Lyrics</el-button>
-                </div>
+            <p class="ma-1 pa-0">What do yo want your song to be about?</p>
+            <el-input v-model="songDescription" size="large"></el-input>
+            <div class="text-center mx-auto mt-4">
+                <el-button type="info" @click="openInspire" size="large">Get Inspiration</el-button>
+            </div>
+
+            <p class="mt-1 pa-0">Song Title</p>
+            <el-input v-model="songTitle" placeholder="Name your song" size="large" class="mt-0 pt-0" @input="missing=false" />
+            <p class="mb-2 pa-0 mt-4">Song Style</p>
+            <MusicGenre :userId="userId" :saveInComponent="false" @genres-selected="handleGenre" :musicGenre="genre" />
+
+            <div class="mx-auto text-center mt-4">
+                <div v-if="missing" class="text-orange mb-4 mt-0 pt-0">Please provide a song title and song style</div>
+                <el-button type="primary" @click="goToCreateLyrics" size="large">
+                    Create Lyrics
+                </el-button>
+                <p class="ma-1 pa-0 mt-2">or</p>
+                <el-button type="" @click="goToCreateMusic" size="large" link>Create Music</el-button>
             </div>
         </div>
     </div>
+
+
     <el-dialog v-model="inspireModal" :title="modalTitle" width="80%" class="produced-dialog"
         :before-close="handleClose">
         <div v-if="loading">
@@ -39,14 +45,16 @@
                 <p class="mt-0 pt-0 text-center">Got writers block or need some inspiration?<br> Don't worry I've got
                     your back.</p>
 
+
+
                 <div class="mx-auto text-center">
-                    <el-button type="info" @click="aiGenAll">Create me a song</el-button>
+                    <el-button type="info" @click="collab = true">Let's collab</el-button>
                 </div>
                 <div class="mx-auto text-center ma-3">
                     or
                 </div>
                 <div class="mx-auto text-center">
-                    <el-button type="info" @click="collab = true">Let's collab</el-button>
+                    <el-button type="info" @click="aiGenAll">Create me a random song</el-button>
                 </div>
             </div>
             <div v-if="collab">
@@ -82,6 +90,7 @@ import { useRouter } from 'vue-router';
 import DuckLoader from '@/components/DuckLoader.vue';
 import { fadeOutAndStop } from '@/utils/fadeout';
 import { useSongs } from '@/composables/useSongs';
+
 const { createSong } = useSongs();
 const selectedGenre = ref();
 const genres = [
@@ -125,8 +134,10 @@ const songData = ref({})
 
 const collab = ref(false)
 const task = ref('lyrics')
+const missing = ref(false)
 
-const handleClose = () => {
+const Close = () => {
+    collab.value = false;
     inspireModal.value = false;
 }
 const saveSongdraft = async () => {
@@ -156,6 +167,10 @@ const openInspire = () => {
     inspireModal.value = true;
 }
 
+const handleClose = () => {
+    inspireModal.value = false;
+    collab.value = false;
+}
 
 const aiGenAll = async () => {
     failed.value = false;
@@ -249,19 +264,43 @@ const startProgress = () => {
 };
 
 
+function checkForm() {
+    if (!selectedGenre.value) {
+        return true
+    }
+
+    if (!songTitle.value?.trim() && !songDescription.value?.trim()) {
+        return true
+    }
+
+    return false
+}
+
 const goToCreateMusic = async () => {
+    loading.value = true;
+    missing.value = await checkForm()
     console.log('Creating song', songTitle.value);
-    await saveSongdraft();
-    router.push('/create-music?songId=' + songId.value);
+    if (!missing.value) {
+        await saveSongdraft();
+        router.push('/create-music?songId=' + songId.value);
+    }
+
 }
 const goToCreateLyrics = async () => {
-    await saveSongdraft();
-    console.log('Creating lyrics');
+    loading.value = true;
+    missing.value = await checkForm()
+    console.log('Creating song', songTitle.value, selectedGenre.value);
+    
+    if (!missing.value) {
+        aiGenAll();
+    }
+
 }
 
 const handleGenre = async (genres: string) => {
-    console.log('Selected genres', genres);
-    genre.value = genres;
+    genre.value = genres[0];
+    console.log('Selected genres', genres[0]);
+    selectedGenre.value = genres[0];
 
 }
 

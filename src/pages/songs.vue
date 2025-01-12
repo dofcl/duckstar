@@ -1,42 +1,46 @@
 <template>
     <div>
-        <h1 class="mb-0 pb-0">Songs</h1>
         <DuckLoader v-if="loading" />
 
         <div v-else>
-            <div class="my-4">
-                <h2>My Songs ({{ mySongs.length }})</h2>
-                <div v-if="mySongs.length === 0">
-                    No songs yet. Create your first song!
+            <div class="float-right">
+                <el-button @click="createSong()" type="primary" size="large">Create Song</el-button>
                 </div>
-                <ul v-else>
-                    <li v-for="song in mySongs" :key="song.id">
-                        {{ song.title }}
-                        <el-button @click="editMusic(song.id)">Edit Music</el-button>
-                        <el-button @click="editLyrics(song.id)">Edit Lyrics</el-button>
-                        <el-button>Edit Video</el-button>
-                    </li>
-                </ul>
-            </div>
 
-            <div class="my-4">
-                <h2>Create Songs</h2>
-                <ul>
-                    <li>Music</li>
-                    <li>Lyrics</li>
-                    <li>Video</li>
-                </ul>
-            </div>
+                <div class="my-4">
+                    <h2>My Songs ({{ mySongs.length }})</h2>
+                    <div v-if="mySongs.length === 0">
+                        No songs yet. Create your first song!
+                        <el-button @click="createSong()">Create Song</el-button>
+                    </div>
+                    <ul v-else>
+                        <li v-for="song in mySongs" :key="song.id">
+                            {{ song.title }}
+                            <el-button @click="editLyrics(song.id)">Edit Lyrics</el-button>
+                            <el-button @click="editMusic(song.id)">Edit Music</el-button>
+                            <el-button>Edit Video</el-button>
+                        </li>
+                    </ul>
+                </div>
 
-            <div class="my-4">
-                <h2>Explore</h2>
-            </div>
+                <div class="my-4">
+                    <h2>Create Songs</h2>
+                    <ul>
+                        <li>Music</li>
+                        <li>Lyrics</li>
+                        <li>Video</li>
+                    </ul>
+                </div>
 
-            <div class="my-4">
-                <h2>Charts</h2>
+                <div class="my-4">
+                    <h2>Explore</h2>
+                </div>
+
+                <div class="my-4">
+                    <h2>Charts</h2>
+                </div>
             </div>
         </div>
-    </div>
 </template>
 
 <script setup lang="ts">
@@ -64,6 +68,10 @@ function editLyrics(id: string) {
     console.log('editLyrics');
     router.push("/edit-lyrics?songId=" + id);
 
+}
+
+function createSong() {
+    router.push("/create-song");
 }
 
 
