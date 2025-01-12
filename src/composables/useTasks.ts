@@ -24,6 +24,7 @@ export function useTasks() {
             error.value = null;
 
             const response = await client.models.ComputeTasks.list({
+                index: 'taskOwnerId-index',
                 filter: {
                     taskOwnerId: {
                         eq: userId
@@ -52,6 +53,7 @@ export function useTasks() {
             error.value = null;
 
             const response = await client.models.ComputeTasks.list({
+                index: 'songId-index',
                 filter: {
                     songId: {
                         eq: songId

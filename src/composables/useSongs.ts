@@ -54,6 +54,7 @@ export function useSongs() {
             error.value = null;
 
             const response: { data: SongType[], errors?: string[] } = await client.models.Songs.list({
+                index: 'songOwnerId-index',
                 filter: {
                     songOwnerId: {
                         eq: ownerId

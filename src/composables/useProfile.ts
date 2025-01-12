@@ -53,6 +53,7 @@ export function useProfile() {
             error.value = null;
 
             const response = await client.models.Profile.list({
+                index: "userId-index",
                 filter: {
                     userId: {
                         eq: userId

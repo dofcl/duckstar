@@ -252,7 +252,7 @@ const schema = a.schema({
       profile: a.belongsTo('Profile', 'taskOwnerId'),
       song: a.belongsTo('Songs', 'songId'),
     })
-    .secondaryIndexes((index) => [index('taskId')])
+    .secondaryIndexes((index) => [index('taskId'),index('songId')])
     .authorization((allow) => [
       allow.owner()
     ]), 
