@@ -190,8 +190,8 @@ const route = useRoute()
 //todo: move to env variables
 console.log('move to hard coded urls to env variables')
 const publicStatic = import.meta.env.VITE_APP_PUBLIC_STATIC
-const mainMusicAiGenEndpoint = VITE_APP_MUSIC_GEN_ENDPOINT 
-const mainMusicAiGenCallback = VITE_APP_MUSIC_GEN_CALLBACK
+const mainMusicAiGenEndpoint = import.meta.env.VITE_APP_MUSIC_GEN_ENDPOINT 
+const mainMusicAiGenCallback = import.meta.env.VITE_APP_MUSIC_GEN_CALLBACK
 
 // Audio Context Setup
 const audioContext = new (window.AudioContext || window.webkitAudioContext)()
