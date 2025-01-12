@@ -1,37 +1,48 @@
 import { defineFunction } from '@aws-amplify/backend';
+import { generateClient } from 'aws-amplify/data';
+import type { Schema } from '../../../amplify/data/resource';
+const client = generateClient<Schema>();
 
-interface UpdateTaskInput {
-  taskId: string;
-  status?: string;
-  failed?: boolean;
-  failedReason?: string;
-  finished?: boolean;
-  finishedAt?: string;
-}
-
-export const handler = async (event: {
+interface LambdaFunctionUrlEvent {
   version: string;
   body: string;
-  [key: string]: any;
-}) => {
+  requestContext: {
+    http: {
+      method: string;
+    };
+  };
+}
+
+export const handler = async (event: LambdaFunctionUrlEvent) => {
   console.log('Raw event:', JSON.stringify(event, null, 2));
   
   try {
-    // Parse the request body - note that it comes as a JSON string
+    // Parse the request body
     const { arguments: args } = JSON.parse(event.body);
     
-    // Get required fields
-    const updateData: UpdateTaskInput = {
-      taskId: args.taskId,
+    const updateData: {
+      id: any;
+      status?: any;
+      failed?: any;
+      failedReason?: any;
+      finished?: any;
+      finishedAt?: string;
+    } = {
+      id: args.taskId,  // Note: using id instead of taskId based on your client code
       ...(args.status !== undefined && { status: args.status }),
       ...(args.failed !== undefined && { failed: args.failed }),
       ...(args.failedReason !== undefined && { failedReason: args.failedReason }),
-      ...(args.finished !== undefined && { finished: args.finished }),
-      ...(args.finishedAt !== undefined && { finishedAt: args.finishedAt })
+      ...(args.finished !== undefined && { finished: args.finished })
     };
 
-    // Make the update
-    const result = await event.data.ComputeTasks.update(updateData);
+    // Add finishedAt if task is finished
+    if (args.finished) {
+      updateData.finishedAt = new Date().toISOString();
+    }
+
+    // Use the same update method as your client code
+    // @ts-nocheck
+    const response = await (client.models.ComputeTasks.update as (data: typeof updateData) => Promise<any>)(updateData);
 
     return {
       statusCode: 200,
@@ -40,7 +51,7 @@ export const handler = async (event: {
       },
       body: JSON.stringify({
         success: true,
-        data: result
+        data: response
       })
     };
     
