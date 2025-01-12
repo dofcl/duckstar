@@ -27,7 +27,7 @@ backend.addOutput({
 })
 backend.updateComputeTaskFunction.resources.lambda.addToRolePolicy(
   new PolicyStatement({
-    actions: ['dynamodb:UpdateItem'],
+    actions: ['dynamodb:UpdateItem','dynamodb:GetItem'],
     resources: ['*']
   })
 );

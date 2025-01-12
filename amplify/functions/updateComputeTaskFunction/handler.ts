@@ -1,6 +1,7 @@
 import { defineFunction } from '@aws-amplify/backend';
 import { generateClient } from 'aws-amplify/data';
 import type { Schema } from '../../../amplify/data/resource';
+
 const client = generateClient<Schema>();
 
 interface LambdaFunctionUrlEvent {
@@ -17,32 +18,16 @@ export const handler = async (event: LambdaFunctionUrlEvent) => {
   console.log('Raw event:', JSON.stringify(event, null, 2));
   
   try {
-    // Parse the request body
-    const { arguments: args } = JSON.parse(event.body);
+    // Parse and log the request body
+    const body = JSON.parse(event.body);
+    console.log('Parsed body:', JSON.stringify(body, null, 2));
     
-    const updateData: {
-      id: any;
-      status?: any;
-      failed?: any;
-      failedReason?: any;
-      finished?: any;
-      finishedAt?: string;
-    } = {
-      id: args.taskId,  // Note: using id instead of taskId based on your client code
-      ...(args.status !== undefined && { status: args.status }),
-      ...(args.failed !== undefined && { failed: args.failed }),
-      ...(args.failedReason !== undefined && { failedReason: args.failedReason }),
-      ...(args.finished !== undefined && { finished: args.finished })
-    };
-
-    // Add finishedAt if task is finished
-    if (args.finished) {
-      updateData.finishedAt = new Date().toISOString();
-    }
-
-    // Use the same update method as your client code
-    // @ts-nocheck
-    const response = await (client.models.ComputeTasks.update as (data: typeof updateData) => Promise<any>)(updateData);
+    // Try to get a task
+    const taskId = body.arguments.taskId;
+    console.log('Attempting to get task with ID:', taskId);
+    
+    const response = await client.models.ComputeTasks.get({ id: taskId });
+    console.log('Get task response:', JSON.stringify(response, null, 2));
 
     return {
       statusCode: 200,
@@ -64,7 +49,7 @@ export const handler = async (event: LambdaFunctionUrlEvent) => {
       },
       body: JSON.stringify({
         success: false,
-        message: 'Failed to update compute task',
+        message: 'Failed to get compute task',
         error: err instanceof Error ? err.message : 'Unknown error'
       })
     };
