@@ -53,7 +53,7 @@ import { fadeOutAndStop } from '@/utils/fadeout';
 
 interface Song {
     id: string;
-    title: string;
+    title?: string;
     // Add other song properties as needed
 }
 
@@ -105,7 +105,10 @@ onMounted(async () => {
 
         userId.value = user.userId;
         const songs = await fetchSongs(user.userId);
-        mySongs.value = songs || [];
+        mySongs.value = (songs || []).map(song => ({
+            id: song.id,
+            title: song.title ?? undefined,
+        }));
     } catch (error) {
         console.error('Error loading songs:', error);
     } finally {

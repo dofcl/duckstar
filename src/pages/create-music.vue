@@ -189,7 +189,7 @@ const router = useRouter()
 const route = useRoute()
 const publicStatic = 'https://duckstar-public.s3.eu-central-1.amazonaws.com'
 const mainMusicAiGenEndpoint = 'https://3fft5jczjoxmmy4n5vzwwk2ila0nrpaj.lambda-url.eu-central-1.on.aws/'
-const mainMusicAiGenCallback = 'https://webhook.site/8af3feff-e82d-464c-962a-530bdd792514'
+const mainMusicAiGenCallback = 'https://i75qwdyr4sd75kc45fnzidcwma0tporc.lambda-url.eu-central-1.on.aws/bea3066a-dcfc-4ec1-9c71-ac42086f7053'
 // Audio Context Setup
 const audioContext = new (window.AudioContext || window.webkitAudioContext)()
 
