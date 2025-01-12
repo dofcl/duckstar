@@ -32,7 +32,7 @@ const emit = defineEmits(['genres-selected'])
 const selectedGenres = ref<string[]>([])
 const singleGenre = ref('')
 const loading = ref(false)
-const filteredGenres = ref([])
+const filteredGenres = ref<Genre[]>([])
 
 const placeholder = ref('Select your favorite music genres')
 const allowMultiple = ref(true)

@@ -81,7 +81,7 @@
     <!-- Edit Form -->
     <div v-else-if="selectedAiPopStarId" class="max-w-md mx-auto">
       <img 
-        :src="currentPopStar.imageUrl" 
+        :src="currentPopStar.imageURL" 
         class="w-48 h-48 rounded-full mx-auto mt-4" 
       />
       
@@ -158,7 +158,7 @@ const currentPopStar = ref<PopStar>({
   name: '',
   bio: '',
   country: '',
-  imageUrl: ''
+  imageURL: ''
 })
 
 const countries = getData().map(country => ({
@@ -205,7 +205,7 @@ const handleAiPopStarChange = (star: PopStar) => {
     name: star.name || '',
     bio: star.bio || '',
     country: star.country || '',
-    imageUrl: star.imageURL || ''
+    imageURL: star.imageURL || ''
   }
   countrySearch.value = star.country || ''
   saveToLocalStorage()

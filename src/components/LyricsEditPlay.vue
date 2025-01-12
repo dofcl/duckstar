@@ -30,6 +30,7 @@ const { updateSongField } = useSongs();
 interface SongData {
     id: string;
     lyrics: string;
+    title: string;
     music: string;
     createdAt: string;
     updatedAt: string;
