@@ -67,7 +67,7 @@ function muteAudio() {
                 </el-button>
               </div>
             </el-header>
-            <el-main class="mt-4">
+            <el-main>
               <div class="signout-btn">
                 <el-button @click="signOut" class="float-right">Sign Out</el-button>
               </div>
@@ -78,7 +78,9 @@ function muteAudio() {
         </div>
       </template>
     </authenticator>
+
   </div>
+
   <audio id="bg-audio" src="/music/menu-bg.mp3" autoplay loop></audio>
 </template>
 
@@ -161,23 +163,24 @@ button.amplify-button.amplify-field-group__control.amplify-button--primary.ampli
 
 .header-logo img {
   float: left;
-  margin: -5px 11px -4px -18px;
-  height: 45px;
-  width: 45px;
+  margin: 1px 11px -4px -18px;
+  height: 40px;
+  width: 40px;
   border-radius: 50%;
   border: 1px solid #fff;
 }
 
 .header-title {
   float: left;
-  margin: 1px 0 0 0;
+  margin: 5px 0 0 0;
   font-size: 22px;
 }
 
 .toolbar {
-  margin: 9px -10px 0 0;
+  margin: 13px -10px 0 0;
 }
+
 .signout-btn {
-  display:none
+  display: none
 }
 </style>

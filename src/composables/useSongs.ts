@@ -20,7 +20,6 @@ interface SongResponse {
 }
 
 interface CreateSongInput {
-    id: string;
     songOwnerId: string;
     // Optional fields with defaults from schema
     status?: string; // defaults to 'DRAFT'
@@ -105,30 +104,32 @@ export function useSongs() {
     }
 
     async function createSong(
-        id: string,
         songOwnerId: string,
-        initialData: Partial<Omit<CreateSongInput, 'id' | 'songOwnerId'>> = {}
+        songData: Omit<CreateSongInput, 'songOwnerId'> = {}
     ) {
         try {
             error.value = null;
 
-            const createInput: CreateSongInput = {
-                id,
+            const createInput = {
                 songOwnerId,
-                ...initialData
+                status: 'DRAFT', // Default status
+                ...songData
             };
 
-            const { data, errors }: SongUpdateResponse = await client.models.Songs.update(createInput);
+            // Use create - ID will be auto-generated
+            const response = await client.models.Songs.create(createInput);
 
-            if (errors) {
-                const errorMessage = errors.join(', ');
+            if (response.errors) {
+                const errorMessage = Array.isArray(response.errors)
+                    ? response.errors.join(', ')
+                    : response.errors.toString();
                 console.error('Failed to create song:', errorMessage);
                 error.value = 'Failed to create song: ' + errorMessage;
                 return null;
             }
 
             await fetchSongs(songOwnerId); // Refresh the list
-            return data;
+            return response.data;
         } catch (err) {
             const message = err instanceof Error ? err.message : 'Unknown error';
             console.error('Error creating song:', message);

@@ -184,6 +184,7 @@ const schema = a.schema({
       lipSyncBattleEntries: a.hasMany('LipSyncBattlesEntries', 'songId'),
       lipSyncBattles: a.hasMany('LipSyncBattlesParent', 'songId'),
       status: a.string().default('DRAFT'),
+      computeTasks: a.hasMany('ComputeTasks', 'songId'),
     })
     .authorization((allow) => [
       allow.guest().to(['read']),
@@ -230,9 +231,8 @@ const schema = a.schema({
 
   ComputeTasks: a
     .model({
-      taskOwnerId: a.string().authorization(allow => [
-        allow.owner().to(['create', 'read'])
-      ]).required(),
+      taskOwnerId: a.string().required(),
+      taskId: a.string().required(),
       createdAt: a.datetime(),
       failed: a.boolean().default(false),
       failedReason: a.string(),
@@ -240,9 +240,10 @@ const schema = a.schema({
       finished: a.boolean().default(false),
       status: a.string().default('STARTED'),
       taskDescription: a.string(),
-      taskId: a.string(),
+      songId: a.string(),
       updatedAt: a.datetime(),
       profile: a.belongsTo('Profile', 'taskOwnerId'),
+      song: a.belongsTo('Songs', 'songId'),
     })
     .authorization((allow) => [
       allow.owner()

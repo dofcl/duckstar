@@ -4,3 +4,5 @@
     LeaderBoards<br>
     Previous battles<br>
 </template>
+//import { fadeOutAndStop } from '@/utils/fadeout';
+//await fadeOutAndStop(2000)

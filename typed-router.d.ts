@@ -23,6 +23,7 @@ declare module 'vue-router/auto-routes' {
     '/billboard-charts': RouteRecordInfo<'/billboard-charts', '/billboard-charts', Record<never, never>, Record<never, never>>,
     '/create-music': RouteRecordInfo<'/create-music', '/create-music', Record<never, never>, Record<never, never>>,
     '/create-song': RouteRecordInfo<'/create-song', '/create-song', Record<never, never>, Record<never, never>>,
+    '/edit-lyrics': RouteRecordInfo<'/edit-lyrics', '/edit-lyrics', Record<never, never>, Record<never, never>>,
     '/lip-sync-battle': RouteRecordInfo<'/lip-sync-battle', '/lip-sync-battle', Record<never, never>, Record<never, never>>,
     '/login': RouteRecordInfo<'/login', '/login', Record<never, never>, Record<never, never>>,
     '/onboard': RouteRecordInfo<'/onboard', '/onboard', Record<never, never>, Record<never, never>>,

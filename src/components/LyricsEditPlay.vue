@@ -2,19 +2,18 @@
     <div>
         <el-button class="float-right" @click="toggleEdit">{{ isEditing ? 'Save' : 'Edit' }}</el-button>
         <div v-if="!isEditing">
-            <h4 class="ml-4 pt-0 mt-2">{{ title }}</h4>
-            <div class="text-left ma-4" v-html="formattedLyricsText"></div>
+            <h3 class="ml-4 pt-0 mt-2">{{ title }}</h3>
+            <div class="text-left ma-4 mt-2" v-html="formattedLyricsText"></div>
         </div>
 
         <div v-else>
             <h4 class="text-center ma-0 pa-0">{{ title }}</h4>
             <el-input v-model="editableLyricsText" type="textarea" autosize :maxlength="wordLimit" show-word-limit
-                class="text-left mx-4 my-4"  style="max-width: 95%;"/>
+                class="text-left mx-4 my-4" style="max-width: 95%;" />
         </div>
         <div class="text-right">
-                <el-button class="mb-2" @click="toggleEdit">{{ isEditing ? 'Save' : 'Edit'
-                    }}</el-button>
-            </div>
+            <el-button class="mb-2" @click="toggleEdit">{{ isEditing ? 'Save' : 'Edit' }}</el-button>
+        </div>
 
         <div class="text-center">
             <hr>
@@ -25,10 +24,21 @@
 
 <script setup lang="ts">
 import { defineProps, ref, computed, defineEmits, watch } from 'vue';
+import { useSongs } from '@/composables/useSongs';
+const { updateSongField } = useSongs();
+
+interface SongData {
+    id: string;
+    lyrics: string;
+    music: string;
+    createdAt: string;
+    updatedAt: string;
+}
 
 const props = defineProps<{
     lyricsText: string;
     title: string;
+    songData: SongData;
 }>();
 
 const emit = defineEmits(['update:lyricsText']);
@@ -36,6 +46,15 @@ const emit = defineEmits(['update:lyricsText']);
 const isEditing = ref(false);
 const wordLimit = 1000;
 const editableLyricsText = ref(props.lyricsText);
+
+const saveSong = async (): Promise<void> => {
+    console.log('saveSong', props.songData)
+    console.log(props.songData.id, 'lyrics', editableLyricsText.value)
+    await updateSongField(props.songData.id, 'lyrics', editableLyricsText.value)
+    if (!props.songData.title) {
+        await updateSongField(props.songData.id, 'title', props.title)
+    }
+}
 
 const toggleEdit = () => {
     const words = props.lyricsText.trim().split(/\s+/).length;
@@ -47,12 +66,17 @@ const toggleEdit = () => {
         // Emit the updated lyrics to the parent component
         emit('update:lyricsText', editableLyricsText.value);
         isEditing.value = !isEditing.value;
+        saveSong();
     }
 
 };
 
 const formattedLyricsText = computed(() => {
-    return props.lyricsText.replace(/\n/g, '<br>');
+    if (props.lyricsText) {
+        return props.lyricsText.replace(/\n/g, '<br>');
+    } else {
+        return ""
+    }
 });
 
 // Watch for changes in props.lyricsText and update editableLyricsText accordingly
@@ -60,8 +84,13 @@ watch(() => props.lyricsText, (newLyrics) => {
     editableLyricsText.value = newLyrics;
 });
 
+import { useRouter } from 'vue-router';
+const router = useRouter();
+
 const gotoMusic = () => {
-    console.log('save lyrics to song model and trigger music creation task')
+    emit('update:lyricsText', editableLyricsText.value);
+    saveSong();
+    router.push("/create-music?songId=" + props.songData.id)
 }
 </script>
 

@@ -1,9 +1,9 @@
 <template>
-    <div>
+    <div class="mt-4">
         <div v-if="loading">
             <DuckLoader />
         </div>
-        <div v-else>
+        <div v-else >
             <div v-if="stage == 0" class="text-center">
                 <h1 class="text-white ma-0 pa-0">Create your AI Pop star</h1>
                 <p class="text-white mx-auto text-center mt-0">Use their voice, their face, or both—it's your choice!
@@ -38,7 +38,7 @@
                 <el-button @click="next()" type="primary" class="ma-2 mt-0">Next</el-button>
             </div>
             <div v-else-if="stage == 2" class="text-center">
-                <h1 class="text-white ma-0 pa-0 mb-2">My AI Pop Stars</h1>
+                <h1 class="text-white ma-0 pa-0 mb-2">My AI Pop Star</h1>
                 <EditAiPopStar :userId="userId || ''" />
 
                 <div class="mt-4">

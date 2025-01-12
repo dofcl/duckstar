@@ -10,6 +10,8 @@
 </template>
 <script setup>
 import { signOut } from 'aws-amplify/auth';
+import { fadeOutAndStop } from '@/utils/fadeout';
+fadeOutAndStop(2000)
 
 async function handleSignOut() {
     try {

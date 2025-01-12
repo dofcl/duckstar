@@ -1,5 +1,5 @@
 <template>
-  <h1 class="text-white mb-0 pb-0 mt-0 pt-0">Welcome to DuckStar!</h1>
+  <h1 class="text-white mb-0 pb-0 mt-4 pt-0">Welcome to DuckStar!</h1>
   <img src="/images/duckstar-into.jpg" alt="DuckStar" class="intro mt-2 pt-0" />
   <div class="mx-auto">
     <div id="intro" class="text-white mx-4 pt-2">

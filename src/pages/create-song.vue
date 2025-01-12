@@ -1,9 +1,5 @@
 <template>
-    <div v-if="gotLyrics && lyrics">
-        <LyricsEditPlay :title="songTitle" :lyricsText="lyrics" @update:lyricsText="updateLyrics" />
-    </div>
-
-    <div v-else>
+    <div>
         <h1 class="mb-0 pb-0">Create Song</h1>
         <div eclass="mx-auto max-w-md mt-0 pt-0">
             <div>
@@ -84,9 +80,9 @@ import MusicGenre from '@/components/MusicGenre.vue';
 import { getCurrentUser } from 'aws-amplify/auth';
 import { useRouter } from 'vue-router';
 import DuckLoader from '@/components/DuckLoader.vue';
-import LyricsEditPlay from '@/components/LyricsEditPlay.vue';
-
-import { useSongs } from '../composables/useSongs';
+import { fadeOutAndStop } from '@/utils/fadeout';
+import { useSongs } from '@/composables/useSongs';
+const { createSong } = useSongs();
 const selectedGenre = ref();
 const genres = [
     {
@@ -124,6 +120,8 @@ const modalTitle = ref("I'll help you get started");
 const gotLyrics = ref(false);
 const lyrics = ref()
 const failed = ref(false)
+const songId = ref('')
+const songData = ref({})
 
 const collab = ref(false)
 const task = ref('lyrics')
@@ -131,8 +129,22 @@ const task = ref('lyrics')
 const handleClose = () => {
     inspireModal.value = false;
 }
-const saveSongdraft = () => {
-    console.log('Saving song draft');
+const saveSongdraft = async () => {
+    // Using the initialData parameter to set additional song properties
+    const newSong = await createSong(userId.value, {
+        title: songTitle.value || '',
+        genre: genre.value || '',
+        description: songDescription.value || '',
+        lyrics: lyrics.value || '',
+    });
+
+    console.log('Saving song draft', newSong);
+    if (newSong) {
+        songId.value = newSong.id;
+        songData.value = newSong;
+    } else {
+        console.error('Failed to create song draft');
+    }
 }
 
 const playProducer = () => {
@@ -175,7 +187,7 @@ const aiGenAll = async () => {
 
 
     console.log('Creating lyrics:', description);
-    await createLyrics(description + ". This song should be a maximum of 100 words").then((data) => {
+    await createLyrics(description + ". This song should be a maximum of 100 words").then(async (data) => {
         console.log('Lyrics created', data);
         if (!songTitle.value) {
             songTitle.value = data?.name ?? ''
@@ -185,7 +197,7 @@ const aiGenAll = async () => {
         modalTitle.value = songTitle.value
         lyrics.value = data?.lyrics
         console.log('lyrics', lyrics?.value)
-        
+
         inspireModal.value = false;
         if (lyrics?.value) {
             inspireModal.value = false;
@@ -201,7 +213,10 @@ const aiGenAll = async () => {
                 failed.value = true;
                 inspireModal.value = true;
             }
-            console.log('success', inspireModal.value);
+            console.log('Saving song draft', songTitle.value);
+            await saveSongdraft();
+            router.push('/edit-lyrics?songId=' + songId.value);
+
 
             failed.value = false;
         } else {
@@ -213,9 +228,6 @@ const aiGenAll = async () => {
     });
 }
 
-const updateLyrics = (newLyrics: string) => {
-    lyrics.value = newLyrics;
-};
 const progress = ref(10);
 let intervalId: ReturnType<typeof setInterval>;
 
@@ -240,7 +252,7 @@ const startProgress = () => {
 const goToCreateMusic = async () => {
     console.log('Creating song', songTitle.value);
     await saveSongdraft();
-    router.push('/create-music');
+    router.push('/create-music?songId=' + songId.value);
 }
 const goToCreateLyrics = async () => {
     await saveSongdraft();
@@ -253,7 +265,8 @@ const handleGenre = async (genres: string) => {
 
 }
 
-onMounted(() => {
+onMounted(async () => {
+    await fadeOutAndStop(2000)
     getCurrentUser().then((user) => {
         userId.value = user.userId;
     });
