@@ -50,6 +50,7 @@ const schema = a.schema({
       lipSyncBattlesWon: a.hasMany('LipSyncBattlesParent', 'winnerId'),
       notificationsReceived: a.hasMany('UserNotifications', 'userId'),
     })
+    .secondaryIndexes((index) => [index('userId')])
     .authorization((allow) => [
       allow.owner(),
       allow.guest().to(['read'])
@@ -68,6 +69,7 @@ const schema = a.schema({
       profiles: a.hasMany('Profile', 'producerId'),
       songs: a.hasMany('Songs', 'songProducerId'),
     })
+    .secondaryIndexes((index) => [index('producerId')])
     .authorization((allow) => [
       allow.guest().to(["read"]),
       allow.owner()
@@ -130,6 +132,7 @@ const schema = a.schema({
       status: a.string().default('ACTIVE'),
       user: a.belongsTo('Profile', 'userId')
     })
+    .secondaryIndexes((index) => [index('userId')])
     .authorization((allow) => [
       allow.owner()
     ]),
@@ -148,6 +151,7 @@ const schema = a.schema({
       updatedAt: a.datetime(),
       creditOwner: a.belongsTo('Profile', 'creditOwnerId'),
     })
+    .secondaryIndexes((index) => [index('creditOwnerId')])
     .authorization((allow) => [
       allow.owner()
     ]),
@@ -185,6 +189,7 @@ const schema = a.schema({
       status: a.string().default('DRAFT'),
       computeTasks: a.hasMany('ComputeTasks', 'songId'),
     })
+    .secondaryIndexes((index) => [index('songOwnerId')])
     .authorization((allow) => [
       allow.guest().to(['read']),
       allow.owner(),
@@ -196,9 +201,9 @@ const schema = a.schema({
     song: a.belongsTo('Songs', 'songId'),
     track: a.belongsTo('Tracks', 'trackId'),
     volume: a.integer().default(0.5),
-
-
-  }).authorization((allow) => [
+  })
+  .secondaryIndexes((index) => [index('trackId')])
+  .authorization((allow) => [
     allow.authenticated().to(['read']),
     allow.owner(),
   ]),
@@ -223,6 +228,7 @@ const schema = a.schema({
       profile: a.belongsTo('Profile', 'trackOwnerId'),
       songTracks: a.hasMany('SongTracks', 'trackId'),
     })
+    .secondaryIndexes((index) => [index('trackOwnerId')])
     .authorization((allow) => [
       allow.authenticated().to(['read']),
       allow.owner(),
@@ -246,9 +252,10 @@ const schema = a.schema({
       profile: a.belongsTo('Profile', 'taskOwnerId'),
       song: a.belongsTo('Songs', 'songId'),
     })
+    .secondaryIndexes((index) => [index('taskId')])
     .authorization((allow) => [
       allow.owner()
-    ]),
+    ]), 
 
   AiCompanionData: a
     .model({
@@ -276,6 +283,7 @@ const schema = a.schema({
       totalLikes: a.integer().default(0),
       updatedAt: a.datetime(),
     })
+    .secondaryIndexes((index) => [index('aiOwnerId')])
     .authorization((allow) => [
       allow.guest().to(["read"]),
       allow.owner()
@@ -387,6 +395,7 @@ const schema = a.schema({
       aiCompanion: a.belongsTo('AiCompanionData', 'aiCompanionId'),
       song: a.belongsTo('Songs', 'songId'),
     })
+    .secondaryIndexes((index) => [index('songId')])
     .authorization((allow) => [
       allow.guest().to(["read"]),
       allow.owner()
@@ -407,6 +416,7 @@ const schema = a.schema({
       aiCompanion: a.belongsTo('AiCompanionData', 'aiCompanionId'),
       battle: a.belongsTo('LipSyncBattlesParent', 'battleId'),
     })
+    .secondaryIndexes((index) => [index('battleId')])
     .authorization((allow) => [
       allow.guest().to(["read"]),
       allow.owner()
@@ -427,6 +437,7 @@ const schema = a.schema({
       aiCompanion: a.belongsTo('AiCompanionData', 'aiCompanionId'),
       comment: a.belongsTo('Comments', 'commentId'),
     })
+    .secondaryIndexes((index) => [index('commentId')])
     .authorization((allow) => [
       allow.guest().to(["read"]),
       allow.owner()

@@ -18,6 +18,34 @@ export function useTasks() {
     const error = ref<string | null>(null);
     const loading = ref(false);
 
+    async function fetchTasksForUser(userId: string) {
+        try {
+            loading.value = true;
+            error.value = null;
+
+            const response = await client.models.ComputeTasks.list({
+                filter: {
+                    taskOwnerId: {
+                        eq: userId
+                    }
+                },
+                sort: {
+                    field: 'createdAt',
+                    direction: 'desc'
+                }
+            });
+
+            return response;
+        } catch (err) {
+            const message = err instanceof Error ? err.message : 'Unknown error';
+            console.error('Error fetching tasks:', message);
+            error.value = 'Error fetching tasks: ' + message;
+            return [];
+        } finally {
+            loading.value = false;
+        }
+    }
+
     async function fetchTasksForSong(songId: string) {
         try {
             loading.value = true;
@@ -139,6 +167,7 @@ export function useTasks() {
         tasks,
         loading,
         error,
+        fetchTasksForUser,
         fetchTasksForSong,
         createTask,
         updateTaskStatus,

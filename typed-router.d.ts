@@ -30,5 +30,6 @@ declare module 'vue-router/auto-routes' {
     '/record-lyrics': RouteRecordInfo<'/record-lyrics', '/record-lyrics', Record<never, never>, Record<never, never>>,
     '/settings': RouteRecordInfo<'/settings', '/settings', Record<never, never>, Record<never, never>>,
     '/songs': RouteRecordInfo<'/songs', '/songs', Record<never, never>, Record<never, never>>,
+    '/tasks': RouteRecordInfo<'/tasks', '/tasks', Record<never, never>, Record<never, never>>,
   }
 }
