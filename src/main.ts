@@ -24,7 +24,7 @@ const router = createRouter({
 
 Amplify.configure(outputs);
 
-console.log('VITE_APP_TEST_VARIABLE', import.meta.env.VITE_APP_TEST_VARIABLE);
+console.log('VITE_APP_PUBLIC_STATIC', import.meta.env.VITE_APP_MUSIC_GEN_ENDPOINT );
 
 
 const app = createApp(App)
