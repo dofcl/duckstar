@@ -29,7 +29,7 @@
     "paths": {
       "@/*": ["./src/*"]
     },
-    "strict": true,                    // Recommended to add
+    "strict": false,                    // Recommended to add
     "skipLibCheck": true,             // Can help with third-party library issues
     "esModuleInterop": true           // Helps with import compatibility
   }

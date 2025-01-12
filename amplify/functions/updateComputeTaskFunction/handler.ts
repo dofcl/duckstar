@@ -14,6 +14,16 @@ interface LambdaFunctionUrlEvent {
   };
 }
 
+// Simplified type for the task response
+interface ComputeTask {
+  taskId: string;
+  status?: string;
+  failed?: boolean;
+  failedReason?: string;
+  finished?: boolean;
+  finishedAt?: string;
+}
+
 export const handler = async (event: LambdaFunctionUrlEvent) => {
   console.log('Raw event:', JSON.stringify(event, null, 2));
   
@@ -22,22 +32,11 @@ export const handler = async (event: LambdaFunctionUrlEvent) => {
     const body = JSON.parse(event.body);
     console.log('Parsed body:', JSON.stringify(body, null, 2));
     
-    // Try to get a task
     const taskId = body.arguments.taskId;
     console.log('Attempting to get task with ID:', taskId);
     
-  
-    type ComputeTaskResponse = { id: string; /* add other fields as needed */ };
-    type ComputeTaskData = { taskId: string; /* add other fields as needed */ };
-    const response = await client.models.ComputeTasks.get({ id: taskId }).catch(err => {
-      console.error('Error fetching task:', err);
-      return { data: null };
-    }) as { data: ComputeTaskData | null };
-    const computeTaskResponse: ComputeTaskResponse = response.data ? {
-      id: response.data.taskId,
-      // map other fields as needed
-    } : { id: '' }; // handle the case where data is null
-    console.log('Get task response:', JSON.stringify(computeTaskResponse, null, 2));
+    const response = await client.models.ComputeTasks.get({ id: taskId });
+    console.log('Raw response:', JSON.stringify(response, null, 2));
 
     return {
       statusCode: 200,
