@@ -1,40 +1,39 @@
 import { defineFunction } from '@aws-amplify/backend';
 
-interface EventType {
-  body: string;  // Lambda Function URL sends the body as a string
-  data: {
-    ComputeTasks: {
-      update: (input: Record<string, any>) => Promise<any>;
-    };
-  };
+interface UpdateTaskInput {
+  taskId: string;
+  status?: string;
+  failed?: boolean;
+  failedReason?: string;
+  finished?: boolean;
+  finishedAt?: string;
 }
 
-export const handler = async (event: EventType) => {
+export const handler = async (event: any) => {  // Use any for Lambda URL event
   console.log('Raw event:', JSON.stringify(event, null, 2));
   
   try {
-    // Parse the body from the Lambda Function URL event
-    const body = JSON.parse(event.body);
-    const { taskId, status, failed, failedReason, finished, finishedAt } = body.arguments;
+    // Parse the request body
+    const requestBody = JSON.parse(event.body);
+    
+    // Access the database through context instead of event
+    const result = await event.data.ComputeTasks.update(requestBody.arguments);
 
-    const updateData = {
-      taskId,
-      ...(status !== undefined && { status }),
-      ...(failed !== undefined && { failed }),
-      ...(failedReason !== undefined && { failedReason }),
-      ...(finished !== undefined && { finished }),
-      ...(finished && finishedAt && { finishedAt })
-    };
-
-    const response = await event.data.ComputeTasks.update(updateData);
     return {
       statusCode: 200,
-      body: JSON.stringify(response)
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(result)
     };
+    
   } catch (err) {
     console.error('Error:', err);
     return {
       statusCode: 500,
+      headers: {
+        'Content-Type': 'application/json'
+      },
       body: JSON.stringify({
         message: 'Failed to update compute task',
         error: err instanceof Error ? err.message : 'Unknown error'
