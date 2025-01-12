@@ -23,7 +23,7 @@
 </template>
 
 <script setup lang="ts">
-import { defineProps, ref, computed, defineEmits, watch } from 'vue';
+import {ref, computed, defineEmits, watch } from 'vue';
 import { useSongs } from '@/composables/useSongs';
 const { updateSongField } = useSongs();
 
