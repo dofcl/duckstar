@@ -1,8 +1,22 @@
+import { defineFunction } from '@aws-amplify/backend';
 
-export const handler = async (event: { arguments: { taskId: any; status: any; failed: any; failedReason: any; finished: any; finishedAt: any; }; data: { ComputeTasks: { update: (arg0: any) => any; }; }; }) => {
-  const { taskId, status, failed, failedReason, finished, finishedAt } = event.arguments;
+interface EventType {
+  body: string;  // Lambda Function URL sends the body as a string
+  data: {
+    ComputeTasks: {
+      update: (input: Record<string, any>) => Promise<any>;
+    };
+  };
+}
 
+export const handler = async (event: EventType) => {
+  console.log('Raw event:', JSON.stringify(event, null, 2));
+  
   try {
+    // Parse the body from the Lambda Function URL event
+    const body = JSON.parse(event.body);
+    const { taskId, status, failed, failedReason, finished, finishedAt } = body.arguments;
+
     const updateData = {
       taskId,
       ...(status !== undefined && { status }),
@@ -13,9 +27,18 @@ export const handler = async (event: { arguments: { taskId: any; status: any; fa
     };
 
     const response = await event.data.ComputeTasks.update(updateData);
-    return response;
+    return {
+      statusCode: 200,
+      body: JSON.stringify(response)
+    };
   } catch (err) {
-    console.error('Error updating compute task:', err);
-    throw new Error('Failed to update compute task');
+    console.error('Error:', err);
+    return {
+      statusCode: 500,
+      body: JSON.stringify({
+        message: 'Failed to update compute task',
+        error: err instanceof Error ? err.message : 'Unknown error'
+      })
+    };
   }
 };
