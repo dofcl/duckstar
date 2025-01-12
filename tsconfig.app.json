@@ -29,7 +29,7 @@
     "paths": {
       "@/*": ["./src/*"]
     },
-    "strict": false,                    // Recommended to add
+    //"strict": true, // disabled due to https://github.com/aws-amplify/amplify-ui/issues/3254
     "skipLibCheck": true,             // Can help with third-party library issues
     "esModuleInterop": true           // Helps with import compatibility
   }

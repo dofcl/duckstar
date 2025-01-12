@@ -6,7 +6,7 @@
     "resolveJsonModule": true,
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
-    //"strict": true,
+    //"strict": true, // disabled due to https://github.com/aws-amplify/amplify-ui/issues/3254
     "skipLibCheck": true,
     "paths": {
       "$amplify/*": [

@@ -1,51 +1,28 @@
 import { defineFunction } from '@aws-amplify/backend';
-import { generateClient } from 'aws-amplify/data';
-import type { Schema } from '../../../amplify/data/resource';
+import { type Schema } from '../../../amplify/data/resource';
 
-const client = generateClient<Schema>();
-
-interface LambdaFunctionUrlEvent {
-  version: string;
-  body: string;
-  requestContext: {
-    http: {
-      method: string;
-    };
-  };
-}
-
-// Simplified type for the task response
-interface ComputeTask {
-  taskId: string;
-  status?: string;
-  failed?: boolean;
-  failedReason?: string;
-  finished?: boolean;
-  finishedAt?: string;
-}
-
-export const handler = async (event: LambdaFunctionUrlEvent) => {
+export const handler = async (event: any) => {
   console.log('Raw event:', JSON.stringify(event, null, 2));
   
   try {
-    // Parse and log the request body
     const body = JSON.parse(event.body);
     console.log('Parsed body:', JSON.stringify(body, null, 2));
     
     const taskId = body.arguments.taskId;
-    console.log('Attempting to get task with ID:', taskId);
+    console.log('Looking for taskId:', taskId);
+
+    // Use event.data to access the data layer directly
+    const task = await event.data.ComputeTasks.get({
+      taskId: taskId
+    });
     
-    const response = await client.models.ComputeTasks.get({ id: taskId });
-    console.log('Raw response:', JSON.stringify(response, null, 2));
+    console.log('Task response:', JSON.stringify(task, null, 2));
 
     return {
       statusCode: 200,
-      headers: {
-        'Content-Type': 'application/json'
-      },
       body: JSON.stringify({
         success: true,
-        data: response
+        data: task
       })
     };
     
@@ -53,9 +30,6 @@ export const handler = async (event: LambdaFunctionUrlEvent) => {
     console.error('Error:', err);
     return {
       statusCode: 500,
-      headers: {
-        'Content-Type': 'application/json'
-      },
       body: JSON.stringify({
         success: false,
         message: 'Failed to get compute task',
