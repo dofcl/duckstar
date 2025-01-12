@@ -1,6 +1,4 @@
 import { a, defineData, type ClientSchema } from '@aws-amplify/backend';
-import { updateComputeTaskFunction } from '../functions/updateComputeTaskFunction/resource';
-
 const schema = a.schema({
   Profile: a
     .model({
@@ -452,22 +450,7 @@ const schema = a.schema({
         lyrics: a.string(),
       })
     )
-    .authorization((allow) => allow.authenticated()),
-
-  // functions
-  updateComputeTaskFunction: a
-    .query()
-    .arguments({
-      taskId: a.string(),
-      status: a.string(),
-      failed: a.boolean(),
-      failedReason: a.string(),
-      finished: a.boolean(),
-      finishedAt: a.string(),
-    })
-    .returns(a.string())
-    .handler(a.handler.function(updateComputeTaskFunction))
-    .authorization((allow) => allow.guest())
+    .authorization((allow) => allow.authenticated())
 });
 
 
