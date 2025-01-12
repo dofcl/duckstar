@@ -240,6 +240,8 @@ const schema = a.schema({
       status: a.string().default('STARTED'),
       taskDescription: a.string(),
       songId: a.string(),
+      ref1: a.string(),
+      ref2: a.string(),   
       updatedAt: a.datetime(),
       profile: a.belongsTo('Profile', 'taskOwnerId'),
       song: a.belongsTo('Songs', 'songId'),

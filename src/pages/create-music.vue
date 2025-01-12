@@ -187,6 +187,8 @@ const { getSong } = useSongs();
 const { createTask, fetchTasksForSong } = useTasks();
 const router = useRouter()
 const route = useRoute()
+//todo: move to env variables
+console.log('move to hard coded urls to env variables')
 const publicStatic = 'https://duckstar-public.s3.eu-central-1.amazonaws.com'
 const mainMusicAiGenEndpoint = 'https://3fft5jczjoxmmy4n5vzwwk2ila0nrpaj.lambda-url.eu-central-1.on.aws/'
 const mainMusicAiGenCallback = 'https://i75qwdyr4sd75kc45fnzidcwma0tporc.lambda-url.eu-central-1.on.aws/bea3066a-dcfc-4ec1-9c71-ac42086f7053'
