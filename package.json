@@ -27,6 +27,7 @@
     "@aws-amplify/backend": "^1.13.0",
     "@aws-amplify/backend-cli": "^1.2.9",
     "@tsconfig/node20": "^20.1.4",
+    "@types/aws-lambda": "^8.10.147",
     "@types/country-list": "^2.1.4",
     "@types/node": "^20.12.5",
     "@vitejs/plugin-vue": "^5.0.4",

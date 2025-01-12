@@ -20,7 +20,7 @@
                     Create Lyrics
                 </el-button>
                 <p class="ma-1 pa-0 mt-2">or</p>
-                <el-button type="" @click="goToCreateMusic" size="large" link>Create Music</el-button>
+                <el-button type="" @click="goToCreateMusic" size="large" link>Create music first</el-button>
             </div>
         </div>
     </div>
