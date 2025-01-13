@@ -85,6 +85,7 @@
             </div>
         </template>
     </el-dialog>
+    <audio id="bg-audio" src="/music/menu-bg.mp3" autoplay loop></audio>
 </template>
 
 <script setup lang="ts">

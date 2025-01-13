@@ -32,6 +32,9 @@ html.dark {
   --el-color-primary-light-3: #e0c74a;
   --el-color-primary-light-5: #ab9838;
   --el-color-primary-dark-2: #c8b34a;
+  --el-overlay-color-lighter: #000000e3;
+
+  --el-color-secondary: #8B5CF6;
 }
 
 .el-button--primary {
@@ -212,4 +215,9 @@ html.dark {
 
 span.flag.normal-flag.mr-2 {
   margin: 0 0 -14px
+}
+
+.el-dialog {
+  max-width: 554px;
+  border: 2px solid var(--el-color-secondary)
 }

@@ -49,6 +49,13 @@ const schema = a.schema({
       lipSyncBattlesAsPlayer2: a.hasMany('LipSyncBattlesParent', 'player2Id'),
       lipSyncBattlesWon: a.hasMany('LipSyncBattlesParent', 'winnerId'),
       notificationsReceived: a.hasMany('UserNotifications', 'userId'),
+      recordLabelName: a.string(),
+      website: a.string(),
+      logo: a.string(),
+      twitter: a.string(),
+      tiktok: a.string(),
+      instagram: a.string(),
+      facebook: a.string(),
     })
     .secondaryIndexes((index) => [index('userId')])
     .authorization((allow) => [
@@ -174,6 +181,7 @@ const schema = a.schema({
       likesCount: a.integer().default(0),
       playCount: a.integer().default(0),
       royalties: a.integer().default(0),
+      price: a.integer().default(0),
       shares: a.integer().default(0),
       totalDuration: a.integer(),
       trendingScore: a.float().default(0),
@@ -201,6 +209,7 @@ const schema = a.schema({
     song: a.belongsTo('Songs', 'songId'),
     track: a.belongsTo('Tracks', 'trackId'),
     volume: a.integer().default(0.5),
+
   })
   .secondaryIndexes((index) => [index('trackId')])
   .authorization((allow) => [
@@ -219,9 +228,11 @@ const schema = a.schema({
       createdAt: a.datetime(),
       description: a.string(),
       instruments: a.string(),
-      recordLabel: a.string(),
+      genres: a.string(), //max3
       status: a.string().default('ACTIVE'),
       title: a.string(),
+      price: a.integer().default(0),
+      isExplicit: a.boolean().default(false),
       updatedAt: a.datetime(),
       royalties: a.integer().default(0),
       songCount: a.integer().default(0),
@@ -237,6 +248,7 @@ const schema = a.schema({
   ComputeTasks: a
     .model({
       taskOwnerId: a.string().required(),
+      taskType: a.string().required(),// i.e ai model used and purpose of task
       taskId: a.string().required(),
       createdAt: a.datetime(),
       failed: a.boolean().default(false),
@@ -248,6 +260,7 @@ const schema = a.schema({
       songId: a.string(),
       ref1: a.string(),
       ref2: a.string(),   
+      ref3: a.string(),   
       updatedAt: a.datetime(),
       profile: a.belongsTo('Profile', 'taskOwnerId'),
       song: a.belongsTo('Songs', 'songId'),

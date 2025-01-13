@@ -31,7 +31,7 @@
                         </el-icon>
                     </el-button>
                 </div>
-                <div class="grid grid-cols-3  items-center mt-0 pt-0 mt-5 pt-5">
+                <div class="grid grid-cols-3  items-center mt-0 pt-0 mt-5 pt-4">
                     <!-- Record Player (Drop Zone) -->
                     <div :class="['record-player', `group-${group.id}`, { 'spinning': group.isSpinning }]"
                         @dragover.prevent @drop.prevent="(e) => handleDrop(e, group)">
@@ -100,12 +100,20 @@
 
         <hr>
         <div class="action-buttons mx-auto text-center mt-0 pt-0">
-            <p class="text-white text-center ma-0 pa-0 ma-0 pa-0 mb-1" v-if="instrumentsSelected < 3">
+
+            <p class="text-white text-center ma-0 pa-0 ma-0 pa-0 mb-1"
+                v-if="instrumentsSelected < 3 && !hasFinishedTasks">
                 Add at least {{ 3 - instrumentsSelected }} layers to sent to producer<br>
             </p>
             <el-button v-if="!produced" @click="openProducerDialog" size="large" class="mt-2"
-                :type="instrumentsSelected < 3 ? 'default' : 'primary'" :disabled="instrumentsSelected < 3">
-                Send to Producer
+                :type="instrumentsSelected < 3 && !hasFinishedTasks ? 'default' : 'primary'"
+                :disabled="instrumentsSelected < 3 && !hasFinishedTasks">
+                <span v-if="hasFinishedTasks">
+                    Producer's Tracks
+                </span>
+                <span v-else>
+                    Send to Producer
+                </span>
             </el-button>
 
             <div v-if="produced">
@@ -139,7 +147,8 @@
 
         <hr class="mt-4">
         <div class="recording-controls mx-auto pa-4 text-center">
-            <el-button @click="createLyrics" size="large">Edit Lyrics</el-button>
+            <el-button @click="editLyrics" size="large">Edit Lyrics</el-button>
+            <el-button @click="recordLyrics" size="large" type="info">Record Singing</el-button>
             <el-button @click="isRecording ? stopRecording() : startRecording()"
                 :class="['record-button', { 'recording': isRecording }]" size="large" type="primary">
                 {{ isRecording ? 'Stop Saving' : 'Save' }}
@@ -151,17 +160,37 @@
         :before-close="handleCloseProducer">
         <div class="grid grid-cols-1 md:grid-cols-2 gap-2 mt-0 pt-0">
             <video id="producer-vid1" class="video-producer mx-auto mt-0 pt-0"
-                poster="https://duckstar-public.s3.eu-central-1.amazonaws.com/images/producers/tom/tom-256.png"
-                src="https://duckstar-public.s3.eu-central-1.amazonaws.com/videos/producers/tom/create-song/tom-create-v1.mp4"
-                autoplay @click="playProducer" playsinline></video>
+                :poster="`${publicStatic}/images/producers/tom/tom-256.png`"
+                :src="`${publicStatic}/videos/producers/tom/create-song/tom-create-v1.mp4`" autoplay
+                @click="playProducer" playsinline></video>
             <div class="mx-auto text-left mt-0 pt-0">
                 <p class="mt-0 pt-0">Great start!</p>
-                <p>Let me refine it a bit and provide an example vocal track to help you kick things off.</p>
-                <p>What style of lyrics are you looking for? </p>
-                <el-select placeholder="Lyrics" v-model="lyrics">
-                    <el-option v-for="item in lyricStyles" :key="item.value" :label="item.label" :value="item.value" />
-                </el-select>
+                <p class="mb-0 pb-0">I started working on some version for you, let me know if you like any of them?</p>
+                <div class="track-previews-wrapper mt-0 pt-0">
+                    <div v-for="(task, index) in tasks.data" class="track-previews mx-auto text-center mt-0 pt-0">
+                        <div v-if="task.ref1" class="relative">
+                            <p class="mb-1 text-left">v{{ index + 1 }}-a</p>
+                            <p class="absolute right-0 bottom-12 "><el-button @click=confirmVersion(task)
+                                    type="info">This version</el-button></p>
+                            <audio v-if="task.ref1" :src="getAudioSrc(task, task.ref1)" controls></audio>
+                        </div>
+                        <div v-if="task.ref2" class="relative mt-8">
+                            <p class="absolute right-0 bottom-12 "><el-button @click=confirmVersion(task)
+                                    type="info">This version</el-button></p>
+                            <p class="mb-1 text-left">v{{ index + 1 }}-b</p>
 
+                            <audio v-if="task.ref2" :src="getAudioSrc(task, task.ref2)" controls></audio>
+                        </div>
+
+                    </div>
+                </div>
+
+                <p class="text-center">
+                <div v-if="!tasks.data || loading">
+                    <DuckLoader />
+                </div>
+                <el-button v-if="!loading" @click="makeMore" link>Make more</el-button>
+                </p>
             </div>
         </div>
         <div class="mx-auto text-center ma-2">
@@ -187,14 +216,13 @@ const { getSong } = useSongs();
 const { createTask, fetchTasksForSong } = useTasks();
 const router = useRouter()
 const route = useRoute()
-//todo: move to env variables
-console.log('move to hard coded urls to env variables')
 const publicStatic = import.meta.env.VITE_APP_PUBLIC_STATIC
-const mainMusicAiGenEndpoint = import.meta.env.VITE_APP_MUSIC_GEN_ENDPOINT 
+const mainMusicAiGenEndpoint = import.meta.env.VITE_APP_MUSIC_GEN_ENDPOINT
 const mainMusicAiGenCallback = import.meta.env.VITE_APP_MUSIC_GEN_CALLBACK
 
 // Audio Context Setup
 const audioContext = new (window.AudioContext || window.webkitAudioContext)()
+
 
 // State Management
 const loading = ref(true)
@@ -216,6 +244,9 @@ const touchStartPos = ref({ x: 0, y: 0 })
 const dragClone = ref(null)
 const showProducerDialog = ref(false)
 const produced = ref(false)
+const songData = ref([])
+const tasks = ref([])
+const hasFinishedTasks = ref(false)
 const lyrics = ref('')
 const lyricStyles = ref([
     { label: 'Pop', value: 'pop' },
@@ -227,6 +258,10 @@ const trackVolumes = ref({
     vocals: 70,
     master: 70
 })
+const getAudioSrc = (task, ref) => {
+    return task.status === 'COMPLETE' ? `https://producer.duckstar.app/model-a2/${ref}.mp3` : `https://producer.duckstar.app/model-a1/${ref}`;
+};
+
 const createAiGenMusic = ref(true)
 
 // Configuration
@@ -240,9 +275,12 @@ const instrumentConfig = [
     { id: 7, color: '#00CED1', audioPrefix: 'Violin', label: 'Violin' },
 ]
 
-function createLyrics() {
+function recordLyrics() {
+    router.push('/record-lyrics?songId='+songData.value.id)
+}
 
-    router.push('/record-lyrics')
+function editLyrics() {
+    router.push('/edit-lyrics?songId='+songData.value.id)
 }
 // Utility Functions
 function generateInitialDiscs(group) {
@@ -952,6 +990,42 @@ function changeLyrics(value) {
 
 
 }
+
+function makeMore() {
+    loading.value = true
+    aiGenMusic(true)
+}
+
+async function pollTaskStatus(taskId, interval = 1000) {
+    let previousStatus = null
+
+    return new Promise((resolve, reject) => {
+        const poll = async () => {
+            console.log('polling', taskId)
+            try {
+                const status = await checkTaskStatus(taskId)
+
+                if (status !== previousStatus) {
+                    previousStatus = status
+                    if (status === 'COMPLETED') {
+                        resolve(status)
+                        return
+                    }
+                    if (status === 'FAILED') {
+                        reject(new Error('Task failed'))
+                        return
+                    }
+                }
+
+                setTimeout(poll, interval)
+            } catch (error) {
+                reject(error)
+            }
+        }
+
+        poll()
+    })
+}
 async function syncAllAudio() {
     try {
         // Show sync loading indicator
@@ -1196,9 +1270,9 @@ async function handleDrop(e, group) {
 }
 
 // Pause/Play Toggle Function
-async function pausePlay() {
+async function pausePlay(forceStop = false) {
     try {
-        if (isPlaying.value) {
+        if (isPlaying.value || forceStop) {
             // Store the state of backing tracks
             const wasVocalEnabled = backingVocalEnabled.value
             const wasMainTrackEnabled = mainBackingTrackEnabled.value
@@ -1238,7 +1312,7 @@ async function pausePlay() {
             // Preserve the enabled states
             backingVocalEnabled.value = wasVocalEnabled
             mainBackingTrackEnabled.value = wasMainTrackEnabled
-        } else {
+        } else if (!forceStop) {
             // Resume playback with existing backing track states
             await restartAllAudioInSync(false) // Pass false to maintain backing track states
             isPlaying.value = true
@@ -1381,13 +1455,16 @@ function playAllAudio() {
     isPlaying.value = true
 }
 
-function openProducerDialog() {
-    pausePlay()
+async function openProducerDialog() {
+    pausePlay(true)
     showProducerDialog.value = true
     const producerVid = document.getElementById('producer-vid1');
+    tasks.value = await fetchTasksForSong(songData.value.id)
     if (producerVid) {
         producerVid.play();
     }
+    console.log(tasks.value)
+
 }
 function handleCloseProducer() {
     showProducerDialog.value = false
@@ -1410,7 +1487,7 @@ function playProducer() {
     document.getElementById('producer-vid1').play()
 }
 
-function aiGenMusic() {
+function aiGenMusic(poll = false) {
     console.log('start ai gen que')
     const myHeaders = new Headers();
     myHeaders.append("Content-Type", "application/json");
@@ -1435,18 +1512,23 @@ function aiGenMusic() {
         .then(async (result) => {
             console.log(result)
             console.log("taskId", result.data.data.taskId)
-            await createTask({
+            const newTask = await createTask({
                 taskOwnerId: songData.value.songOwnerId,
                 taskId: result.data.data.taskId,
                 songId: songData.value.id,
                 taskDescription: `Generating music from prompt: ${songData.value.lyrics.substring(0, 50)}...`
             });
+            tasks.value.push(newTask);
+            console.log(tasks.value)
+            if (poll) {
+                pollTaskStatus(result.data.data.taskId)
+            }
+
         })
         .catch((error) => console.error('Error:', error));
 
 }
 
-const songData = ref({})
 // Initial Audio Loading
 onMounted(async () => {
     await fadeOutAndStop(2000)
@@ -1460,8 +1542,9 @@ onMounted(async () => {
             console.log('check if has task')
             fetchTasksForSong(songData.value.id).then((tasks) => {
                 console.log('tasks', tasks)
-                if (tasks && tasks.length > 0) {
-                    console.log('has tasks', tasks)
+                if (tasks && tasks.data.length > 0) {
+                    console.log('has tasks only make new if requested', tasks)
+                    hasFinishedTasks.value = tasks.data.some(task => task.status === 'COMPLETE')
                 } else {
                     if (createAiGenMusic.value && songData.value.lyrics) {
                         console.log('generating new task')
@@ -1498,6 +1581,13 @@ onMounted(async () => {
 
     loading.value = false
 })
+
+function confirmVersion(task) {
+    console.log('save this version', task)
+    console.log('save original to song')
+    console.log('split tracks and save them and link to song')
+    console.log('when saved save "song tracks')
+}
 
 // Cleanup Function
 onUnmounted(() => {
@@ -2116,5 +2206,20 @@ circle.remove-instrument-btn {
 
 .change-lyrics {
     width: 125px;
+}
+
+.remove-instrument-btn {
+    position: absolute;
+    right: 8px;
+    top: 5px;
+}
+
+.track-previews-wrapper {
+    max-height: 200px;
+    overflow: scroll;
+}
+
+.track-previews audio {
+    max-width: 256px;
 }
 </style>

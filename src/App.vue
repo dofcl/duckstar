@@ -80,8 +80,6 @@ function muteAudio() {
     </authenticator>
 
   </div>
-
-  <audio id="bg-audio" src="/music/menu-bg.mp3" autoplay loop></audio>
 </template>
 
 <style>
