@@ -128,7 +128,6 @@ onMounted(() => {
 <style scoped>
 .genre-select {
     width: 100%;
-    margin: 20px auto;
 }
 
 .suggestion-item {

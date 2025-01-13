@@ -5,9 +5,13 @@
     </div>
     <div v-else>
         <h1 class="pa-0 ma-0 mt-2 text-white">Music Machine</h1>
-        <p class="text-white text-sm text-center mt-0 pt-0">Drag the records onto the record player.<br>
-            <img src="@/assets/images/arrow-drop.png" class="arrow-drop mx-auto text-center" />
-        </p>
+        <div id="instructions" class="ma-0 pa-0">
+
+            <p class="text-white text-sm text-center mt-0 pt-0">Drag the records
+                onto the record player.<br>
+                <img src="@/assets/images/arrow-drop.png" class="arrow-drop mx-auto text-center" />
+            </p>
+        </div>
 
 
         <div class="dj-app px-2 mt-0 mt-0">
@@ -64,37 +68,39 @@
 
             <div class="text-center mt-4 relative">
                 <p class="text-white sync-load blink hide-sync">Syncronizing...</p>
-                <el-button v-if="!isPlaying" @click="syncAllAudio" size="large"><el-icon>
+                <el-button v-if="!isPlaying" @click="syncAllAudio" type="info" size="large"><el-icon>
                         <VideoPlay />
                     </el-icon></el-button>
-                <el-button v-else @click="pausePlay" size="large" class="play-all-button">
+                <el-button v-else @click="pausePlay" type="info" size="large" class="play-all-button">
                     <el-icon>
                         <VideoPause />
                     </el-icon>
                 </el-button>
 
             </div>
-
+            <hr>
             <!-- Controls -->
-            <p class="text-white text-center ma-0 pa-0 mt-4">Add instrument layer</p>
-            <div class="controls ma-0 pa-0">
+            <div class="grid grid-cols-2 gap-2">
+                <div class="text-white text-center ma-0 pa-0 mt-4">Add instrument:</div>
+                <div class="controls ma-0 pa-0">
 
-                <el-select v-if="enableChangeMix" v-model="currentMix" @change="changeMix" placeholder="Select Mix"
-                    class="mt-0 pt-0">
-                    <el-option label="Mix 1" value="mix1"></el-option>
-                    <el-option label="Mix 2" value="mix2"></el-option>
-                </el-select>
-
-                <div class="instrument-selector  mb-2 mt-2 pt-0">
-
-                    <el-select v-model="currentInstrument" size="large" class="w-full instrument-selecta"
-                        @change="addInstrument">
-                        <el-option v-for="inst in availableInstruments" :key="inst.id" :label="inst.label"
-                            :value="inst.id"></el-option>
+                    <el-select v-if="enableChangeMix" v-model="currentMix" @change="changeMix" placeholder="Select Mix"
+                        class="mt-0 pt-0">
+                        <el-option label="Mix 1" value="mix1"></el-option>
+                        <el-option label="Mix 2" value="mix2"></el-option>
                     </el-select>
 
+                    <div class="instrument-selector  mb-2 mt-2 pt-0">
+
+                        <el-select v-model="currentInstrument" size="large" class="w-full instrument-selecta"
+                            @change="addInstrument">
+                            <el-option v-for="inst in availableInstruments" :key="inst.id" :label="inst.label"
+                                :value="inst.id"></el-option>
+                        </el-select>
+
+                    </div>
+                    <br>
                 </div>
-                <br>
             </div>
         </div>
 
@@ -146,58 +152,72 @@
         </div>
 
         <hr class="mt-4">
-        <div class="recording-controls mx-auto pa-4 text-center">
+        <div class="recording-controls mx-auto pt-4 text-center">
             <el-button @click="editLyrics" size="large">Edit Lyrics</el-button>
-            <el-button @click="recordLyrics" size="large" type="info">Record Singing</el-button>
+            <el-button @click="recordLyrics" size="large" type="info">Sing</el-button>
             <el-button @click="isRecording ? stopRecording() : startRecording()"
-                :class="['record-button', { 'recording': isRecording }]" size="large" type="primary">
-                {{ isRecording ? 'Stop Saving' : 'Save' }}
+                :class="['record-button', { 'recording': isRecording }]" size="large"
+                :type="isRecording ? 'danger' : 'primary'">
+                {{ isRecording ? 'Stop Recording' : 'Record' }}
             </el-button>
         </div>
     </div>
     <br>
+    <br>
     <el-dialog title="Producer" v-model="showProducerDialog" width="80%" class="produced-dialog"
         :before-close="handleCloseProducer">
         <div class="grid grid-cols-1 md:grid-cols-2 gap-2 mt-0 pt-0">
-            <video id="producer-vid1" class="video-producer mx-auto mt-0 pt-0"
+            <video v-if="!tasks || tasks.length < 2" id="producer-vid1" class="video-producer mx-auto mt-0 pt-0 "
                 :poster="`${publicStatic}/images/producers/tom/tom-256.png`"
                 :src="`${publicStatic}/videos/producers/tom/create-song/tom-create-v1.mp4`" autoplay
                 @click="playProducer" playsinline></video>
             <div class="mx-auto text-left mt-0 pt-0">
-                <p class="mt-0 pt-0">Great start!</p>
-                <p class="mb-0 pb-0">I started working on some version for you, let me know if you like any of them?</p>
-                <div class="track-previews-wrapper mt-0 pt-0">
-                    <div v-for="(task, index) in tasks.data" class="track-previews mx-auto text-center mt-0 pt-0">
-                        <div v-if="task.ref1" class="relative">
-                            <p class="mb-1 text-left">v{{ index + 1 }}-a</p>
-                            <p class="absolute right-0 bottom-12 "><el-button @click=confirmVersion(task)
+                <p class="ma-0 pa-0" v-if="!tasks || tasks.length < 2">Great start!</p>
+                <p class="ma-0 pa-0">I started working on some version for you.</p>
+                <div v-if="hasFinishedTasks" class="track-previews-wrapper mt-4 pt-0">
+                    <p class="ma-0 pa-0 mb-3">Let me know if you like any of them?</p>
+                    <div v-for="(task, index) in tasks" class="track-previews mx-auto text-center ma-0 pa-0">
+                        <div v-if="task?.ref1" class="relative track-preview-single">
+                            <audio v-if="task?.ref1" :src="getAudioSrc(task, task.ref1)" controls></audio>
+                            <p class="absolute right-2 ma-0 pa-0 "><el-button @click=confirmVersion(task)
                                     type="info">This version</el-button></p>
-                            <audio v-if="task.ref1" :src="getAudioSrc(task, task.ref1)" controls></audio>
-                        </div>
-                        <div v-if="task.ref2" class="relative mt-8">
-                            <p class="absolute right-0 bottom-12 "><el-button @click=confirmVersion(task)
-                                    type="info">This version</el-button></p>
-                            <p class="mb-1 text-left">v{{ index + 1 }}-b</p>
+                            <p class="ma-0 pa-0 text-left">v{{ index + 1 }}-a</p>
 
-                            <audio v-if="task.ref2" :src="getAudioSrc(task, task.ref2)" controls></audio>
+                        </div>
+                        <div v-if="task?.ref2" class="relative mt-2 track-preview-single">
+                            <audio v-if="task.ref2" :src="getAudioSrc(task, task.ref2)" controls
+                                class="ma-0 pa-0"></audio>
+                            <p class="absolute right-2 ma-0 pa-0 "><el-button @click=confirmVersion(task)
+                                    type="info">This version</el-button></p>
+                            <p class="ma-0 pa-0 text-left">v{{ index + 1 }}-b</p>
+
+
                         </div>
 
                     </div>
+                    <p class="text-center mt-2 pt-0">
+                    <div v-if="!tasks || loading">
+                        Producing song...
+                        <DuckLoader />
+
+                    </div>
+                    <el-button v-if="!loading" @click="makeMore" link class="mt-4">Make more</el-button>
+                    </p>
+                </div>
+                <div v-else>
+                    Producing song...
+                    <DuckLoader />
+
                 </div>
 
-                <p class="text-center">
-                <div v-if="!tasks.data || loading">
-                    <DuckLoader />
-                </div>
-                <el-button v-if="!loading" @click="makeMore" link>Make more</el-button>
-                </p>
+
             </div>
         </div>
         <div class="mx-auto text-center ma-2">
             <hr class="ma-4">
             <span slot="footer" class="dialog-footer mt-8">
-                <el-button @click="showProducerDialog = false">Not yet</el-button>
-                <el-button type="primary" @click="handleConfirmProducer">Do your thing!</el-button>
+                <el-button @click="showProducerDialog = false">Close</el-button>
+                <el-button type="primary" @click="handleConfirmProducer">Continue!</el-button>
             </span>
         </div>
 
@@ -275,12 +295,19 @@ const instrumentConfig = [
     { id: 7, color: '#00CED1', audioPrefix: 'Violin', label: 'Violin' },
 ]
 
+function saveSong() {
+    startRecording()
+    console.log('save song and tracks')
+}
+
 function recordLyrics() {
-    router.push('/record-lyrics?songId='+songData.value.id)
+    saveSong()
+    router.push('/record-lyrics?songId=' + songData.value.id)
 }
 
 function editLyrics() {
-    router.push('/edit-lyrics?songId='+songData.value.id)
+    saveSong()
+    router.push('/edit-lyrics?songId=' + songData.value.id)
 }
 // Utility Functions
 function generateInitialDiscs(group) {
@@ -996,36 +1023,68 @@ function makeMore() {
     aiGenMusic(true)
 }
 
-async function pollTaskStatus(taskId, interval = 1000) {
-    let previousStatus = null
+async function pollTaskStatus(interval = 1000, taskId = null) {
+    let previousStatus = null;
+    loading.value=true
+    console.log('start polling', taskId);
 
     return new Promise((resolve, reject) => {
         const poll = async () => {
-            console.log('polling', taskId)
             try {
-                const status = await checkTaskStatus(taskId)
+                const tasksData = await fetchTasksForSong(songData.value.id);
 
-                if (status !== previousStatus) {
-                    previousStatus = status
-                    if (status === 'COMPLETED') {
-                        resolve(status)
-                        return
-                    }
-                    if (status === 'FAILED') {
-                        reject(new Error('Task failed'))
-                        return
+
+                if (tasksData && tasksData.data.length > 0) {
+                    console.log('has tasks', tasks);
+
+                    // If taskId is provided, only check that specific task
+                    if (taskId) {
+                        console.log('polling for', taskId)
+                        loading.value=true
+                        const targetTask = tasksData.data.find(task => task.taskId === taskId);
+                        console.log(targetTask)
+                        if (targetTask) {
+                            console.log('check status', targetTask.status);
+                            if (targetTask.ref1 !== '') {
+                                loading.value = false;
+                                tasks.value = [targetTask];
+                                resolve([targetTask]);
+                                return;
+                            }
+                        }
+                    } else {
+                        console.log('polling any task')
+                        // Original behavior for all tasks
+                        hasFinishedTasks.value = tasksData.data.some(task => {
+                            console.log('check status', task.status)
+                            if (task.ref1) {
+                                console.log('ot ref1')
+                                tasks.value = tasksData.data;
+                                resolve(tasksData.data);
+                                loading.value = false
+                                return true;
+                            }
+                            return false;
+                        });
+
+
                     }
                 }
 
-                setTimeout(poll, interval)
-            } catch (error) {
-                reject(error)
-            }
-        }
+                console.log(tasks.value);
+                setTimeout(poll, interval);
 
-        poll()
-    })
+            } catch (error) {
+                console.error('Polling error:', error);
+                reject(error);
+            }
+        };
+
+        // Start polling
+        poll();
+    });
 }
+
 async function syncAllAudio() {
     try {
         // Show sync loading indicator
@@ -1189,6 +1248,8 @@ async function syncAllAudio() {
 }
 
 async function handleDrop(e, group) {
+    const instructons = document.getElementById('instructions')
+    instructions.classList.add('hide-sync')
     document.querySelectorAll('.sync-load').forEach(item => {
         item.classList.remove('hide-sync')
         item.classList.add('blink')
@@ -1267,6 +1328,7 @@ async function handleDrop(e, group) {
         dragClone.value.remove();
         dragClone.value = null;
     }
+    instructions.style.display = "none"
 }
 
 // Pause/Play Toggle Function
@@ -1463,6 +1525,9 @@ async function openProducerDialog() {
     if (producerVid) {
         producerVid.play();
     }
+    if (tasks) {
+        pollTaskStatus()
+    }
     console.log(tasks.value)
 
 }
@@ -1512,16 +1577,21 @@ function aiGenMusic(poll = false) {
         .then(async (result) => {
             console.log(result)
             console.log("taskId", result.data.data.taskId)
+            console.log("onwer", songData.value.songOwnerId)
+            console.log("song id", songData.value.id)
+            console.log("lyrics", songData.value.lyrics.substring(0, 50))
             const newTask = await createTask({
                 taskOwnerId: songData.value.songOwnerId,
                 taskId: result.data.data.taskId,
                 songId: songData.value.id,
                 taskDescription: `Generating music from prompt: ${songData.value.lyrics.substring(0, 50)}...`
             });
+            console.log('newTask', newTask)
             tasks.value.push(newTask);
             console.log(tasks.value)
             if (poll) {
-                pollTaskStatus(result.data.data.taskId)
+                console.log('poll more', newTask.data.taskId)
+                pollTaskStatus(1000, newTask.data.taskId)
             }
 
         })
@@ -1536,25 +1606,24 @@ onMounted(async () => {
     console.log('songId', songId)
     await getSong(songId).then((resp) => {
         if (resp) {
-            console.log('songData', resp)
-            console.log('songData title', resp.title)
+            console.log('songData', resp);
+            console.log('songData title', resp.title);
             songData.value = resp;
-            console.log('check if has task')
-            fetchTasksForSong(songData.value.id).then((tasks) => {
-                console.log('tasks', tasks)
-                if (tasks && tasks.data.length > 0) {
-                    console.log('has tasks only make new if requested', tasks)
-                    hasFinishedTasks.value = tasks.data.some(task => task.status === 'COMPLETE')
+            console.log('check if has task');
+            fetchTasksForSong(songData.value.id).then((tasksData) => {
+                console.log('tasks', tasksData);
+                if (tasksData && tasksData.data && tasksData.data.length > 0) {
+                    console.log('has tasks only make new if requested', tasksData);
+                    hasFinishedTasks.value = tasksData.data.some(task => task.ref1);
                 } else {
                     if (createAiGenMusic.value && songData.value.lyrics) {
-                        console.log('generating new task')
-                        aiGenMusic()
+                        console.log('generating new task');
+                        aiGenMusic();
                     }
                 }
-            })
-
+            });
         } else {
-            console.error('Failed to fetch song data');
+            console.error('Error fetching song data');
         }
 
     });
@@ -2215,11 +2284,23 @@ circle.remove-instrument-btn {
 }
 
 .track-previews-wrapper {
-    max-height: 200px;
+    max-height: 400px;
     overflow: scroll;
 }
 
 .track-previews audio {
-    max-width: 256px;
+    max-width: 250px;
+}
+
+hr {
+
+    border: 0.11px solid #444;
+}
+
+.track-preview-single {
+    border: 2px solid #444;
+    padding: 10px;
+    border-radius: 5px;
+    min-height: 115px;
 }
 </style>

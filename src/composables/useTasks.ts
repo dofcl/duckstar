@@ -80,6 +80,7 @@ export function useTasks() {
 
             const response = await client.models.ComputeTasks.create({
                 ...input,
+                taskType: 'defaultType', // or any appropriate value
                 status: input.status || 'STARTED',
                 finished: false,
                 failed: false
