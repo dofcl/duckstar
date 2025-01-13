@@ -196,6 +196,8 @@ const schema = a.schema({
       lipSyncBattles: a.hasMany('LipSyncBattlesParent', 'songId'),
       status: a.string().default('DRAFT'),
       computeTasks: a.hasMany('ComputeTasks', 'songId'),
+      private: a.boolean().default(false),
+      published: a.boolean().default(false)
     })
     .secondaryIndexes((index) => [index('songOwnerId')])
     .authorization((allow) => [
@@ -224,7 +226,9 @@ const schema = a.schema({
         allow.owner().to(['create', 'read']),
         allow.authenticated().to(['read'])
       ]).required(),
+      trackType: a.string(),
       audioUrl: a.string(),
+      modelRef: a.string(),
       createdAt: a.datetime(),
       description: a.string(),
       instruments: a.string(),
@@ -238,6 +242,7 @@ const schema = a.schema({
       songCount: a.integer().default(0),
       profile: a.belongsTo('Profile', 'trackOwnerId'),
       songTracks: a.hasMany('SongTracks', 'trackId'),
+      private: a.boolean().default(true)
     })
     .secondaryIndexes((index) => [index('trackOwnerId')])
     .authorization((allow) => [
