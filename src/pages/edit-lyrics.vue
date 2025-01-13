@@ -2,7 +2,7 @@
     <DuckLoader v-if="loading" />
     <div v-else class="mt-6">
         <LyricsEditPlay :title="songTitle" :lyricsText="lyrics" :songData="songData"
-            @update:lyricsText="updateLyrics" />
+            @update:lyricsText="updateLyrics" :hideButtons="false" />
     </div>
 </template>
 <script setup lang="ts">

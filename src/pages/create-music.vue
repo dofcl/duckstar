@@ -172,10 +172,11 @@
                 :src="`${publicStatic}/videos/producers/tom/create-song/tom-create-v1.mp4`" autoplay
                 @click="playProducer" playsinline></video>
             <div class="mx-auto text-left mt-0 pt-0">
+
                 <p class="ma-0 pa-0" v-if="!tasks || tasks.length < 2">Great start!</p>
                 <p class="ma-0 pa-0">I started working on some version for you.</p>
+                <p v-if="hasFinishedTasks" class="ma-0 pa-0 mb-3">Let me know if you like any of them?</p>
                 <div v-if="hasFinishedTasks" class="track-previews-wrapper mt-4 pt-0">
-                    <p class="ma-0 pa-0 mb-3">Let me know if you like any of them?</p>
                     <div v-for="(task, index) in tasks" class="track-previews mx-auto text-center ma-0 pa-0">
                         <div v-if="task?.ref1" class="relative track-preview-single">
                             <audio v-if="task?.ref1" :src="getAudioSrc(task, task.ref1)" controls></audio>
@@ -197,14 +198,14 @@
                     </div>
                     <p class="text-center mt-2 pt-0">
                     <div v-if="!tasks || loading">
-                        Producing song...
+                        Producing more songs...
                         <DuckLoader />
 
                     </div>
                     <el-button v-if="!loading" @click="makeMore" link class="mt-4">Make more</el-button>
                     </p>
                 </div>
-                <div v-else>
+                <div v-else class="text-center mt-2 pt-0">
                     Producing song...
                     <DuckLoader />
 
@@ -226,8 +227,8 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
-import { useRouter, useRoute } from 'vue-router'
+import { ref, computed, onMounted, onUnmounted, watch, onBeforeUnmount } from 'vue'
+import { useRouter, useRoute, onBeforeRouteLeave } from 'vue-router'
 import { fadeOutAndStop } from '@/utils/fadeout';
 import { useSongs } from '@/composables/useSongs';
 import { useTasks } from '@/composables/useTasks';
@@ -283,6 +284,7 @@ const getAudioSrc = (task, ref) => {
 };
 
 const createAiGenMusic = ref(true)
+let pollingTimeout = null;
 
 // Configuration
 const instrumentConfig = [
@@ -1023,66 +1025,67 @@ function makeMore() {
     aiGenMusic(true)
 }
 
+
 async function pollTaskStatus(interval = 1000, taskId = null) {
-    let previousStatus = null;
-    loading.value=true
-    console.log('start polling', taskId);
+  let previousStatus = null;
+  loading.value = true;
+  console.log('start polling', taskId);
 
-    return new Promise((resolve, reject) => {
-        const poll = async () => {
-            try {
-                const tasksData = await fetchTasksForSong(songData.value.id);
+  return new Promise((resolve, reject) => {
+    const poll = async () => {
+      try {
+        const tasksData = await fetchTasksForSong(songData.value.id);
 
+        if (tasksData && tasksData.data.length > 0) {
+          console.log('has tasks', tasks);
 
-                if (tasksData && tasksData.data.length > 0) {
-                    console.log('has tasks', tasks);
-
-                    // If taskId is provided, only check that specific task
-                    if (taskId) {
-                        console.log('polling for', taskId)
-                        loading.value=true
-                        const targetTask = tasksData.data.find(task => task.taskId === taskId);
-                        console.log(targetTask)
-                        if (targetTask) {
-                            console.log('check status', targetTask.status);
-                            if (targetTask.ref1 !== '') {
-                                loading.value = false;
-                                tasks.value = [targetTask];
-                                resolve([targetTask]);
-                                return;
-                            }
-                        }
-                    } else {
-                        console.log('polling any task')
-                        // Original behavior for all tasks
-                        hasFinishedTasks.value = tasksData.data.some(task => {
-                            console.log('check status', task.status)
-                            if (task.ref1) {
-                                console.log('ot ref1')
-                                tasks.value = tasksData.data;
-                                resolve(tasksData.data);
-                                loading.value = false
-                                return true;
-                            }
-                            return false;
-                        });
-
-
-                    }
-                }
-
-                console.log(tasks.value);
-                setTimeout(poll, interval);
-
-            } catch (error) {
-                console.error('Polling error:', error);
-                reject(error);
+          // If taskId is provided, only check that specific task
+          if (taskId) {
+            console.log('polling for', taskId);
+            const targetTask = tasksData.data.find(task => task.taskId === taskId);
+            console.log(targetTask);
+            if (targetTask) {
+              console.log('check status', targetTask.status);
+              if (targetTask.ref1) {
+                tasks.value.push(targetTask);
+                hasFinishedTasks.value = true;
+                clearTimeout(pollingTimeout);
+                loading.value = false;
+                resolve([targetTask]);
+                return;
+              }
             }
-        };
+          } else {
+            console.log('polling any task');
+            // Original behavior for all tasks
+            hasFinishedTasks.value = tasksData.data.some(task => {
+              console.log('check status', task.status);
+              if (task.ref1 || task.status === "COMPLETE") {
+                console.log('ot ref1', task.ref1);
+                console.log('comp',tasksData.data)
+                tasks.value = tasksData.data;
+                loading.value = false;
+                clearTimeout(pollingTimeout);
+                resolve(tasksData.data);
+                return true;
+              }
+              return false;
+            });
+          }
+        }
+        pollingTimeout = setTimeout(poll, interval);
 
-        // Start polling
-        poll();
-    });
+      } catch (error) {
+        console.error('Polling error:', error);
+        clearTimeout(pollingTimeout);
+        loading.value = false;
+        reject(error);
+      }
+    };
+
+    // Start polling
+    poll();
+  });
 }
 
 async function syncAllAudio() {
@@ -1521,14 +1524,17 @@ async function openProducerDialog() {
     pausePlay(true)
     showProducerDialog.value = true
     const producerVid = document.getElementById('producer-vid1');
+    console.log("a",tasks)
     tasks.value = await fetchTasksForSong(songData.value.id)
+    console.log("b",tasks)
+
     if (producerVid) {
         producerVid.play();
     }
     if (tasks) {
         pollTaskStatus()
     }
-    console.log(tasks.value)
+
 
 }
 function handleCloseProducer() {
@@ -1599,11 +1605,26 @@ function aiGenMusic(poll = false) {
 
 }
 
+// Cancel polling on component unmount
+onBeforeUnmount(() => {
+    if (pollingTimeout) {
+        clearTimeout(pollingTimeout);
+    }
+});
+
+// Cancel polling on route leave
+onBeforeRouteLeave((to, from, next) => {
+    if (pollingTimeout) {
+        clearTimeout(pollingTimeout);
+    }
+    next();
+});
+
 // Initial Audio Loading
 onMounted(async () => {
-    await fadeOutAndStop(2000)
+    await fadeOutAndStop(2000);
     const songId = Array.isArray(route.query.songId) ? route.query.songId[0] : route.query.songId || '';
-    console.log('songId', songId)
+    console.log('songId', songId);
     await getSong(songId).then((resp) => {
         if (resp) {
             console.log('songData', resp);
@@ -1614,7 +1635,7 @@ onMounted(async () => {
                 console.log('tasks', tasksData);
                 if (tasksData && tasksData.data && tasksData.data.length > 0) {
                     console.log('has tasks only make new if requested', tasksData);
-                    hasFinishedTasks.value = tasksData.data.some(task => task.ref1);
+                    hasFinishedTasks.value = tasksData.data.some(task => task.status === 'COMPLETE');
                 } else {
                     if (createAiGenMusic.value && songData.value.lyrics) {
                         console.log('generating new task');
@@ -1625,10 +1646,12 @@ onMounted(async () => {
         } else {
             console.error('Error fetching song data');
         }
-
+    }).catch((error) => {
+        console.error('Error:', error);
     });
 
-    await fadeOutAndStop(2000)
+
+
     if (!window.AudioContext && !window.webkitAudioContext) {
         alert('Web Audio API not supported in this browser.');
         throw new Error('Web Audio API not supported');
@@ -1656,10 +1679,15 @@ function confirmVersion(task) {
     console.log('save original to song')
     console.log('split tracks and save them and link to song')
     console.log('when saved save "song tracks')
+    loading.value=false
+    showProducerDialog.value = false
 }
 
 // Cleanup Function
 onUnmounted(() => {
+    if (pollingTimeout) {
+        clearTimeout(pollingTimeout);
+    }
     // Stop and cleanup all audio sources
     audioSourceMap.value.forEach(({ source, gainNode }) => {
         cleanupAudioSource(source, gainNode)

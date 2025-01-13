@@ -1,8 +1,8 @@
 <template>
-    <div class="loader">
-        <div class="loader__inner">
-            <div class="loader__inner__text mx-auto text-center">
-                <img src="@/assets/loader.png" alt="DuckStar Logo" class="spinner" />
+    <div class="loader ma-0 pa-0">
+        <div class="loader__inner ma-0 pa-0">
+            <div class="loader__inner__text mx-auto text-center ma-0 pa-0">
+                <img src="@/assets/loader.png" alt="DuckStar Logo" class="spinner ma-0 pa-0" />
                 <h4 class="ma-0 pa-0">Loading...</h4>
             </div>
         </div>
@@ -13,7 +13,7 @@
     display: flex;
     justify-content: center;
     align-items: center;
-    min-height: 200px;
+    min-height: 100px;
     width: 100%;
 }
 

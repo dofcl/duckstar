@@ -1,6 +1,6 @@
 <template>
     <div>
-        <el-button class="float-right" @click="toggleEdit">{{ isEditing ? 'Save' : 'Edit' }}</el-button>
+        <el-button v-if="!props.hideButtons" class="float-right" @click="toggleEdit">{{ isEditing ? 'Save' : 'Edit' }}</el-button>
         <div v-if="!isEditing">
             <h3 class="ml-4 pt-0 mt-2">{{ title }}</h3>
             <div class="text-left ma-4 mt-2" v-html="formattedLyricsText"></div>
@@ -12,12 +12,12 @@
                 class="text-left mx-4 my-4" style="max-width: 95%;" />
         </div>
         <div class="text-right">
-            <el-button class="mb-2" @click="toggleEdit">{{ isEditing ? 'Save' : 'Edit' }}</el-button>
+            <el-button  v-if="!props.hideButtons"class="mb-2" @click="toggleEdit">{{ isEditing ? 'Save' : 'Edit' }}</el-button>
         </div>
 
-        <div class="text-center">
+        <div v-if="!props.hideButtons" class="text-center">
             <hr>
-            <el-button class="mt-2" @click="gotoMusic" type="primary" size="large">Add Music</el-button>
+            <el-button   class="mt-2" @click="gotoMusic" type="primary" size="large">Add Music</el-button>
         </div>
     </div>
 </template>
@@ -40,6 +40,7 @@ const props = defineProps<{
     lyricsText: string;
     title: string;
     songData: SongData;
+    hideButtons: boolean;
 }>();
 
 const emit = defineEmits(['update:lyricsText']);
