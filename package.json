@@ -21,7 +21,8 @@
     "element-plus": "^2.9.2",
     "vue": "^3.4.21",
     "vue-country-flag-next": "^2.3.2",
-    "vue-router": "^4.5.0"
+    "vue-router": "^4.5.0",
+    "web-audio-beat-detector": "^8.2.20"
   },
   "devDependencies": {
     "@aws-amplify/backend": "^1.13.0",
