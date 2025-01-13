@@ -19,6 +19,10 @@ import outputs from "../amplify_outputs.json";
 const router = createRouter({
     history: createWebHistory(),
     routes,
+    scrollBehavior(to, from, savedPosition) {
+        // Always scroll to top
+        return { top: 0 };
+      }
 });
 
 

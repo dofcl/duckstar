@@ -23,7 +23,7 @@ export function useTasks() {
             loading.value = true;
             error.value = null;
 
-            const response = await client.models.ComputeTasks.list({
+            const response: Array<ComputeTaskType> = await client.models.ComputeTasks.list({
                 index: 'taskOwnerId-index',
                 filter: {
                     taskOwnerId: {

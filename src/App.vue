@@ -4,7 +4,8 @@ import { Authenticator } from "@aws-amplify/ui-vue";
 import "@aws-amplify/ui-vue/styles.css";
 import { RouterView } from 'vue-router'
 import { useRouter } from 'vue-router'
-import MainMenu from '@/components/MainMenu.vue'
+import MobileMenu from '@/components/MobileMenu.vue'
+import DeskTopMenu from '@/components/DeskTopMenu.vue'
 
 const route = useRouter()
 const muted = ref(false)
@@ -33,7 +34,7 @@ function muteAudio() {
       <template v-slot="{ user, signOut }">
         <div class="common-layout">
           <el-container>
-            <el-header style="text-align: right; font-size: 12px" height="30px">
+            <el-header style="text-align: right; font-size: 12px" height="50px" class="header-top">
               <div class="header-logo">
                 <img src="@/assets/duck-star-logo-simple.png" alt="DuckStar logo" class="logo"
                   @click="route.push('/')" />
@@ -67,13 +68,20 @@ function muteAudio() {
                 </el-button>
               </div>
             </el-header>
-            <el-main>
-              <div class="signout-btn">
-                <el-button @click="signOut" class="float-right">Sign Out</el-button>
-              </div>
-              <RouterView />
-              <MainMenu />
-            </el-main>
+            <el-container>
+              <el-aside width="200px" class="hidden-xs-only">
+                <DeskTopMenu />
+              </el-aside>
+              <el-container>
+                <el-main>
+                  <div class="signout-btn">
+                    <el-button @click="signOut" class="float-right">Sign Out</el-button>
+                  </div>
+                  <RouterView />
+                  <MobileMenu />
+                </el-main>
+              </el-container>
+            </el-container>
           </el-container>
         </div>
       </template>
@@ -129,12 +137,59 @@ function muteAudio() {
 .main-wrapper {
   background-color: #222;
   margin: 10px;
-  padding: 10px;
+  padding: 0 10px;
   padding-bottom: 40px;
   border-radius: 5px;
-  max-width: 600px;
+  width: 90vw;
   margin: auto;
 }
+
+.el-main {
+  margin-top: 50px;
+}
+
+.header-top {
+  position: fixed;
+  width: 90vw;
+  background-color: #222;
+  height: 56px;
+  padding-top: 6px;
+}
+
+header.el-header.header-top {
+  margin-top: -10px;
+  height: 56px;
+  padding-top: 6px;
+}
+
+@media (max-width: 450px) {
+  .main-wrapper {
+    max-width: 600px;
+    min-height: 100vh;
+    width: 95vw;
+  }
+
+  .el-main {
+    margin-top: 0px;
+  }
+
+  header.el-header.header-top {
+  margin-top: -2px;
+  height: 56px;
+}
+  .header-top {
+    position: relative;
+    width: 95vw;
+    height: 70px;
+    background-color: transparent
+  }
+
+  .hidden-xs-only {
+    display: none;
+  }
+}
+
+
 
 button.amplify-button.amplify-field-group__control.amplify-button--primary.amplify-field-group__control.amplify-authenticator__font {
   background-color: #f9db4a;
