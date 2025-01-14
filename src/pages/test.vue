@@ -1,7 +1,21 @@
-<script setup>
-import BeatDetector from '@/components/BeatDetector.vue'
-</script>
-
 <template>
-  <BeatDetector />
+  <div>
+    <karaoke-player @recording-complete="handleRecording" />
+  </div>
 </template>
+
+<script>
+import KaraokePlayer from '@/Components/KaraokePlayer.vue'
+
+export default {
+  components: {
+    KaraokePlayer
+  },
+  methods: {
+    handleRecording(audioUrl) {
+      // Handle the recorded audio
+      console.log('Recording completed:', audioUrl)
+    }
+  }
+}
+</script>

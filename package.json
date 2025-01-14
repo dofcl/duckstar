@@ -19,6 +19,7 @@
     "country-list": "^2.3.0",
     "crypto-js": "^4.2.0",
     "element-plus": "^2.9.2",
+    "liricle": "^4.2.0",
     "vue": "^3.4.21",
     "vue-country-flag-next": "^2.3.2",
     "vue-router": "^4.5.0",
