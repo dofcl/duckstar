@@ -3,7 +3,7 @@
         <DuckLoader />
         <h4 class="text-center">Warming up the music machine...</h4>
     </div>
-    <div v-else>
+    <div v-else class="music-machine">
         <h1 class="pa-0 ma-0 mt-3 text-white">Music Machine</h1>
         <div id="instructions" class="ma-0 pa-0">
 
@@ -67,7 +67,7 @@
 
             </div>
 
-            <div class="text-center mt-4 relative">
+            <div class="text-center mt-3 mb-3 relative">
                 <p class="text-white sync-load blink hide-sync">Syncronizing...</p>
                 <el-button v-if="!isPlaying" @click="syncAllAudio" type="info" size="large"><el-icon>
                         <VideoPlay />
@@ -171,12 +171,12 @@
         <div class="grid grid-cols-1 md:grid-cols-2 gap-2 mt-0 pt-0">
             <video v-if="tasks.length < 2" id="producer-vid1" class="video-producer mx-auto mt-0 pt-0 "
                 :poster="`${publicStatic}/images/producers/tom/tom-256.png`"
-                :src="`${publicStatic}/videos/producers/tom/create-song/tom-create-v1.mp4`" autoplay
+                :src="`${publicStatic}/videos/producers/tom/create-song/tom-create-music-v1.mp4`" autoplay
                 @click="playProducer" playsinline></video>
             <div class="mx-auto text-left mt-0 pt-0">
                 <p class="ma-0 pa-0" v-if="tasks.length < 2">Great start!</p>
-                <p class="ma-0 pa-0">I started working on some version for you.</p>
-                <p v-if="hasFinishedTasks" class="ma-0 pa-0 mb-3">Let me know if you like any of them?</p>
+                <p class="ma-0 pa-0">I also started working on some version for you.</p>
+                <p v-if="hasFinishedTasks" class="ma-0 pa-0 mb-3">Let me know what you think?</p>
                 <div v-if="hasFinishedTasks" class="track-previews-wrapper mt-4 pt-0">
                     <div v-for="(task, index) in tasks" class="track-previews mx-auto text-center ma-0 pa-0">
                         <div v-if="task?.ref1" class="relative track-preview-single">
@@ -1544,6 +1544,7 @@ async function openProducerDialog() {
 }
 function handleCloseProducer() {
     showProducerDialog.value = false
+    loading.value=false
     const producerVid = document.getElementById('producer-vid1');
     if (producerVid) {
         producerVid.pause();
@@ -1714,6 +1715,11 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
+
+.music-machine {
+    margin: auto;
+    max-width: 600px;
+}
 .arrow-drop {
     margin-top: 10px;
     max-width: 60px;

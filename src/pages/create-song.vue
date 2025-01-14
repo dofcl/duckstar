@@ -10,7 +10,8 @@
             </div>
 
             <p class="mt-1 pa-0">Song Title</p>
-            <el-input v-model="songTitle" placeholder="Name your song" size="large" class="mt-0 pt-0" @input="missing=false" />
+            <el-input v-model="songTitle" placeholder="Name your song" size="large" class="mt-0 pt-0"
+                @input="missing = false" />
             <p class="mb-2 pa-0 mt-4">Song Style</p>
             <MusicGenre :userId="userId" :saveInComponent="false" @genres-selected="handleGenre" :musicGenre="genre" />
 
@@ -31,19 +32,20 @@
         <div v-if="loading">
             <DuckLoader />
             <div v-if="failed" class="text-orange ma-4 text-center">
-                <p>Something went wrong :-( Let's try again.</p>
+                <p>Something went wrong :-( We may be busy right now. Let's try again. But if it still doesn't work try again in a minute.</p>
                 <el-button type="info" @click="aiGenAll">Try again</el-button>
             </div>
             <el-progress class="mt-2" :percentage="progress" :stroke-width="10" striped />
         </div>
         <div v-else class="grid grid-cols-1 md:grid-cols-2 gap-2 mt-0 pt-0">
             <video id="producer-vid2" class="video-producer mx-auto mt-0 pt-0"
-                poster="https://duckstar-public.s3.eu-central-1.amazonaws.com/images/producers/tom/tom-256.png"
-                src="https://duckstar-public.s3.eu-central-1.amazonaws.com/videos/producers/tom/create-song/tom-create-v1.mp4"
-                autoplay @click="playProducer" playsinline></video>
+                :poster="`${publicStatic}/images/producers/tom/tom-256.png`"
+                :src="`${publicStatic}/videos/producers/tom/create-song/tom-create-song-v1.mp4`" autoplay
+                @click="playProducer" playsinline></video>
+
             <div v-if="!collab" class="mx-auto text-left mt-0 pt-0">
-                <p class="mt-0 pt-0 text-center">Got writers block or need some inspiration?<br> Don't worry I've got
-                    your back.</p>
+                <p class="mt-0 pt-0 text-center">Hey! I’m tricky ricky your producer. I’ll help you get your first music
+                    single released.</p>
 
 
 
@@ -66,14 +68,14 @@
                     <small>(If you leave blank I'll think of something)</small>
                 </p>
                 <el-input v-model="songDescription"></el-input>
-                <div class="mx-auto text-center ma-4">
+                <div class="mx-auto text-center ma-4" v-if="showcheckList">
                     <el-checkbox-group v-model="checkList">
                         <el-checkbox label="Write the Lyrics" value="lyricsTrue" />
                         <el-checkbox label="Make the music" value="musicTrue" />
                     </el-checkbox-group>
                 </div>
                 <div v-if="checkList.length > 0" class="mx-auto text-center ma-4">
-                    <el-button type="info" @click="aiGenAll" size="large">Create me a song</el-button>
+                    <el-button type="info" @click="aiGenAll" size="large">Let's write a song</el-button>
                 </div>
                 <div v-else class="text-center text-orange">Choose Lyrics, Music or Both</div>
             </div>
@@ -90,41 +92,23 @@ import { useRouter } from 'vue-router';
 import DuckLoader from '@/components/DuckLoader.vue';
 import { fadeOutAndStop } from '@/utils/fadeout';
 import { useSongs } from '@/composables/useSongs';
+import {genres} from '@/utils/musicGenres'
+
+const publicStatic = import.meta.env.VITE_APP_PUBLIC_STATIC
 
 const { createSong } = useSongs();
 const selectedGenre = ref();
-const genres = [
-    {
-        value: 'pop',
-        label: 'Pop',
-    },
-    {
-        value: 'rock',
-        label: 'Rock',
-    },
-    {
-        value: 'punk',
-        label: 'Punk',
-    },
-    {
-        value: 'hiphop',
-        label: 'Hip Hop',
-    },
-    {
-        value: 'rap',
-        label: 'Rap',
-    }
-]
 
 const loading = ref(false);
 const { createLyrics } = useSongs();
 const router = useRouter();
 const songTitle = ref('');
+const showcheckList = ref(false)
 const checkList = ref(['musicTrue', 'lyricsTrue']);
 const songDescription = ref();
 const userId = ref('');
 const genre = ref<string>('');
-const inspireModal = ref(false);
+const inspireModal = ref(true);
 const modalTitle = ref("I'll help you get started");
 const gotLyrics = ref(false);
 const lyrics = ref()
@@ -132,12 +116,12 @@ const failed = ref(false)
 const songId = ref('')
 const songData = ref({})
 
-const collab = ref(false)
+const collab = ref(true)
 const task = ref('lyrics')
 const missing = ref(false)
 
 const Close = () => {
-    collab.value = false;
+    //collab.value = false;
     inspireModal.value = false;
 }
 const saveSongdraft = async () => {
@@ -169,7 +153,7 @@ const openInspire = () => {
 
 const handleClose = () => {
     inspireModal.value = false;
-    collab.value = false;
+    //collab.value = false;
 }
 
 const aiGenAll = async () => {
@@ -290,7 +274,7 @@ const goToCreateLyrics = async () => {
     loading.value = true;
     missing.value = await checkForm()
     console.log('Creating song', songTitle.value, selectedGenre.value);
-    
+
     if (!missing.value) {
         aiGenAll();
     }

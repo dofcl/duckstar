@@ -1,7 +1,10 @@
 <template>
-  {{myProfile.id}} : onboarded {{ myProfile.onboarded|false }}
+
   <div v-if="loading">
     <DuckLoader />
+  </div>
+  <div v-if="myProfile.onboarded">
+    onbaoarded
   </div>
   <div v-else>
     <h1 class="text-white mb-0 pb-0 mt-3 pt-0">Welcome to DuckStar!</h1>

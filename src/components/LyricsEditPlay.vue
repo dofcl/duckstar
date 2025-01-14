@@ -2,30 +2,24 @@
     <div v-if="loading" class="mt-12">
         <DuckLoader />
     </div>
-    <div>
-        <el-button v-if="!props.hideButtons" class="float-right" type="info" @click="toggleEdit">{{ isEditing ? 'Save' :
-            'Edit'
-            }}</el-button>
-
+    <div class="edit-lyrics">
         <div v-if="!isEditing">
-            <h3 class="ml-4 pt-0 mt-2">{{ editableSongText }}</h3>
-            <div class="text-left ma-4 mt-2" v-html="formattedLyricsText"></div>
+            <h3 class="m-0 p-0 ml-4 mt-2 mb-4">{{ editableSongText }}</h3>
+            <div class="text-left mx-4 mt-0 pt-0" v-html="formattedLyricsText"></div>
         </div>
 
-        <div v-else class="mt-4 pt-4"><br>
+        <div v-else class="pt-0 mt-2"><br>
             <el-input v-model="editableSongText"></el-input>
             <el-input v-model="editableLyricsText" type="textarea" autosize :maxlength="wordLimit" show-word-limit
-                class="text-left mx-4 my-4" style="max-width: 95%;" />
-        </div>
-        <div class="text-right">
-            <el-button v-if="!props.hideButtons" class="mb-2" type="info" @click="toggleEdit">{{ isEditing ? 'Save' :
-                'Edit'
-                }}</el-button>
+                class="text-left mx-0 my-4" />
         </div>
 
-        <div v-if="!props.hideButtons" class="text-center">
+        <div v-if="!props.hideButtons" class="text-center mt-6">
             <hr>
-            <el-button class="mt-2" @click="inspireModal = true" size="large">Create New Lyrics</el-button>
+            <el-button class="mt-2" @click="inspireModal = true" size="large">Write New</el-button>
+            <el-button class="mt-2" type="info" size="large" @click="toggleEdit">{{ isEditing ? 'Save' :
+                'Edit'
+                }}</el-button>
             <el-button class="mt-2" @click="gotoMusic" type="primary" size="large">Add Music</el-button>
             <br>
             <br>
