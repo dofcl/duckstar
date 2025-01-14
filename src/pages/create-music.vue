@@ -4,7 +4,7 @@
         <h4 class="text-center">Warming up the music machine...</h4>
     </div>
     <div v-else>
-        <h1 class="pa-0 ma-0 mt-2 text-white">Music Machine</h1>
+        <h1 class="pa-0 ma-0 mt-3 text-white">Music Machine</h1>
         <div id="instructions" class="ma-0 pa-0">
 
             <p class="text-white text-sm text-center mt-0 pt-0">Drag the records

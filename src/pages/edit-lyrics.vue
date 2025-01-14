@@ -1,8 +1,8 @@
 <template>
-    <DuckLoader v-if="loading" />
+    <DuckLoader v-if="loading" class="mt-12"/>
     <div v-else class="mt-6">
         <LyricsEditPlay :title="songTitle" :lyricsText="lyrics" :songData="songData"
-            @update:lyricsText="updateLyrics" :hideButtons="false" />
+            @update:lyricsText="updateLyrics" @update:titleText="updateTitle" :hideButtons="false" />
     </div>
 </template>
 <script setup lang="ts">
@@ -23,6 +23,9 @@ const loading = ref(true)
 
 const updateLyrics = (newLyrics: string) => {
     lyrics.value = newLyrics;
+};
+const updateTitle = (newTitle: string) => {
+    songTitle.value = newTitle
 };
 
 onMounted(async () => {

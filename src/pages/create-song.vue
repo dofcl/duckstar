@@ -58,12 +58,12 @@
                 </div>
             </div>
             <div v-if="collab">
-                <p>What style of song do you want </p>
+                <p>What style of song do you want?</p>
                 <el-select placeholder="Lyrics" v-model="selectedGenre">
                     <el-option v-for="item in genres" :key="item.value" :label="item.label" :value="item.value" />
                 </el-select>
                 <p>What do you want the song to be about?<br>
-                    <small>(If you leave blank I'll thinkg of something)</small>
+                    <small>(If you leave blank I'll think of something)</small>
                 </p>
                 <el-input v-model="songDescription"></el-input>
                 <div class="mx-auto text-center ma-4">
@@ -248,7 +248,7 @@ let intervalId: ReturnType<typeof setInterval>;
 
 const startProgress = () => {
     progress.value = 0;
-    const duration = 40000; // 40 seconds
+    const duration = 30000; // 40 seconds
     const increment = 100 / (duration / 1000); // Increment per second
 
     intervalId = setInterval(() => {
