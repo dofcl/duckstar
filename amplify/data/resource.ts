@@ -18,6 +18,7 @@ const schema = a.schema({
       producerId: a.id(),
       status: a.string().default('ACTIVE'),
       updatedAt: a.datetime(),
+      showTutorials: a.boolean().default(true),
       credits: a.integer().default(100),
       creditLogs: a.hasMany('TokenCreditLogs', 'creditOwnerId'),
       computeTasks: a.hasMany('ComputeTasks', 'taskOwnerId'),

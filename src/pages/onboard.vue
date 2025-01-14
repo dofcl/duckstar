@@ -1,11 +1,11 @@
 <template>
-    <div class="mt-4">
-        <div v-if="loading">
+    <div class="mt-4 onboard">
+        <div v-if="loading" class="mt-12">
             <DuckLoader />
         </div>
-        <div v-else >
+        <div v-else>
             <div v-if="stage == 0" class="text-center">
-                <h1 class="text-white ma-0 pa-0">Create your AI Pop star</h1>
+                <h1 class="text-white ma-2 mt-6 pa-0">Create your AI Pop or Rock star</h1>
                 <p class="text-white mx-auto text-center mt-0">Use their voice, their face, or both—it's your choice!
                 </p>
                 <p class="text-white mx-auto text-center mt-0">As you gain experience, your AI pop star evolves,
@@ -26,31 +26,36 @@
                 <div class="mx-auto text-center mt-6">
                     <img v-if="myPersona" :src="myPersona" alt="myPersona" class="persona-image rd-full" /><br>
                     <p class="mt-2">
-                        <el-button v-if="myPersona" @click="change" class="ma-2">Change</el-button>
-                        <el-button v-if="myPersona" @click="next()" type="primary" class="ma-2">Next</el-button>
+                        <el-button v-if="myPersona" @click="change" size="large">Change</el-button>
+                        <el-button v-if="myPersona" @click="next()" type="primary" size="large" :loading="loading"
+                            class="ma-2">Next</el-button>
                     </p>
                 </div>
             </div>
             <div v-else-if="stage == 1" class="text-center">
-                <h1 class="text-white ma-0 pa-0">What are your favourite music genres?</h1>
-                <MusicGenre :userId="userId || ''" :musicGenre="myProfile?.musicGenre || ''"  :saveInComponent="true"/>
-                <el-button v-if="!(popStars?.length > 0)" @click="back()" class="ma-2 mt-0">Back</el-button>
-                <el-button @click="next()" type="primary" class="ma-2 mt-0">Next</el-button>
+                <h1 class="text-white ma-2 mt-6 pa-0">What are your favourite music genres?</h1>
+                <MusicGenre :userId="userId || ''" :musicGenre="myProfile?.musicGenre || ''" :saveInComponent="true"
+                    class="mb-4" />
+                <el-button v-if="!(popStars?.length > 0)" @click="back()" size="large">Back</el-button>
+                <el-button @click="next()" type="primary" size="large" :loading="loading"
+                    class="ma-0 mt-0">Next</el-button>
             </div>
             <div v-else-if="stage == 2" class="text-center">
-                <h1 class="text-white ma-0 pa-0 mb-2">My AI Pop Star</h1>
-                <EditAiPopStar :userId="userId || ''" />
+                <h1 class="text-white ma-0 pa-0 mb-2 mt-6">My AI Pop Star</h1>
+                <EditAiPopStar :userId="userId || ''" :preview="false" />
 
                 <div class="mt-4">
-                    <el-button @click="back()" class="ma-2">Back</el-button>
-                    <el-button @click="next()" type="primary" class="ma-2">Next</el-button>
+                    <el-button @click="back()" size="large">Back</el-button>
+                    <el-button @click="next()" type="primary" size="large" :loading="loading"
+                        class="ma-2">Next</el-button>
                 </div>
             </div>
 
             <div v-else-if="stage == 3" class="text-center">
-                <h1 class="text-white ma-0 pa-0 mb-4">My AI Pop Star</h1>
+                <h1 class="text-white ma-2 mt-6 pa-0 mb-4">My AI Pop Star</h1>
 
-                <img v-if="myPersona" :src="myPersona" alt="myPersona" class="persona-image rd-full" /><br>
+                <img v-if="myPersona || aiCompanion" :src="myPersona || aiCompanion.imageURL" alt="myPersona"
+                    class="persona-image rd-full" /><br>
                 <div v-if="selectedCountry" class="mt-1 mb-2">
                     <CountryFlag :country="selectedCountry?.toLowerCase()" class="text-4xl" />
                 </div>
@@ -98,7 +103,7 @@ import CountryFlag from 'vue-country-flag-next';
 import { useRouter } from 'vue-router';
 import { useProfile } from '../composables/useProfile';
 import { useAiCompanions } from '../composables/useAiCompanions';
-const { getOrCreateProfile } = useProfile();
+const { getOrCreateProfile, updateProfileField } = useProfile();
 const { createCompanion, fetchCompanions } = useAiCompanions();
 import { getCurrentUser } from 'aws-amplify/auth';
 const router = useRouter();
@@ -109,6 +114,7 @@ const bio = ref('');
 const name = ref('');
 const selectedCountry = ref();
 const userId = ref<string | null>(null);
+const aiCompanion = ref({})
 interface AiPopStar {
     aiOwnerId: string;
     followers: number | null;
@@ -158,7 +164,7 @@ const getAiSeed = (filePath: string): string => {
 const next = async () => {
     if (stage.value === 0 && myPersona.value && userId.value) {
         try {
-            const aiCompanion = await createCompanion({
+            aiCompanion.value = await createCompanion({
                 aiOwnerId: userId.value,
                 seedId: getAiSeed(myPersona.value),
                 imageURL: myPersona.value
@@ -171,6 +177,8 @@ const next = async () => {
         console.log('get AI Pop Star');
         console.log('popStars', popStars.value.length);
         const lastPopStarUsed = localStorage.getItem('lastPopStarUsed');
+        const allAiCompanion = await fetchCompanions()
+        aiCompanion.value = allAiCompanion[0]
 
         if (lastPopStarUsed) {
             console.log('lastPopStarUsed', lastPopStarUsed);
@@ -192,19 +200,22 @@ function back() {
     console.log("trigger welcome TTS");
 }
 
-function createSong() {
-    console.log('Create a song');
+async function createSong() {
+    loading.value = true
+    await updateProfileField(userId.value, 'onboarded', true)
     router.push('/create-song');
 }
 
-function lipSyncBattle() {
+async function lipSyncBattle() {
+    loading.value = true
+    await updateProfileField(userId.value, 'onboarded', true)
     router.push('/lip-sync-battle');
 }
 
 const initAudio = () => {
     const bgAudio = document.getElementById('bg-audio') as HTMLAudioElement | null;
     if (bgAudio) {
-        bgAudio.volume = 0.6;
+        bgAudio.volume = 0.4;
         try {
             const playPromise = bgAudio.play();
             if (playPromise !== undefined) {
@@ -252,7 +263,7 @@ const getAiPopStars = async () => {
             followers: typeof popStar.followers === 'function' ? null : popStar.followers
         }));
         popStars.value = aiPopStars;
-        console.log('popStars',popStars.value)
+        console.log('popStars', popStars.value)
         if (aiPopStars.length > 0) {
             stage.value = 1;
         }
@@ -287,6 +298,11 @@ onMounted(() => {
 </script>
 
 <style>
+.onboard {
+    margin: auto;
+    max-width: 600px;
+}
+
 .persona-image {
     width: 150px;
     height: 150px;

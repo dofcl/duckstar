@@ -27,7 +27,7 @@ function muteAudio() {
     <authenticator>
       <template v-slot:header>
         <div style="text-align: center" class="pa-2">
-          <img class="amplify-image" alt="DuckStar logo" src="/images/duckstar-into.jpg" />
+          <img class="amplify-image" alt="DuckStar logo" src="/images/duckstar-into-small.jpg" />
           <h1 class="ma-0 pa-0 text-white text-xlg logo-text">DuckStar</h1>
         </div>
       </template>

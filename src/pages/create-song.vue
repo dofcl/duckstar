@@ -34,7 +34,7 @@
                 <p>Something went wrong :-( Let's try again.</p>
                 <el-button type="info" @click="aiGenAll">Try again</el-button>
             </div>
-            <el-progress :percentage="progress" :stroke-width="10" striped />
+            <el-progress class="mt-2" :percentage="progress" :stroke-width="10" striped />
         </div>
         <div v-else class="grid grid-cols-1 md:grid-cols-2 gap-2 mt-0 pt-0">
             <video id="producer-vid2" class="video-producer mx-auto mt-0 pt-0"

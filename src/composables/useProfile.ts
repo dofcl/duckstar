@@ -104,35 +104,37 @@ export function useProfile() {
     }
 
     async function createProfile(
-        id: string,
         userId: string,
         initialData: Partial<Omit<CreateProfileInput, 'id' | 'userId'>> = {}
     ) {
         try {
             error.value = null;
-
+    
             const createInput: CreateProfileInput = {
-                id,
+                id: userId, // Use userId for both id and userId
                 userId,
                 ...initialData
             };
-
+    
+            // Log the createInput to check for null or undefined values
+            console.log('createInput:', createInput);
+    
             // Use create instead of update for new profiles
             const response = await client.models.Profile.create(createInput);
-
+    
             if (response.errors) {
                 const errorMessage = Array.isArray(response.errors) 
-                    ? response.errors.join(', ') 
-                    : response.errors.toString();
+                    ? response.errors.map(e => e.message).join(', ') 
+                    : JSON.stringify(response.errors);
                 console.error('Failed to create profile:', errorMessage);
                 error.value = 'Failed to create profile: ' + errorMessage;
                 return null;
             }
-
+    
             await fetchProfiles(userId); // Refresh the list
             return response.data;
         } catch (err) {
-            const message = err instanceof Error ? err.message : 'Unknown error';
+            const message = err instanceof Error ? err.message : JSON.stringify(err);
             console.error('Error creating profile:', message);
             error.value = 'Error creating profile: ' + message;
             return null;
@@ -158,8 +160,8 @@ export function useProfile() {
             return profile;
         } catch (err) {
             const message = err instanceof Error ? err.message : 'Unknown error';
-            console.error('Error in getOrCreate profile:', message);
-            error.value = 'Error in getOrCreate profile: ' + message;
+            console.error('Error in getOrCreateProfile:', message);
+            error.value = 'Error in getOrCreateProfile: ' + message;
             return null;
         } finally {
             loading.value = false;
