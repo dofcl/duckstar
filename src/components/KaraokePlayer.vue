@@ -25,8 +25,9 @@
             <div class="current-line">
                 <template v-for="(word, index) in currentWords" :key="index">
                     <span :class="{
-                        'highlight': isWordActive(word),
-                        'passed': isWordPassed(word)
+                        'highlight': word.highlight,
+                        'passed': word.passed,
+                        'upcoming': word.upcoming
                     }">
                         {{ word.text }}
                     </span>
@@ -2068,10 +2069,15 @@ export default {
                 try {
                     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
 
-                    // Create analyzer for mic input
+                    // Create and configure microphone input
                     const micSource = this.audioContext.createMediaStreamSource(stream);
-                    const micAnalyzer = this.audioContext.createAnalyser();
-                    micSource.connect(micAnalyzer);
+
+                    // Create a new analyzer specifically for the microphone
+                    this.micAnalyzer = this.audioContext.createAnalyser();
+                    this.micAnalyzer.fftSize = 2048;
+
+                    // Connect microphone to analyzer
+                    micSource.connect(this.micAnalyzer);
 
                     this.mediaRecorder = new MediaRecorder(stream);
                     this.mediaRecorder.ondataavailable = (event) => {
@@ -2080,10 +2086,10 @@ export default {
                         }
                     };
 
-                    // Start scoring
+                    // Start scoring at a higher rate for better responsiveness
                     this.scoreInterval = setInterval(() => {
                         this.updateScore();
-                    }, 100);
+                    }, 50);  // 20 times per second
 
                     this.mediaRecorder.start();
                     this.isRecording = true;
@@ -2091,15 +2097,25 @@ export default {
                     this.recordingInterval = setInterval(() => {
                         this.recordingDuration += 0.1;
                     }, 100);
+
+                    // Reset scores when starting new recording
+                    this.currentScore = 0;
+                    this.combo = 0;
+                    this.perfectCount = 0;
+                    this.greatCount = 0;
+
                 } catch (error) {
                     console.error('Error starting recording:', error);
                     this.errorMessage = 'Failed to start recording. Please check microphone permissions.';
                 }
             } else {
                 clearInterval(this.scoreInterval);
-                this.mediaRecorder.stop();
+                if (this.mediaRecorder && this.mediaRecorder.state === 'recording') {
+                    this.mediaRecorder.stop();
+                }
                 this.isRecording = false;
                 clearInterval(this.recordingInterval);
+                this.isPerformanceComplete = true;
             }
         },
         togglePlayback() {
@@ -2141,19 +2157,30 @@ export default {
         },
 
         updateLyrics() {
-            // Find current line based on word timings
+            // Look ahead by 1 second to show lyrics earlier
+            const lookAheadTime = this.currentTime;
+
             const currentLineIndex = this.lyrics.findIndex(line => {
                 const lineStartTime = line[0].startTime;
                 const lineEndTime = line[line.length - 1].endTime;
-                return this.currentTime >= lineStartTime && this.currentTime <= lineEndTime + 1;
+                return lookAheadTime >= lineStartTime && this.currentTime <= lineEndTime + 1;
             });
 
             if (currentLineIndex !== -1) {
+                // Show next line earlier for preparation
                 this.currentWords = this.lyrics[currentLineIndex];
                 this.previousLine = currentLineIndex > 0 ?
                     this.lyrics[currentLineIndex - 1].map(w => w.text).join(' ') : '';
                 this.nextLine = currentLineIndex < this.lyrics.length - 1 ?
                     this.lyrics[currentLineIndex + 1].map(w => w.text).join(' ') : '';
+
+                // Update word highlighting with smoother transitions
+                this.currentWords = this.currentWords.map(word => ({
+                    ...word,
+                    highlight: lookAheadTime >= word.startTime && this.currentTime < word.endTime,
+                    passed: this.currentTime >= word.endTime,
+                    upcoming: lookAheadTime >= word.startTime && this.currentTime < word.startTime
+                }));
             }
         },
 
@@ -2202,45 +2229,93 @@ export default {
                 console.error('Error in first interaction:', error);
             }
         },
+        calculateRMS(audioData) {
+            const sum = audioData.reduce((acc, val) => acc + (val * val), 0);
+            return Math.sqrt(sum / audioData.length);
+        },
+
+        getDominantFrequency(freqData) {
+            let maxValue = -Infinity;
+            let maxIndex = -1;
+
+            for (let i = 0; i < freqData.length; i++) {
+                if (freqData[i] > maxValue) {
+                    maxValue = freqData[i];
+                    maxIndex = i;
+                }
+            }
+
+            // Convert frequency bin to Hz
+            return maxIndex * this.audioContext.sampleRate / (this.analyzer.frequencyBinCount * 2);
+        },
+
+        isHumanVoice(freq, volume) {
+            // Basic voice detection (80Hz-1100Hz is typical human range)
+            return freq >= 80 && freq <= 1100 && volume > 0.1;
+        },
+
+        calculateTimingScore(activeWord) {
+            const wordDuration = activeWord.endTime - activeWord.startTime;
+            const currentPosition = this.currentTime - activeWord.startTime;
+            return 1 - Math.min(1, Math.abs(currentPosition - (wordDuration / 2)) / (wordDuration / 2));
+        },
         updateScore() {
             if (!this.isRecording || !this.scoringSystem) return;
 
-            // Get current active word
             const activeWord = this.currentWords.find(word => this.isWordActive(word));
             if (!activeWord) return;
 
-            // Get audio data from mic
-            const audioData = new Float32Array(this.analyzer.frequencyBinCount);
-            this.analyzer.getFloatFrequencyData(audioData);
+            // Get audio data
+            const bufferLength = this.analyzer.frequencyBinCount;
+            const audioData = new Float32Array(bufferLength);
+            const freqData = new Uint8Array(bufferLength);
 
-            // Calculate volume level
-            const volume = audioData.reduce((acc, val) => acc + Math.abs(val), 0) / audioData.length;
+            this.analyzer.getFloatTimeDomainData(audioData);
+            this.analyzer.getByteFrequencyData(freqData);
 
-            // Calculate score based on timing and volume
-            const score = Math.round(Math.max(0, Math.min(100, volume * 100)));
+            // Calculate metrics
+            const volume = this.calculateRMS(audioData);
+            const dominantFreq = this.getDominantFrequency(freqData);
+            const timingScore = this.calculateTimingScore(activeWord);
 
-            if (score > 50) { // Threshold for detecting singing
-                this.currentScore += score;
-                this.combo++;
+            if (this.isHumanVoice(dominantFreq, volume)) {
+                // Calculate composite score
+                const volumeWeight = 0.3;
+                const timingWeight = 0.7;
+
+                const normalizedVolume = Math.min(1, volume / 0.3); // Normalize volume to 0-1
+                const score = Math.round(
+                    (normalizedVolume * volumeWeight + timingScore * timingWeight) * 100
+                );
+
+                // Update feedback and combo
+                if (score > 90) {
+                    this.perfectCount++;
+                    this.combo++;
+                    this.scoreFeedback = { message: 'PERFECT! 🌟', color: '#FFD700' };
+                } else if (score > 75) {
+                    this.greatCount++;
+                    this.combo++;
+                    this.scoreFeedback = { message: 'GREAT! ⭐', color: '#00FF00' };
+                } else if (score > 60) {
+                    this.combo++;
+                    this.scoreFeedback = { message: 'GOOD! 👍', color: '#4CAF50' };
+                } else {
+                    this.combo = 0;
+                    this.scoreFeedback = { message: 'MISS 💫', color: '#FF0000' };
+                }
+
+                // Update max combo and score
                 if (this.combo > this.maxCombo) {
                     this.maxCombo = this.combo;
                 }
 
-                // Update feedback
-                if (score > 90) {
-                    this.perfectCount++;
-                    this.scoreFeedback = { message: 'PERFECT! 🌟', color: '#FFD700' };
-                } else if (score > 70) {
-                    this.greatCount++;
-                    this.scoreFeedback = { message: 'GREAT! ⭐', color: '#00FF00' };
-                } else {
-                    this.scoreFeedback = { message: 'GOOD! 👍', color: '#4CAF50' };
-                }
+                this.currentScore += score;
             } else {
                 this.combo = 0;
-                this.scoreFeedback = { message: 'MISS 💫', color: '#FF0000' };
+                this.scoreFeedback = { message: 'SING! 🎤', color: '#FF0000' };
             }
-        }
+        },
 
     },
 
@@ -2416,6 +2491,95 @@ export default {
 
 .current-line span.passed {
     color: #7f8c8d;
+}
+
+.lyrics-display {
+    margin: 1.25rem 0;
+    padding: 2rem;
+    background: rgba(0, 0, 0, 0.5);
+    border-radius: 1rem;
+    text-align: center;
+    min-height: 200px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+}
+
+.previous-line {
+    font-size: 1.125rem;
+    opacity: 0.5;
+    margin-bottom: 1rem;
+    color: #94a3b8;
+    transform: transition-all 0.5s ease-out;
+}
+
+.current-line {
+    font-size: 1.875rem;
+    line-height: 1.75rem;
+    margin: 1.25rem 0;
+    min-height: 48px;
+    transform: transition-all 0.3s ease-out;
+}
+
+.next-line {
+    font-size: 1.125rem;
+    opacity: 0.5;
+    margin-top: 1rem;
+    color: #94a3b8;
+    transform: transition-all 0.5s ease-out;
+}
+
+.current-line span {
+    display: inline-block;
+    padding: 0 0.5rem;
+    margin: 0 0.125rem;
+    border-radius: 0.25rem;
+    transition: all 0.3s ease-out;
+}
+
+.current-line span.highlight {
+    color: #10b981;
+    transform: scale(1.1);
+    font-weight: bold;
+    box-shadow: 0 0 0.5rem rgba(16, 185, 129, 0.2);
+    transition: all 0.3s ease-out;
+}
+
+.current-line span.passed {
+    color: #6b7280;
+    transform: scale(0.95);
+    transition: all 0.3s ease-out;
+}
+
+.current-line span.upcoming {
+    color: rgba(209, 213, 219, 0.8);
+    transform: scale(1);
+    transition: all 0.3s ease-out;
+}
+
+/* Add a gradient effect to show text direction */
+.lyrics-display::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 3rem;
+    background: linear-gradient(to bottom, rgba(0, 0, 0, 0.5), transparent);
+    pointer-events: none;
+}
+
+.lyrics-display::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 3rem;
+    background: linear-gradient(to top, rgba(0, 0, 0, 0.5), transparent);
+    pointer-events: none;
 }
 
 /* Performance Feedback */
