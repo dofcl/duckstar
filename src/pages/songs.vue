@@ -1,6 +1,6 @@
 <template>
     <div>
-        <DuckLoader v-if="loading" />
+        <DuckLoader v-if="loading" class="mt-12" />
 
         <div v-else>
             <div class="float-right">

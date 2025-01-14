@@ -1,5 +1,5 @@
 <template>
-    <div v-if="loading">
+    <div v-if="loading" class="mt-12">
         <DuckLoader />
         <h4 class="text-center">Warming up the music machine...</h4>
     </div>
@@ -37,7 +37,8 @@
                 </div>
                 <div class="grid grid-cols-3  items-center mt-0 pt-0 mt-5 pt-4">
                     <!-- Record Player (Drop Zone) -->
-                    <div :class="['record-player', `group-${group.id}`, { 'spinning': group.isSpinning }]"
+                    <div :id="`group-${group.id}`"
+                        :class="['record-player', `group-${group.id}`, { 'spinning': group.isSpinning, 'blinking-border': group.id === 1 && !isPlaying && instrumentsSelected < 2 }]"
                         @dragover.prevent @drop.prevent="(e) => handleDrop(e, group)">
                         <div :class="`color-indicator group-${group.id}-color`"><img class="center-duck"
                                 src="@/assets/images/records/little-duck.png" /></div>
@@ -93,6 +94,7 @@
                     <div class="instrument-selector  mb-2 mt-2 pt-0">
 
                         <el-select v-model="currentInstrument" size="large" class="w-full instrument-selecta"
+                            :class="{ 'blinking-border': isPlaying && instrumentsSelected > 0 && instrumentsSelected < 2 }"
                             @change="addInstrument">
                             <el-option v-for="inst in availableInstruments" :key="inst.id" :label="inst.label"
                                 :value="inst.id"></el-option>
@@ -109,7 +111,7 @@
 
             <p class="text-white text-center ma-0 pa-0 ma-0 pa-0 mb-1"
                 v-if="instrumentsSelected < 3 && !hasFinishedTasks">
-                Add at least {{ 3 - instrumentsSelected }} layers to sent to producer<br>
+                Add at least 3 instruments to sent to producer<br>
             </p>
             <el-button v-if="!produced" @click="openProducerDialog" size="large" class="mt-2"
                 :type="instrumentsSelected < 3 && !hasFinishedTasks ? 'default' : 'primary'"
@@ -167,13 +169,12 @@
     <el-dialog title="Producer" v-model="showProducerDialog" width="80%" class="produced-dialog"
         :before-close="handleCloseProducer">
         <div class="grid grid-cols-1 md:grid-cols-2 gap-2 mt-0 pt-0">
-            <video v-if="!tasks || tasks.length < 2" id="producer-vid1" class="video-producer mx-auto mt-0 pt-0 "
+            <video v-if="tasks.length < 2" id="producer-vid1" class="video-producer mx-auto mt-0 pt-0 "
                 :poster="`${publicStatic}/images/producers/tom/tom-256.png`"
                 :src="`${publicStatic}/videos/producers/tom/create-song/tom-create-v1.mp4`" autoplay
                 @click="playProducer" playsinline></video>
             <div class="mx-auto text-left mt-0 pt-0">
-
-                <p class="ma-0 pa-0" v-if="!tasks || tasks.length < 2">Great start!</p>
+                <p class="ma-0 pa-0" v-if="tasks.length < 2">Great start!</p>
                 <p class="ma-0 pa-0">I started working on some version for you.</p>
                 <p v-if="hasFinishedTasks" class="ma-0 pa-0 mb-3">Let me know if you like any of them?</p>
                 <div v-if="hasFinishedTasks" class="track-previews-wrapper mt-4 pt-0">
@@ -1027,65 +1028,65 @@ function makeMore() {
 
 
 async function pollTaskStatus(interval = 1000, taskId = null) {
-  let previousStatus = null;
-  loading.value = true;
-  console.log('start polling', taskId);
+    let previousStatus = null;
+    loading.value = true;
+    console.log('start polling', taskId);
 
-  return new Promise((resolve, reject) => {
-    const poll = async () => {
-      try {
-        const tasksData = await fetchTasksForSong(songData.value.id);
+    return new Promise((resolve, reject) => {
+        const poll = async () => {
+            try {
+                const tasksData = await fetchTasksForSong(songData.value.id);
 
-        if (tasksData && tasksData.data.length > 0) {
-          console.log('has tasks', tasks);
+                if (tasksData && tasksData.data.length > 0) {
+                    console.log('has tasks', tasks);
 
-          // If taskId is provided, only check that specific task
-          if (taskId) {
-            console.log('polling for', taskId);
-            const targetTask = tasksData.data.find(task => task.taskId === taskId);
-            console.log(targetTask);
-            if (targetTask) {
-              console.log('check status', targetTask.status);
-              if (targetTask.ref1) {
-                tasks.value.push(targetTask);
-                hasFinishedTasks.value = true;
+                    // If taskId is provided, only check that specific task
+                    if (taskId) {
+                        console.log('polling for', taskId);
+                        const targetTask = tasksData.data.find(task => task.taskId === taskId);
+                        console.log(targetTask);
+                        if (targetTask) {
+                            console.log('check status', targetTask.status);
+                            if (targetTask.ref1) {
+                                tasks.value.push(targetTask);
+                                hasFinishedTasks.value = true;
+                                clearTimeout(pollingTimeout);
+                                loading.value = false;
+                                resolve([targetTask]);
+                                return;
+                            }
+                        }
+                    } else {
+                        console.log('polling any task');
+                        // Original behavior for all tasks
+                        hasFinishedTasks.value = tasksData.data.some(task => {
+                            console.log('check status', task.status);
+                            if (task.ref1 || task.status === "COMPLETE") {
+                                console.log('ot ref1', task.ref1);
+                                console.log('comp', tasksData.data)
+                                tasks.value = tasksData.data;
+                                loading.value = false;
+                                clearTimeout(pollingTimeout);
+                                resolve(tasksData.data);
+                                return true;
+                            }
+                            return false;
+                        });
+                    }
+                }
+                pollingTimeout = setTimeout(poll, interval);
+
+            } catch (error) {
+                console.error('Polling error:', error);
                 clearTimeout(pollingTimeout);
                 loading.value = false;
-                resolve([targetTask]);
-                return;
-              }
+                reject(error);
             }
-          } else {
-            console.log('polling any task');
-            // Original behavior for all tasks
-            hasFinishedTasks.value = tasksData.data.some(task => {
-              console.log('check status', task.status);
-              if (task.ref1 || task.status === "COMPLETE") {
-                console.log('ot ref1', task.ref1);
-                console.log('comp',tasksData.data)
-                tasks.value = tasksData.data;
-                loading.value = false;
-                clearTimeout(pollingTimeout);
-                resolve(tasksData.data);
-                return true;
-              }
-              return false;
-            });
-          }
-        }
-        pollingTimeout = setTimeout(poll, interval);
+        };
 
-      } catch (error) {
-        console.error('Polling error:', error);
-        clearTimeout(pollingTimeout);
-        loading.value = false;
-        reject(error);
-      }
-    };
-
-    // Start polling
-    poll();
-  });
+        // Start polling
+        poll();
+    });
 }
 
 async function syncAllAudio() {
@@ -1251,15 +1252,8 @@ async function syncAllAudio() {
 }
 
 async function handleDrop(e, group) {
-    const instructons = document.getElementById('instructions')
-    instructions.classList.add('hide-sync')
-    document.querySelectorAll('.sync-load').forEach(item => {
-        item.classList.remove('hide-sync')
-        item.classList.add('blink')
-
-
-    })
     if (!currentDraggedDisc.value) return;
+
 
     let discId;
 
@@ -1287,6 +1281,14 @@ async function handleDrop(e, group) {
     } else {
         discId = e.dataTransfer.getData('text/plain');
     }
+
+    const instructions = document.getElementById('instructions')
+    instructions.classList.add('hide-sync')
+    document.querySelectorAll('.sync-load').forEach(item => {
+        item.classList.remove('hide-sync')
+        item.classList.add('blink')
+    })
+
 
     const disc = discs.value.find(d => d.id === discId);
     if (!disc || disc.group !== group.id) return;
@@ -1522,11 +1524,14 @@ function playAllAudio() {
 
 async function openProducerDialog() {
     pausePlay(true)
+    loading.value = false
     showProducerDialog.value = true
     const producerVid = document.getElementById('producer-vid1');
-    console.log("a",tasks)
-    tasks.value = await fetchTasksForSong(songData.value.id)
-    console.log("b",tasks)
+    console.log("a", tasks)
+    const checkTasks = await fetchTasksForSong(songData.value.id)
+    console.log('checkTasks', checkTasks)
+    tasks.value = checkTasks.data
+    console.log("b", tasks)
 
     if (producerVid) {
         producerVid.play();
@@ -1679,7 +1684,7 @@ function confirmVersion(task) {
     console.log('save original to song')
     console.log('split tracks and save them and link to song')
     console.log('when saved save "song tracks')
-    loading.value=false
+    loading.value = false
     showProducerDialog.value = false
 }
 
@@ -2330,5 +2335,38 @@ hr {
     padding: 10px;
     border-radius: 5px;
     min-height: 115px;
+}
+
+.instrument-selecta.blinking-border {
+    border-radius: 6px;
+}
+
+
+.blinking-border {
+    border: 2px solid transparent;
+    animation: blinkBorder 2s ease-in-out infinite;
+}
+
+
+@keyframes blinkBorder {
+    0% {
+        border-color: transparent;
+    }
+
+    25% {
+        border-color: var(--el-color-primary-light-3);
+    }
+
+    50% {
+        border-color: var(--el-color-primary);
+    }
+
+    75% {
+        border-color: var(--el-color-primary-light-3);
+    }
+
+    100% {
+        border-color: transparent;
+    }
 }
 </style>
