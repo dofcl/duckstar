@@ -1,43 +1,25 @@
 <!-- OKXConnect.vue -->
 <template>
-    <div class="okx-connect mt-12">
-      <!-- Telegram User Info (if available) -->
-      <div v-if="telegramUser" class="telegram-info">
-        <img 
-          :src="telegramUser.photo_url" 
-          alt="Profile" 
-          class="telegram-avatar"
-          v-if="telegramUser.photo_url"
-        >
-        <span class="telegram-name">{{ telegramUser.username || telegramUser.first_name }}</span>
-      </div>
-  
+    <div class="okx-connect">
       <!-- Connect Button -->
-      <div v-if="!isConnected" class="connect-section mt-8">
+      <div v-if="!isConnected" class="connect-section">
         <button 
           @click="connectWallet"
           :disabled="isConnecting"
           class="connect-button"
         >
-          <img 
-            src="@/assets/images/okx.png" 
-            alt="OKX Logo" 
-            class="okx-logo"
-            width="24" 
-            height="24" 
-          />
           {{ isConnecting ? 'Connecting...' : 'Connect OKX Wallet' }}
         </button>
         
         <!-- Error Message -->
-        <div v-if="error" class="mx-auto">
-          <p class="text-danger text-error">{{ error }}</p>
+        <div v-if="error" class="error-message">
+          {{ error }}
           <a 
             v-if="error.includes('install')"
-            href="https://www.okx.com/web3"
+            href="https://www.okx.com"
             target="_blank"
             rel="noopener noreferrer"
-            class="install-link text-center"
+            class="install-link"
           >
             Install Wallet
           </a>
@@ -46,16 +28,7 @@
   
       <!-- Connected State -->
       <div v-else class="connected-state">
-        <div class="wallet-info">
-          <img 
-            src="@/assets/images/okx.png" 
-            alt="OKX Logo" 
-            class="okx-logo-sm"
-            width="20" 
-            height="20" 
-          />
-          <span class="address">{{ truncatedAddress }}</span>
-        </div>
+        <span class="address">{{ truncatedAddress }}</span>
         <button @click="disconnectWallet" class="disconnect-button">
           Disconnect
         </button>
@@ -64,8 +37,6 @@
   </template>
   
   <script>
-  import { useWebApp } from 'vue-tg'
-  
   export default {
     name: 'OKXConnect',
     data() {
@@ -75,8 +46,6 @@
         address: '',
         error: '',
         chainId: '',
-        telegramUser: null,
-        isTelegramApp: false
       }
     },
     computed: {
@@ -89,23 +58,6 @@
       checkWalletInstalled() {
         if (typeof window === 'undefined') return false
         return Boolean(window.okxwallet)
-      },
-      async initTelegramData() {
-        try {
-          const webApp = useWebApp()
-          if (webApp) {
-            this.isTelegramApp = true
-            // Get user data if available
-            if (webApp.initData && webApp.initDataUnsafe.user) {
-              this.telegramUser = webApp.initDataUnsafe.user
-              // Emit telegram user data
-              this.$emit('telegram-user', this.telegramUser)
-            }
-          }
-        } catch (err) {
-          console.log('Not in Telegram environment')
-          this.isTelegramApp = false
-        }
       },
       async connectWallet() {
         try {
@@ -130,11 +82,10 @@
             })
             this.chainId = chainId
   
-            // Emit connected event with additional telegram data if available
+            // Emit connected event
             this.$emit('wallet-connected', {
               address: this.address,
-              chainId: this.chainId,
-              telegramUser: this.telegramUser
+              chainId: this.chainId
             })
           } else {
             this.error = 'No accounts found. Please try again.'
@@ -161,11 +112,8 @@
         } else if (accounts[0] !== this.address) {
           this.address = accounts[0]
           
-          // Emit account changed event with telegram data if available
-          this.$emit('account-changed', {
-            address: this.address,
-            telegramUser: this.telegramUser
-          })
+          // Emit account changed event
+          this.$emit('account-changed', this.address)
         }
       },
       handleChainChanged(chainId) {
@@ -174,10 +122,7 @@
         this.$emit('chain-changed', chainId)
       }
     },
-    async mounted() {
-      // Initialize Telegram data if available
-      await this.initTelegramData()
-      
+    mounted() {
       if (this.checkWalletInstalled()) {
         // Set up event listeners
         window.okxwallet.ton.on('accountsChanged', this.handleAccountsChanged)
@@ -201,29 +146,6 @@
     margin: 0 auto;
   }
   
-  .telegram-info {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-bottom: 16px;
-    padding: 8px;
-
-    border-radius: 8px;
-  }
-  
-  .telegram-avatar {
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-    object-fit: cover;
-  }
-  
-  .telegram-name {
-    font-size: 14px;
-    font-weight: 500;
-    color: #333;
-  }
-  
   .connect-section {
     display: flex;
     flex-direction: column;
@@ -231,29 +153,23 @@
   }
   
   .connect-button {
-    background-color: #000;
-    border:1px solid #ddd;
+    background-color: #1677ff;
+    color: white;
     padding: 12px 24px;
     border-radius: 8px;
+    border: none;
     cursor: pointer;
     font-size: 16px;
     transition: background-color 0.2s;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    justify-content: center;
   }
   
-
+  .connect-button:hover {
+    background-color: #4096ff;
+  }
   
   .connect-button:disabled {
     opacity: 0.5;
     cursor: not-allowed;
-  }
-  
-
-  .okx-logo-sm {
-    filter: none; /* Original logo color for connected state */
   }
   
   .error-message {
@@ -264,7 +180,10 @@
     align-items: center;
   }
   
-
+  .install-link {
+    color: #1677ff;
+    text-decoration: none;
+  }
   
   .install-link:hover {
     text-decoration: underline;
@@ -273,15 +192,10 @@
   .connected-state {
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    gap: 12px;
     padding: 12px;
+    background-color: #f5f5f5;
     border-radius: 8px;
-  }
-  
-  .wallet-info {
-    display: flex;
-    align-items: center;
-    gap: 8px;
   }
   
   .address {
@@ -300,6 +214,6 @@
   }
   
   .disconnect-button:hover {
-    
+    background-color: #fff1f0;
   }
   </style>

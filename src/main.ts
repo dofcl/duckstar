@@ -2,6 +2,7 @@
 import { createApp } from "vue";
 import { createRouter, createWebHistory } from 'vue-router/auto'
 import { routes } from 'vue-router/auto-routes'
+import { VueTelegramPlugin } from 'vue-tg'
 import App from "./App.vue";
 import 'virtual:uno.css'
 
@@ -34,5 +35,6 @@ for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
     app.component(key, component)
 }
 app.use(ElementPlus)
+app.use(VueTelegramPlugin)
 app.use(router)
 app.mount('#app')
