@@ -5,7 +5,7 @@
 </template>
 
 <script>
-import KaraokePlayer from '@/Components/KaraokePlayer.vue'
+import KaraokePlayer from '@/components/KaraokePlayer.vue'
 
 export default {
   components: {

@@ -5,6 +5,7 @@
   </div>
   <div v-if="myProfile.onboarded">
     <div class="ma-4 text-center">
+      <img src="/images/duckstar-into-small.jpg" alt="DuckStar" class="intro m-0 p-0 mt-1 mx-auto" />
       <el-button @click="navTo('/create-song')" type="primary" size="large">Create a Song</el-button>
     </div>
   </div>
