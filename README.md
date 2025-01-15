@@ -1,3 +1,5 @@
+# Hackathon branch code freeze is: [hackathon-code-freeze](https://github.com/FastCloud-Labs/duckstar/tree/hackathon-code-freeze)
+
 ## DuckStar Vue.js Application with AWS Amplify
 
 This repository provides a starter template for creating applications using Vue.js and AWS Amplify, emphasizing easy setup for authentication, API, and database capabilities.
