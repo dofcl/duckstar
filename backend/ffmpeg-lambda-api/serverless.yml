@@ -1,0 +1,56 @@
+service: ffmpeg-api
+
+provider:
+  name: aws
+  runtime: nodejs18.x
+  region: us-west-2
+  memorySize: 4096
+  timeout: 900
+  environment:
+    S3_BUCKET: ffmpeg-temp-api--usw2-az1--x-s3
+  iam:
+    role:
+      statements:
+        - Effect: Allow
+          Action:
+            - "s3express:PutObject"
+            - "s3express:GetObject"
+            - "s3express:DeleteObject"
+            - "s3express:ListBucket"
+          Resource: 
+            - "arn:aws:s3express:${aws:region}:${aws:accountId}:bucket/ffmpeg-temp-api--usw2-az1--x-s3"
+            - "arn:aws:s3express:${aws:region}:${aws:accountId}:bucket/ffmpeg-temp-api--usw2-az1--x-s3/*"
+        - Effect: Allow
+          Action:
+            - "s3:ListAllMyBuckets"
+            - "s3:ListDirectoryBuckets"
+            - "s3:GetDirectoryBucketAccessPoint"
+          Resource: "*"
+        - Effect: Allow
+          Action:
+            - "lambda:InvokeFunction"
+            - "lambda:InvokeAsync"
+          Resource:
+            - Fn::Sub: "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${self:service}-${sls:stage}-processVideo"
+
+functions:
+  processVideo:
+    handler: index.handler
+    events:
+      - http:
+          path: process-video
+          method: post
+          cors: true
+      - http:
+          path: job-status/{jobId}
+          method: get
+          cors: true
+      - http:
+          path: presigned-url/{key+}
+          method: get
+          cors: true
+    layers:
+      - !Sub arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:layer:ffmpeg-layer:1
+
+plugins:
+  - serverless-offline

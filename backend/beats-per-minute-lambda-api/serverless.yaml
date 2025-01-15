@@ -1,0 +1,25 @@
+service: music-processor-lambda-api
+
+frameworkVersion: "4"
+
+custom:
+  esbuild:
+    bundle: true
+    minify: false
+    sourcemap: true
+    exclude: []
+    target: 'node18'
+    platform: 'node'
+    mainFields: ['module', 'main']
+    
+provider:
+  name: aws
+  runtime: nodejs18.x
+  timeout: 30
+  memorySize: 512
+
+functions:
+  api:
+    handler: handler.handler
+    events:
+      - httpApi: "*"
