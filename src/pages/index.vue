@@ -4,7 +4,9 @@
     <DuckLoader />
   </div>
   <div v-if="myProfile.onboarded">
-    onbaoarded
+    <div class="ma-4 text-center">
+      <el-button @click="navTo('/create-song')" type="primary" size="large">Create a Song</el-button>
+    </div>
   </div>
   <div v-else>
     <h1 class="text-white mb-0 pb-0 mt-3 pt-0">Welcome to DuckStar!</h1>

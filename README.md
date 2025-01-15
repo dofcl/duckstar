@@ -2,7 +2,9 @@
 
 ## DuckStar Vue.js Application with AWS Amplify
 
-This repository provides a starter template for creating applications using Vue.js and AWS Amplify, emphasizing easy setup for authentication, API, and database capabilities.
+This repository provides the DuckStar FrontEnd applications using Vue.js and AWS Amplify.
+
+
 
 ## Overview
 
@@ -15,6 +17,18 @@ This template equips you with a foundational Vue application integrated with AWS
 - **Database**: Real-time database powered by Amazon DynamoDB.
 - **Audio Control**: Mute and unmute background audio.
 - **Responsive Design**: Mobile and desktop menus.
+
+
+You'll need to setp te backend and define a "".env" file to the backend endpoints. refer to DuckStar-Backend
+
+## Environment Variables
+
+To configure the application, set the following environment variables:
+
+- `VITE_APP_PUBLIC_STATIC`: CloudFront or S3 bucket for uploaded media
+- `VITE_APP_MUSIC_GEN_ENDPOINT`: Endpoint for music generation
+- `VITE_APP_MUSIC_GEN_CALLBACK`: Callback URL for music generation
+
 
 ## Deploying to AWS
 
