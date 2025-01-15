@@ -5,8 +5,9 @@
   </div>
   <div v-if="myProfile.onboarded">
     <div class="ma-4 text-center">
-      <img src="/images/duckstar-into-small.jpg" alt="DuckStar" class="intro m-0 p-0 mt-1 mx-auto" />
-      <el-button @click="navTo('/create-song')" type="primary" size="large">Create a Song</el-button>
+      <img src="/images/duckstar-into-small.jpg" alt="DuckStar" class="intro m-0 p-0 mt-8 mx-auto" />
+      <el-button @click="navTo('/start-lip-sync-battle')" disabled  size="large" class="mt-8">Start a LipSync Battle</el-button>
+      <el-button @click="navTo('/create-song')" type="primary" size="large" class="mt-8">Create a Song</el-button>
     </div>
   </div>
   <div v-else>
