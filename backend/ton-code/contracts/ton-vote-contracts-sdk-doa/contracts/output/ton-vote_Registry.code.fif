@@ -1,0 +1,776 @@
+PROGRAM{
+  DECLPROC __tact_verify_address
+  DECLPROC __tact_load_address
+  DECLPROC __tact_store_address
+  DECLPROC __tact_create_address
+  DECLPROC __tact_compute_contract_address
+  DECLPROC __tact_my_balance
+  DECLPROC __tact_not_null
+  DECLPROC __tact_context_get
+  DECLPROC __tact_context_get_sender
+  DECLPROC __tact_store_bool
+  DECLPROC __tact_slice_eq_bits
+  DECLPROC __tact_dict_set_code
+  DECLPROC __tact_dict_get_code
+  DECLPROC $Deploy$_load
+  DECLPROC $DeployOk$_store
+  DECLPROC $DeployOk$_store_cell
+  DECLPROC $DeployAndInitDao$_load
+  DECLPROC $SetDeployAndInitDaoFee$_load
+  DECLPROC $SetNewDaoFwdMsgFee$_load
+  DECLPROC $SendToDaoSetFwdMsgFee$_load
+  DECLPROC $SetRegistryAdmin$_load
+  DECLPROC $SetFwdMsgFee$_store
+  DECLPROC $SetFwdMsgFee$_store_cell
+  DECLPROC $DaoInit$_store
+  DECLPROC $DaoInit$_store_cell
+  DECLPROC $Registry$_store
+  DECLPROC $Registry$_load
+  DECLPROC $StateInit$_not_null
+  DECLPROC $Context$_get_value
+  DECLPROC $RegistryContractState$_to_external
+  DECLPROC $Registry$init$_load
+  DECLPROC $Dao$init$_store
+  DECLPROC $Registry$_contract_init
+  DECLPROC $Registry$_contract_load
+  DECLPROC $Registry$_contract_store
+  DECLPROC $global_contractAddress
+  DECLPROC $global_send
+  DECLPROC $Dao$_init_child
+  DECLPROC $Registry$_fun_getDaoStateInit
+  DECLPROC $RegistryContractState$_constructor_registryId_nextDaoId_admin_deployAndInitDaoFee_newDaosfwdMsgFee
+  DECLPROC $Registry$_fun_state
+  DECLPROC $Registry$_fun_nextDaoId
+  DECLPROC $Registry$_fun_daoAddress
+  DECLPROC $SendParameters$_constructor_bounce_to_value_mode_body_code_data
+  DECLPROC $Registry$_fun_forward
+  DECLPROC $Registry$_fun_notify
+  DECLPROC $SendParameters$_constructor_to_value_bounce_mode_body_code_data
+  DECLPROC $DaoInit$_constructor_owner_proposalOwner_metadata_fwdMsgFee
+  DECLPROC $SendParameters$_constructor_to_value_bounce_mode_body
+  DECLPROC $SetFwdMsgFee$_constructor_newFwdMsgFee
+  DECLPROC $DeployOk$_constructor_queryId
+  DECLPROC $Registry$_internal_binary_DeployAndInitDao
+  DECLPROC $Registry$_internal_binary_SetDeployAndInitDaoFee
+  DECLPROC $Registry$_internal_binary_SetNewDaoFwdMsgFee
+  DECLPROC $Registry$_internal_binary_SendToDaoSetFwdMsgFee
+  DECLPROC $Registry$_internal_binary_SetRegistryAdmin
+  DECLPROC $Registry$_internal_binary_Deploy
+  77589 DECLMETHOD %state
+  98689 DECLMETHOD %nextDaoId
+  115144 DECLMETHOD %daoAddress
+  113617 DECLMETHOD supported_interfaces
+  121275 DECLMETHOD get_abi_ipfs
+  115390 DECLMETHOD lazy_deployment_completed
+  DECLPROC $Registry$_contract_router_internal
+  DECLPROC recv_internal
+  DECLGLOBVAR __tact_context
+  DECLGLOBVAR __tact_context_sender
+  DECLGLOBVAR __tact_context_sys
+  DECLGLOBVAR __tact_randomized
+  __tact_verify_address PROCINLINE:<{
+    DUP
+    SBITS
+    267 PUSHINT
+    EQUAL
+    136 THROWIFNOT
+    DUP
+    11 PLDU
+    DUP
+    1279 PUSHINT
+    EQUAL
+    137 THROWIF
+    10 PUSHPOW2
+    EQUAL
+    136 THROWIFNOT
+  }>
+  __tact_load_address PROCINLINE:<{
+    LDMSGADDR
+    SWAP
+    __tact_verify_address INLINECALLDICT
+  }>
+  __tact_store_address PROCINLINE:<{
+    __tact_verify_address INLINECALLDICT
+    STSLICER
+  }>
+  __tact_create_address PROCINLINE:<{
+    NEWC
+    2 PUSHINT
+    SWAP
+    2 STU
+    0 PUSHINT
+    SWAP
+    1 STU
+    s1 s2 XCHG
+    8 STI
+    256 STU
+    ENDC
+    CTOS
+    __tact_verify_address INLINECALLDICT
+  }>
+  __tact_compute_contract_address PROCINLINE:<{
+    NEWC
+    0 PUSHINT
+    SWAP
+    2 STU
+    3 PUSHINT
+    SWAP
+    2 STU
+    0 PUSHINT
+    SWAP
+    1 STU
+    s1 s2 XCHG
+    STREF
+    STREF
+    ENDC
+    HASHCU
+    __tact_create_address INLINECALLDICT
+  }>
+  __tact_my_balance PROCINLINE:<{
+    BALANCE
+    FIRST
+  }>
+  __tact_not_null PROCINLINE:<{
+    DUP
+    ISNULL
+    128 THROWIF
+  }>
+  __tact_context_get PROCINLINE:<{
+    __tact_context GETGLOB
+    4 UNTUPLE
+  }>
+  __tact_context_get_sender PROCINLINE:<{
+    __tact_context_sender GETGLOB
+  }>
+  __tact_store_bool PROCINLINE:<{
+    SWAP
+    1 STI
+  }>
+  __tact_slice_eq_bits PROCINLINE:<{
+    SDEQ
+  }>
+  __tact_dict_set_code PROCINLINE:<{
+    s0 s2 XCHG
+    16 PUSHINT
+    DICTUSETREF
+  }>
+  __tact_dict_get_code PROCINLINE:<{
+    SWAP
+    16 PUSHINT
+    DICTUGETREF
+    NULLSWAPIFNOT
+    135 THROWIFNOT
+  }>
+  $Deploy$_load PROCINLINE:<{
+    32 LDU
+    SWAP
+    2490013878 PUSHINT
+    EQUAL
+    129 THROWIFNOT
+    64 LDU
+    SWAP
+  }>
+  $DeployOk$_store PROCINLINE:<{
+    2952335191 PUSHINT
+    ROT
+    32 STU
+    64 STU
+  }>
+  $DeployOk$_store_cell PROCINLINE:<{
+    NEWC
+    SWAP
+    $DeployOk$_store INLINECALLDICT
+    ENDC
+  }>
+  $DeployAndInitDao$_load PROCINLINE:<{
+    32 LDU
+    SWAP
+    3378223972 PUSHINT
+    EQUAL
+    129 THROWIFNOT
+    __tact_load_address INLINECALLDICT
+    SWAP
+    __tact_load_address INLINECALLDICT
+    SWAP
+    __tact_load_address INLINECALLDICT
+    s3 s3 s0 XCHG3
+  }>
+  $SetDeployAndInitDaoFee$_load PROCINLINE:<{
+    32 LDU
+    SWAP
+    2828439833 PUSHINT
+    EQUAL
+    129 THROWIFNOT
+    64 LDU
+    SWAP
+  }>
+  $SetNewDaoFwdMsgFee$_load PROCINLINE:<{
+    32 LDU
+    SWAP
+    60181454 PUSHINT
+    EQUAL
+    129 THROWIFNOT
+    64 LDU
+    SWAP
+  }>
+  $SendToDaoSetFwdMsgFee$_load PROCINLINE:<{
+    32 LDU
+    SWAP
+    1477819782 PUSHINT
+    EQUAL
+    129 THROWIFNOT
+    32 LDU
+    64 LDU
+    -ROT
+  }>
+  $SetRegistryAdmin$_load PROCINLINE:<{
+    32 LDU
+    SWAP
+    3335943114 PUSHINT
+    EQUAL
+    129 THROWIFNOT
+    __tact_load_address INLINECALLDICT
+  }>
+  $SetFwdMsgFee$_store PROCINLINE:<{
+    4109608450 PUSHINT
+    ROT
+    32 STU
+    64 STU
+  }>
+  $SetFwdMsgFee$_store_cell PROCINLINE:<{
+    NEWC
+    SWAP
+    $SetFwdMsgFee$_store INLINECALLDICT
+    ENDC
+  }>
+  $DaoInit$_store PROCINLINE:<{
+    3971512043 PUSHINT
+    s0 s5 XCHG2
+    32 STU
+    s0 s3 XCHG2
+    __tact_store_address INLINECALLDICT
+    SWAP
+    __tact_store_address INLINECALLDICT
+    SWAP
+    __tact_store_address INLINECALLDICT
+    64 STU
+  }>
+  $DaoInit$_store_cell PROCINLINE:<{
+    NEWC
+    4 -ROLL
+    $DaoInit$_store INLINECALLDICT
+    ENDC
+  }>
+  $Registry$_store PROCINLINE:<{
+    s4 s5 XCHG2
+    32 STU
+    s1 s2 XCHG
+    32 STU
+    SWAP
+    __tact_store_address INLINECALLDICT
+    64 STU
+    64 STU
+  }>
+  $Registry$_load PROCINLINE:<{
+    32 LDU
+    32 LDU
+    __tact_load_address INLINECALLDICT
+    SWAP
+    64 LDU
+    64 LDU
+    5 -ROLL
+  }>
+  $StateInit$_not_null PROCINLINE:<{
+    DUP
+    ISNULL
+    128 THROWIF
+    2 UNTUPLE
+  }>
+  $Context$_get_value PROCINLINE:<{
+    s1 s3 XCHG
+    3 BLKDROP
+  }>
+  $RegistryContractState$_to_external PROCINLINE:<{
+  }>
+  $Registry$init$_load PROCINLINE:<{
+    257 PUSHINT
+    LDIX
+    SWAP
+  }>
+  $Dao$init$_store PROCINLINE:<{
+    -ROT
+    __tact_store_address INLINECALLDICT
+    257 PUSHINT
+    STIX
+  }>
+  $Registry$_contract_init PROCREF:<{
+    0 PUSHINT
+    s0 s0 PUSH2
+    __tact_create_address INLINECALLDICT
+    1000000000 PUSHINT
+    100000000 PUSHINT
+  }>
+  $Registry$_contract_load PROCREF:<{
+    c4 PUSH
+    CTOS
+    LDREF
+    SWAP
+    __tact_context_sys SETGLOB
+    1 LDI
+    SWAP
+    IFJMP:<{
+      $Registry$_load INLINECALLDICT
+      1 5 BLKDROP2
+    }>
+    MYADDR
+    11 PLDU
+    10 PUSHPOW2
+    EQUAL
+    137 THROWIFNOT
+    $Registry$init$_load INLINECALLDICT
+    SWAP
+    ENDS
+    $Registry$_contract_init INLINECALLDICT
+  }>
+  $Registry$_contract_store PROCINLINE:<{
+    NEWC
+    __tact_context_sys GETGLOB
+    SWAP
+    STREF
+    TRUE
+    SWAP
+    1 STI
+    5 -ROLL
+    $Registry$_store INLINECALLDICT
+    ENDC
+    c4 POP
+  }>
+  $global_contractAddress PROCINLINE:<{
+    0 PUSHINT
+    -ROT
+    __tact_compute_contract_address INLINECALLDICT
+  }>
+  $global_send PROCREF:<{
+    NEWC
+    1 PUSHINT
+    SWAP
+    2 STI
+    s0 s7 XCHG2
+    __tact_store_bool INLINECALLDICT
+    0 PUSHINT
+    SWAP
+    3 STI
+    s0 s5 XCHG2
+    __tact_store_address INLINECALLDICT
+    s0 s3 XCHG2
+    STGRAMS
+    0 PUSHINT
+    SWAP
+    105 STI
+    s3 PUSH
+    ISNULL
+    NOT
+    IF:<{
+      TRUE
+    }>ELSE<{
+      s4 PUSH
+      ISNULL
+      NOT
+    }>
+    IF:<{
+      TRUE
+      __tact_store_bool INLINECALLDICT
+      NEWC
+      FALSE
+      __tact_store_bool INLINECALLDICT
+      FALSE
+      __tact_store_bool INLINECALLDICT
+      s4 PUSH
+      ISNULL
+      NOT
+      IF:<{
+        TRUE
+        __tact_store_bool INLINECALLDICT
+        s0 s4 XCHG
+        __tact_not_null INLINECALLDICT
+        s0 s4 XCHG2
+        STREF
+      }>ELSE<{
+        s4 POP
+        s0 s3 XCHG
+        FALSE
+        __tact_store_bool INLINECALLDICT
+      }>
+      s4 PUSH
+      ISNULL
+      NOT
+      IF:<{
+        TRUE
+        __tact_store_bool INLINECALLDICT
+        s0 s4 XCHG
+        __tact_not_null INLINECALLDICT
+        s0 s4 XCHG2
+        STREF
+      }>ELSE<{
+        s4 POP
+        s0 s3 XCHG
+        FALSE
+        __tact_store_bool INLINECALLDICT
+      }>
+      FALSE
+      __tact_store_bool INLINECALLDICT
+      s0 s2 XCHG
+      TRUE
+      __tact_store_bool INLINECALLDICT
+      s0 s2 XCHG
+      ENDC
+      ROT
+      STREF
+    }>ELSE<{
+      s3 POP
+      s3 POP
+      SWAP
+      FALSE
+      __tact_store_bool INLINECALLDICT
+    }>
+    OVER
+    ISNULL
+    NOT
+    IF:<{
+      TRUE
+      __tact_store_bool INLINECALLDICT
+      SWAP
+      __tact_not_null INLINECALLDICT
+      SWAP
+      STREF
+    }>ELSE<{
+      NIP
+      FALSE
+      __tact_store_bool INLINECALLDICT
+    }>
+    ENDC
+    SWAP
+    SENDRAWMSG
+  }>
+  $Dao$_init_child PROCREF:<{
+    s0 s2 XCHG
+    CTOS
+    LDDICT
+    DROP
+    NEWDICT
+    SWAP
+    25663 PUSHINT
+    __tact_dict_get_code INLINECALLDICT
+    SWAP
+    25663 PUSHINT
+    s2 PUSH
+    __tact_dict_set_code INLINECALLDICT
+    NEWC
+    SWAP
+    NEWC
+    STDICT
+    ENDC
+    SWAP
+    STREF
+    FALSE
+    SWAP
+    1 STI
+    s0 s0 s3 XCHG3
+    $Dao$init$_store INLINECALLDICT
+    ENDC
+  }>
+  $Registry$_fun_getDaoStateInit PROCREF:<{
+    __tact_context_sys GETGLOB
+    MYADDR
+    ROT
+    $Dao$_init_child INLINECALLDICT
+  }>
+  $RegistryContractState$_constructor_registryId_nextDaoId_admin_deployAndInitDaoFee_newDaosfwdMsgFee PROCINLINE:<{
+  }>
+  $Registry$_fun_state PROCREF:<{
+    s4 s3 s2 PUSH3
+    s4 s3 PUSH2
+    $RegistryContractState$_constructor_registryId_nextDaoId_admin_deployAndInitDaoFee_newDaosfwdMsgFee INLINECALLDICT
+  }>
+  $Registry$_fun_nextDaoId PROCREF:<{
+    s3 PUSH
+  }>
+  $Registry$_fun_daoAddress PROCREF:<{
+    $Registry$_fun_getDaoStateInit INLINECALLDICT
+    $global_contractAddress INLINECALLDICT
+  }>
+  $SendParameters$_constructor_bounce_to_value_mode_body_code_data PROCINLINE:<{
+  }>
+  $Registry$_fun_forward PROCREF:<{
+    PUSHNULL
+    PUSHNULL
+    s2 PUSH
+    ISNULL
+    NOT
+    IF:<{
+      2DROP
+      $StateInit$_not_null INLINECALLDICT
+      SWAP
+    }>ELSE<{
+      s2 POP
+    }>
+    s2 s4 XCHG
+    0 PUSHINT
+    s0 s3 XCHG
+    s0 s4 XCHG
+    66 PUSHINT
+    s2 s3 XCHG2
+    $SendParameters$_constructor_bounce_to_value_mode_body_code_data INLINECALLDICT
+    $global_send INLINECALLDICT
+  }>
+  $Registry$_fun_notify PROCINLINE:<{
+    __tact_context_get_sender INLINECALLDICT
+    SWAP
+    FALSE
+    PUSHNULL
+    $Registry$_fun_forward INLINECALLDICT
+  }>
+  $SendParameters$_constructor_to_value_bounce_mode_body_code_data PROCINLINE:<{
+    s4 s6 XCHG
+    s4 s5 XCHG
+  }>
+  $DaoInit$_constructor_owner_proposalOwner_metadata_fwdMsgFee PROCINLINE:<{
+  }>
+  $SendParameters$_constructor_to_value_bounce_mode_body PROCINLINE:<{
+    s2 s4 XCHG
+    s2 s3 XCHG
+    PUSHNULL
+    PUSHNULL
+  }>
+  $SetFwdMsgFee$_constructor_newFwdMsgFee PROCINLINE:<{
+  }>
+  $DeployOk$_constructor_queryId PROCINLINE:<{
+  }>
+  $Registry$_internal_binary_DeployAndInitDao PROCINLINE:<{
+    46336 PUSHINT
+    __tact_context_get INLINECALLDICT
+    $Context$_get_value INLINECALLDICT
+    s6 PUSH
+    GEQ
+    THROWANYIFNOT
+    s6 PUSH
+    s5 s8 XCHG
+    s0 s4 XCHG
+    s3 s6 XCHG
+    s8 s0 s7 XCHG3
+    $Registry$_fun_getDaoStateInit INLINECALLDICT
+    2DUP
+    $global_contractAddress INLINECALLDICT
+    0 PUSHINT
+    FALSE
+    s10 s12 XCHG2
+    64 PUSHINT
+    s12 s6 XCPU
+    $DaoInit$_constructor_owner_proposalOwner_metadata_fwdMsgFee INLINECALLDICT
+    $DaoInit$_store_cell INLINECALLDICT
+    s1 s6 XCHG
+    s5 s9 XCHG
+    s4 s11 XCHG
+    s3 s10 XCHG
+    s10 s2 XCHG2
+    $SendParameters$_constructor_to_value_bounce_mode_body_code_data INLINECALLDICT
+    $global_send INLINECALLDICT
+    INC
+    3 -ROLL
+    s0 s4 XCHG
+  }>
+  $Registry$_internal_binary_SetDeployAndInitDaoFee PROCINLINE:<{
+    s2 POP
+    4600 PUSHINT
+    __tact_context_get_sender INLINECALLDICT
+    s4 s(-1) PUXC
+    __tact_slice_eq_bits INLINECALLDICT
+    THROWANYIFNOT
+  }>
+  $Registry$_internal_binary_SetNewDaoFwdMsgFee PROCINLINE:<{
+    NIP
+    56012 PUSHINT
+    __tact_context_get_sender INLINECALLDICT
+    s4 s(-1) PUXC
+    __tact_slice_eq_bits INLINECALLDICT
+    THROWANYIFNOT
+  }>
+  $Registry$_internal_binary_SendToDaoSetFwdMsgFee PROCINLINE:<{
+    8645 PUSHINT
+    __tact_context_get_sender INLINECALLDICT
+    s6 s(-1) PUXC
+    __tact_slice_eq_bits INLINECALLDICT
+    THROWANYIFNOT
+    6 -ROLL
+    $Registry$_fun_getDaoStateInit INLINECALLDICT
+    $global_contractAddress INLINECALLDICT
+    0 PUSHINT
+    FALSE
+    64 PUSHINT
+    s0 s9 XCHG
+    $SetFwdMsgFee$_constructor_newFwdMsgFee INLINECALLDICT
+    $SetFwdMsgFee$_store_cell INLINECALLDICT
+    s3 s4 XCHG
+    s1 s3 s0 XCHG3
+    s1 s9 XCHG
+    $SendParameters$_constructor_to_value_bounce_mode_body INLINECALLDICT
+    $global_send INLINECALLDICT
+    4 ROLL
+  }>
+  $Registry$_internal_binary_SetRegistryAdmin PROCINLINE:<{
+    23452 PUSHINT
+    __tact_context_get_sender INLINECALLDICT
+    s5 s(-1) PUXC
+    __tact_slice_eq_bits INLINECALLDICT
+    IF:<{
+      s4 POP
+      TRUE
+    }>ELSE<{
+      0 PUSHINT
+      DUP
+      __tact_create_address INLINECALLDICT
+      s0 s5 XCHG2
+      __tact_slice_eq_bits INLINECALLDICT
+    }>
+    s1 s4 XCHG
+    THROWANYIFNOT
+  }>
+  $Registry$_internal_binary_Deploy PROCINLINE:<{
+    $DeployOk$_constructor_queryId INLINECALLDICT
+    $DeployOk$_store_cell INLINECALLDICT
+    $Registry$_fun_notify INLINECALLDICT
+  }>
+  %state PROC:<{
+    $Registry$_contract_load INLINECALLDICT
+    $Registry$_fun_state INLINECALLDICT
+    5 5 BLKDROP2
+    $RegistryContractState$_to_external INLINECALLDICT
+  }>
+  %nextDaoId PROC:<{
+    $Registry$_contract_load INLINECALLDICT
+    $Registry$_fun_nextDaoId INLINECALLDICT
+    5 1 BLKDROP2
+  }>
+  %daoAddress PROC:<{
+    $Registry$_contract_load INLINECALLDICT
+    5 ROLL
+    $Registry$_fun_daoAddress INLINECALLDICT
+    5 1 BLKDROP2
+  }>
+  supported_interfaces PROC:<{
+    123515602279859691144772641439386770278 PUSHINT
+    209801025412363888721030803524359905849 PUSHINT
+    42980537499636128163026532310500881091 PUSHINT
+    36993126140238121407019133875791708966 PUSHINT
+    209474421377847335869795010607481022628 PUSHINT
+  }>
+  get_abi_ipfs PROC:<{
+    x{697066733a2f2f516d516655456976527048484e6846676b433375527a34764c7544766f764d584a6f51766376706e6d4471324172} PUSHSLICE
+  }>
+  lazy_deployment_completed PROC:<{
+    c4 PUSH
+    CTOS
+    1 LDI
+    SWAP
+  }>
+  $Registry$_contract_router_internal PROCREF:<{
+    SWAP
+    IFJMP:<{
+      DROP
+      TRUE
+    }>
+    0 PUSHINT
+    OVER
+    SBITS
+    31 GTINT
+    IF:<{
+      DROP
+      DUP
+      32 PLDU
+    }>
+    DUP
+    3378223972 PUSHINT
+    EQUAL
+    IFJMP:<{
+      DROP
+      $DeployAndInitDao$_load INLINECALLDICT
+      1 3 BLKDROP2
+      $Registry$_internal_binary_DeployAndInitDao INLINECALLDICT
+      TRUE
+    }>
+    DUP
+    2828439833 PUSHINT
+    EQUAL
+    IFJMP:<{
+      DROP
+      $SetDeployAndInitDaoFee$_load INLINECALLDICT
+      NIP
+      $Registry$_internal_binary_SetDeployAndInitDaoFee INLINECALLDICT
+      TRUE
+    }>
+    DUP
+    60181454 PUSHINT
+    EQUAL
+    IFJMP:<{
+      DROP
+      $SetNewDaoFwdMsgFee$_load INLINECALLDICT
+      NIP
+      $Registry$_internal_binary_SetNewDaoFwdMsgFee INLINECALLDICT
+      TRUE
+    }>
+    DUP
+    1477819782 PUSHINT
+    EQUAL
+    IFJMP:<{
+      DROP
+      $SendToDaoSetFwdMsgFee$_load INLINECALLDICT
+      1 2 BLKDROP2
+      $Registry$_internal_binary_SendToDaoSetFwdMsgFee INLINECALLDICT
+      TRUE
+    }>
+    DUP
+    3335943114 PUSHINT
+    EQUAL
+    IFJMP:<{
+      DROP
+      $SetRegistryAdmin$_load INLINECALLDICT
+      NIP
+      $Registry$_internal_binary_SetRegistryAdmin INLINECALLDICT
+      TRUE
+    }>
+    2490013878 PUSHINT
+    EQUAL
+    IFJMP:<{
+      $Deploy$_load INLINECALLDICT
+      NIP
+      $Registry$_internal_binary_Deploy INLINECALLDICT
+      TRUE
+    }>
+    DROP
+    FALSE
+  }>
+  recv_internal PROC:<{
+    SWAP
+    CTOS
+    4 LDU
+    SWAP
+    1 PUSHINT
+    AND
+    NEGATE
+    SWAP
+    LDMSGADDR
+    SWAP
+    __tact_verify_address INLINECALLDICT
+    s0 s4 s2 PUXCPU
+    s0 s3 XCHG
+    4 TUPLE
+    __tact_context SETGLOB
+    s0 s2 XCHG
+    __tact_context_sender SETGLOB
+    $Registry$_contract_load INLINECALLDICT
+    2 5 BLKSWAP
+    $Registry$_contract_router_internal INLINECALLDICT
+    130 THROWIFNOT
+    $Registry$_contract_store INLINECALLDICT
+  }>
+}END>c
